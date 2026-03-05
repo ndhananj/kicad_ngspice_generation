@@ -7,6 +7,7 @@ A Python-first toolkit and example corpus for generating **KiCad schematic files
 - `mixedsig2cad/`: library code for high-level spec modeling and exporters.
 - `examples/specs/catalog.py`: 8 programmatic circuit examples.
 - `examples/generated/kicad/*.kicad_sch`: generated KiCad schematic examples.
+- `examples/generated/kicad/examples.kicad_pro`: KiCad project that opens all generated schematics as hierarchical sheets.
 - `examples/generated/ngspice/*.cir`: generated ngspice netlist examples.
 - `scripts/generate_examples.py`: regenerates all example outputs.
 - `scripts/validate_examples.py`: structural validator for generated outputs.
@@ -56,6 +57,9 @@ Each entry has:
 - `opamp_inverting`
 - `cmos_inverter`
 - `schmitt_trigger`
+
+
+Open `examples/generated/kicad/examples.kicad_pro` in KiCad to browse every generated example from a single project window.
 
 ## Notes on compatibility
 
