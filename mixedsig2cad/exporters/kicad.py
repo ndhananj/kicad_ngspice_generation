@@ -22,6 +22,20 @@ def _uuid(seed: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, seed))
 
 
+def _symbol_property(name: str, value: str, x: float, y: float, *, hidden: bool = False) -> list[str]:
+    """Emit KiCad symbol property syntax compatible with KiCad 8 parser.
+
+    Hidden properties must express `hide` inside the `effects` stanza, not as a
+    standalone property child node.
+    """
+    effects = "(effects (font (size 1.27 1.27)) hide)" if hidden else "(effects (font (size 1.27 1.27)))"
+    return [
+        f'    (property "{name}" "{value}" (at {x} {y} 0)',
+        f"      {effects}",
+        "    )",
+    ]
+
+
 def export_kicad_schematic(spec: CircuitSpec) -> str:
     schematic_uuid = _uuid(f"sch:{spec.name}")
     lines: list[str] = [
@@ -50,14 +64,10 @@ def export_kicad_schematic(spec: CircuitSpec) -> str:
                 f"  (symbol (lib_id \"{lib_id}\") (at {x} {y} 0) (unit 1)",
                 "    (in_bom yes) (on_board yes)",
                 f"    (uuid {symbol_uuid})",
-                f"    (property \"Reference\" \"{comp.ref}\" (at {x} {y-3.81} 0)",
-                "      (effects (font (size 1.27 1.27)))",
-                "    )",
-                f"    (property \"Value\" \"{comp.value}\" (at {x} {y+3.81} 0)",
-                "      (effects (font (size 1.27 1.27)))",
-                "    )",
-                '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27))) (hide))',
-                '    (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27))) (hide))',
+                *_symbol_property("Reference", comp.ref, x, y - 3.81),
+                *_symbol_property("Value", comp.value, x, y + 3.81),
+                *_symbol_property("Footprint", "", 0, 0, hidden=True),
+                *_symbol_property("Datasheet", "", 0, 0, hidden=True),
                 "  )",
             ]
         )

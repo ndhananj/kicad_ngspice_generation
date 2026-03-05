@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
+import shutil
+import subprocess
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -37,6 +41,46 @@ def validate_kicad(path: Path) -> None:
     assert "(kicad_sch" in text, f"missing schematic header in {path}"
     assert "(symbol_instances" in text, f"missing symbol_instances in {path}"
     assert _balanced_parentheses(text), f"unbalanced parentheses in {path}"
+    assert "(hide yes)" not in text, f"legacy '(hide yes)' found in {path}"
+    assert "(hide))" not in text, f"invalid standalone '(hide)' property child found in {path}"
+    if '(property "Footprint"' in text or '(property "Datasheet"' in text:
+        assert "effects (font (size 1.27 1.27)) hide" in text, (
+            f"expected hidden property syntax '(effects ... hide)' not found in {path}"
+        )
+
+
+def _kicad_cli_parse(path: Path) -> None:
+    kicad_cli = shutil.which("kicad-cli")
+    if not kicad_cli:
+        return
+
+    with tempfile.TemporaryDirectory(prefix="kicad-cli-") as tmp_home:
+        tmp_home_path = Path(tmp_home)
+        output = tmp_home_path / "out.net"
+        env = dict(os.environ)
+        env["HOME"] = str(tmp_home_path)
+        env["XDG_CONFIG_HOME"] = str(tmp_home_path / ".config")
+        result = subprocess.run(
+            [
+                kicad_cli,
+                "sch",
+                "export",
+                "netlist",
+                "--format",
+                "kicadsexpr",
+                "--output",
+                str(output),
+                str(path),
+            ],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert result.returncode == 0, (
+            f"kicad-cli parse/export failed for {path}\n"
+            f"stdout:\n{result.stdout}\n"
+            f"stderr:\n{result.stderr}"
+        )
 
 
 def validate_ngspice(path: Path) -> None:
@@ -61,9 +105,10 @@ def validate_ngspice(path: Path) -> None:
 def main() -> None:
     for kicad in (ROOT / "examples" / "generated" / "kicad").glob("*.kicad_sch"):
         validate_kicad(kicad)
+        _kicad_cli_parse(kicad)
     for cir in (ROOT / "examples" / "generated" / "ngspice").glob("*.cir"):
         validate_ngspice(cir)
-    print("all generated examples passed structural validation")
+    print("all generated examples passed structural + kicad-cli validation")
 
 
 if __name__ == "__main__":
