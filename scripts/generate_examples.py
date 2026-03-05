@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 import sys
 import uuid
@@ -28,27 +29,37 @@ def _aggregate_schematic(example_names: list[str]) -> str:
         '  (generator "mixedsig2cad")',
         f"  (uuid {project_uuid})",
         '  (paper "A4")',
+        "  (title_block",
+        '    (title "mixedsig2cad examples")',
+        f'    (date "{date.today().isoformat()}")',
+        '    (comment 1 "Example sheet index")',
+        "  )",
         "  (lib_symbols)",
     ]
 
     start_x = 25
-    start_y = 20
-    width = 120
-    height = 16
+    start_y = 24
+    width = 78
+    height = 14
     step_y = 18
+    col_gap = 20
+    rows_per_col = 9
 
     for idx, (name, sheet_uuid) in enumerate(sheets):
-        y = start_y + (idx * step_y)
+        col = idx // rows_per_col
+        row = idx % rows_per_col
+        x = start_x + col * (width + col_gap)
+        y = start_y + (row * step_y)
         lines.extend(
             [
-                f"  (sheet (at {start_x} {y}) (size {width} {height})",
+                f"  (sheet (at {x} {y}) (size {width} {height})",
                 "    (stroke (width 0) (type solid) (color 0 0 0 0))",
                 "    (fill (color 0 0 0 0))",
                 f"    (uuid {sheet_uuid})",
-                f'    (property "Sheet name" "{name}" (at {start_x} {y - 1.5} 0)',
+                f'    (property "Sheet name" "{name}" (at {x} {y - 1.5} 0)',
                 "      (effects (font (size 1.27 1.27)) (justify left bottom))",
                 "    )",
-                f'    (property "Sheet file" "{name}.kicad_sch" (at {start_x} {y + height + 1.5} 0)',
+                f'    (property "Sheet file" "{name}.kicad_sch" (at {x} {y + height + 1.5} 0)',
                 "      (effects (font (size 1.27 1.27)) (justify left top))",
                 "    )",
                 "  )",
