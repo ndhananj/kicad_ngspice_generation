@@ -9,15 +9,23 @@ from mixedsig2cad.spec import CircuitSpec
 
 
 SYMBOL_BY_KIND = {
-    "R": "Device:R",
-    "C": "Device:C",
-    "L": "Device:L",
-    "V": "pspice:VSOURCE",
-    "I": "pspice:ISOURCE",
-    "D": "Device:D",
-    "Q": "Device:Q_NPN_BCE",
-    "M": "Device:Q_PMOS_GSD",
-    "X": "Amplifier_Operational:LM358",
+    "R": "examples:R",
+    "C": "examples:CAP",
+    "L": "examples:INDUCTOR",
+    "V": "examples:VSOURCE",
+    "I": "examples:ISOURCE",
+    "D": "examples:DIODE",
+    "Q": "examples:QNPN",
+    "M": "examples:MPMOS",
+    "X": "examples:OPAMP",
+}
+
+POWER_SYMBOL_BY_NET = {
+    "0": "GND",
+    "gnd": "GND",
+    "vss": "GND",
+    "vdd": "VCC",
+    "vcc": "VCC",
 }
 
 
@@ -41,11 +49,11 @@ def _symbol_property(name: str, value: str, x: float, y: float, *, hidden: bool 
 
 def _symbol_for_component(kind: str, value: str, model: str | None) -> str:
     if kind != "M":
-        return SYMBOL_BY_KIND.get(kind, "Device:R")
+        return SYMBOL_BY_KIND.get(kind, "examples:R")
     hint = f"{value} {model or ''}".lower()
     if "nm" in hint or "nmos" in hint:
-        return "Device:Q_NMOS_GSD"
-    return "Device:Q_PMOS_GSD"
+        return "examples:MNMOS"
+    return "examples:MPMOS"
 
 
 def _wire(x1: float, y1: float, x2: float, y2: float, seed: str) -> list[str]:
@@ -102,6 +110,7 @@ def _orthogonal_wire(
 def _net_map_lines(
     spec: CircuitSpec,
     pin_positions: DefaultDict[str, list[tuple[float, float]]],
+    display_names: dict[str, str],
 ) -> list[str]:
     if not pin_positions:
         return []
@@ -115,7 +124,8 @@ def _net_map_lines(
 
         label_x = min(p[0] for p in points) - 6.0
         label_y = min(p[1] for p in points) - 1.5 - (net_idx % 2) * 1.5
-        lines.extend(_label(net, label_x, label_y, f"label:{spec.name}:{net}"))
+        label_text = display_names.get(net, net)
+        lines.extend(_label(label_text, label_x, label_y, f"label:{spec.name}:{net}"))
 
         if len(points) == 1:
             continue
@@ -152,17 +162,18 @@ def export_kicad_schematic(spec: CircuitSpec) -> str:
 
     base_x = 50
     y = 50
-    comp_positions: dict[str, tuple[float, float]] = {}
     pin_positions: DefaultDict[str, list[tuple[float, float]]] = defaultdict(list)
+    display_names: dict[str, str] = {}
+    symbol_instances: list[tuple[str, str, str]] = []
     for idx, comp in enumerate(spec.components, start=1):
         symbol_uuid = _uuid(f"sym:{spec.name}:{comp.ref}")
         lib_id = _symbol_for_component(comp.kind, comp.value, comp.model)
         x = base_x + (idx - 1) % 4 * 35
         if idx > 1 and (idx - 1) % 4 == 0:
             y += 30
-        comp_positions[comp.ref] = (float(x), float(y))
+        comp_pos = (float(x), float(y))
         for pin_index, net in enumerate(comp.nodes):
-            pin_positions[net].append(_pin_anchor(comp_positions[comp.ref], pin_index, len(comp.nodes)))
+            pin_positions[net].append(_pin_anchor(comp_pos, pin_index, len(comp.nodes)))
         lines.extend(
             [
                 f"  (symbol (lib_id \"{lib_id}\") (at {x} {y} 0) (unit 1)",
@@ -175,8 +186,34 @@ def export_kicad_schematic(spec: CircuitSpec) -> str:
                 "  )",
             ]
         )
+        symbol_instances.append((symbol_uuid, comp.ref, comp.value))
 
-    lines.extend(_net_map_lines(spec, pin_positions))
+    power_ref_idx = 1
+    power_nets = sorted(net for net in pin_positions.keys() if net.lower() in POWER_SYMBOL_BY_NET)
+    for net in power_nets:
+        symbol_name = POWER_SYMBOL_BY_NET[net.lower()]
+        px = min(p[0] for p in pin_positions[net]) - 12.0
+        py = min(p[1] for p in pin_positions[net]) - 6.0
+        sym_uuid = _uuid(f"pwr:{spec.name}:{net}:{symbol_name}")
+        ref = f"#PWR{power_ref_idx:04d}"
+        power_ref_idx += 1
+        lines.extend(
+            [
+                f'  (symbol (lib_id "examples:{symbol_name}") (at {px:.2f} {py:.2f} 0) (unit 1)',
+                "    (in_bom yes) (on_board yes)",
+                f"    (uuid {sym_uuid})",
+                *_symbol_property("Reference", ref, px, py - 3.81, hidden=True),
+                *_symbol_property("Value", symbol_name, px, py + 3.81),
+                *_symbol_property("Footprint", "", 0, 0, hidden=True),
+                *_symbol_property("Datasheet", "", 0, 0, hidden=True),
+                "  )",
+            ]
+        )
+        pin_positions[net].append((px, py))
+        display_names[net] = symbol_name
+        symbol_instances.append((sym_uuid, ref, symbol_name))
+
+    lines.extend(_net_map_lines(spec, pin_positions, display_names))
 
     lines.extend(
         [
@@ -187,10 +224,9 @@ def export_kicad_schematic(spec: CircuitSpec) -> str:
         ]
     )
 
-    for comp in spec.components:
-        symbol_uuid = _uuid(f"sym:{spec.name}:{comp.ref}")
+    for symbol_uuid, ref, value in symbol_instances:
         lines.append(
-            f'    (path "/{symbol_uuid}" (reference "{comp.ref}") (unit 1) (value "{comp.value}") (footprint ""))'
+            f'    (path "/{symbol_uuid}" (reference "{ref}") (unit 1) (value "{value}") (footprint ""))'
         )
 
     lines.extend(["  )", ")"])

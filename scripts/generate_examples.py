@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+import os
 from pathlib import Path
 import sys
 import uuid
@@ -14,6 +15,21 @@ from mixedsig2cad import export_kicad_schematic, export_ngspice_netlist
 KICAD_DIR = ROOT / "examples" / "generated" / "kicad"
 NGSPICE_DIR = ROOT / "examples" / "generated" / "ngspice"
 PROJECT_NAME = "examples"
+KICAD_SYMBOL_DIR = Path(os.environ.get("KICAD_SYMBOL_DIR", "/usr/share/kicad/symbols"))
+PROJECT_LIB_SYMBOLS = (
+    ("pspice.kicad_sym", "VSOURCE"),
+    ("pspice.kicad_sym", "ISOURCE"),
+    ("pspice.kicad_sym", "R"),
+    ("pspice.kicad_sym", "CAP"),
+    ("pspice.kicad_sym", "INDUCTOR"),
+    ("pspice.kicad_sym", "DIODE"),
+    ("pspice.kicad_sym", "QNPN"),
+    ("pspice.kicad_sym", "MNMOS"),
+    ("pspice.kicad_sym", "MPMOS"),
+    ("pspice.kicad_sym", "OPAMP"),
+    ("power.kicad_sym", "GND"),
+    ("power.kicad_sym", "VCC"),
+)
 
 
 def _aggregate_schematic(example_names: list[str]) -> str:
@@ -119,11 +135,40 @@ def _project_file() -> str:
 
 
 def _project_symbol_library_file() -> str:
-    return """(kicad_symbol_lib
-  (version 20231120)
-  (generator "mixedsig2cad")
-)
-"""
+    lines = [
+        "(kicad_symbol_lib",
+        "  (version 20231120)",
+        '  (generator "mixedsig2cad")',
+    ]
+    for src_file, symbol_name in PROJECT_LIB_SYMBOLS:
+        block = _extract_symbol_block(KICAD_SYMBOL_DIR / src_file, symbol_name)
+        for row in block.splitlines():
+            lines.append(f"  {row}")
+    lines.append(")")
+    return "\n".join(lines) + "\n"
+
+
+def _extract_symbol_block(lib_path: Path, symbol_name: str) -> str:
+    text = lib_path.read_text(encoding="utf-8")
+    needle = f'(symbol "{symbol_name}"'
+    start = text.find(needle)
+    if start < 0:
+        raise RuntimeError(f"symbol '{symbol_name}' not found in {lib_path}")
+
+    depth = 0
+    end = -1
+    for idx in range(start, len(text)):
+        ch = text[idx]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                end = idx + 1
+                break
+    if end < 0:
+        raise RuntimeError(f"failed to parse symbol block '{symbol_name}' in {lib_path}")
+    return text[start:end]
 
 
 def main() -> None:
@@ -141,7 +186,11 @@ def main() -> None:
         _aggregate_schematic(example_names),
         encoding="utf-8",
     )
-    (KICAD_DIR / f"{PROJECT_NAME}.kicad_pro").write_text(_project_file(), encoding="utf-8")
+    project_path = KICAD_DIR / f"{PROJECT_NAME}.kicad_pro"
+    if not project_path.exists() or os.environ.get("OVERWRITE_KICAD_PROJECT", "").strip() == "1":
+        project_path.write_text(_project_file(), encoding="utf-8")
+    else:
+        print(f"preserved existing project file: {project_path.name}")
     (KICAD_DIR / f"{PROJECT_NAME}.kicad_sym").write_text(_project_symbol_library_file(), encoding="utf-8")
     print(f"generated: {PROJECT_NAME}.kicad_pro")
 
