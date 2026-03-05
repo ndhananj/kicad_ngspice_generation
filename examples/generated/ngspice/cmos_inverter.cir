@@ -1,0 +1,13 @@
+* cmos_inverter
+VDD vdd 0 DC 3.3
+VIN vin 0 PULSE(0 3.3 0 1n 1n 10n 20n)
+MP1 vout vin vdd vdd PM1
+MN1 vout vin 0 0 NM1
+
+.model NM1 NMOS (Level=1 Vto=0.7 Kp=120u Lambda=0.03)
+.model PM1 PMOS (Level=1 Vto=-0.7 Kp=60u Lambda=0.04)
+
+.control
+tran 0.1n 100n
+.endc
+.end

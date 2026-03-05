@@ -1,0 +1,11 @@
+* diode_clipper
+V1 vin 0 SIN(0 5 1k)
+R1 vin vout 1k
+D1 vout 0 D4148
+
+.model D4148 D(Is=2.5e-9 N=1.75 Rs=0.6 Cjo=1.5p)
+
+.control
+tran 0.05ms 5ms
+.endc
+.end

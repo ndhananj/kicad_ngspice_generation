@@ -1,0 +1,18 @@
+* schmitt_trigger
+VCC vcc 0 DC 5
+VIN vin 0 PWL(0 0 1m 5 2m 0)
+R1 vcc vout 100k
+R2 vout vplus 100k
+R3 vin vminus 10k
+XU1 vplus vminus vout OPCMP
+
+.subckt OPCMP 1 2 6
+E1 6 0 1 2 1e6
+R1i 1 0 1e9
+R2i 2 0 1e9
+.ends OPCMP
+
+.control
+tran 10us 3ms
+.endc
+.end
