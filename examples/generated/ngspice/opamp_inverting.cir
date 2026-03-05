@@ -1,0 +1,18 @@
+* opamp_inverting
+VCC vcc 0 DC 12
+VEE vee 0 DC -12
+VIN vin 0 SIN(0 0.5 500)
+RIN vin vminus 10k
+RF vout vminus 100k
+XU1 0 vminus vout OPAMP
+
+.subckt OPAMP 1 2 6
+EGAIN 6 0 1 2 1e5
+RINP 1 0 1e9
+RINN 2 0 1e9
+.ends OPAMP
+
+.control
+tran 0.1ms 10ms
+.endc
+.end

@@ -1,0 +1,10 @@
+* rc_lowpass
+V1 vin 0 DC 5
+R1 vin vout 1k
+C1 vout 0 100n
+
+.control
+op
+ac dec 20 10 1e6
+.endc
+.end
