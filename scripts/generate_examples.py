@@ -87,7 +87,9 @@ def _project_file() -> str:
   },
   \"libraries\": {
     \"pinned_footprint_libs\": [],
-    \"pinned_symbol_libs\": []
+    \"pinned_symbol_libs\": [
+      \"examples\"
+    ]
   },
   \"meta\": {
     \"filename\": \"examples.kicad_pro\",
@@ -102,6 +104,14 @@ def _project_file() -> str:
   },
   \"text_variables\": {}
 }
+"""
+
+
+def _project_symbol_library_file() -> str:
+    return """(kicad_symbol_lib
+  (version 20231120)
+  (generator "mixedsig2cad")
+)
 """
 
 
@@ -121,6 +131,7 @@ def main() -> None:
         encoding="utf-8",
     )
     (KICAD_DIR / f"{PROJECT_NAME}.kicad_pro").write_text(_project_file(), encoding="utf-8")
+    (KICAD_DIR / f"{PROJECT_NAME}.kicad_sym").write_text(_project_symbol_library_file(), encoding="utf-8")
     print(f"generated: {PROJECT_NAME}.kicad_pro")
 
 

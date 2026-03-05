@@ -36,6 +36,20 @@ def _symbol_property(name: str, value: str, x: float, y: float, *, hidden: bool 
     ]
 
 
+def _symbol_for_component(kind: str, value: str, model: str | None) -> str:
+    if kind != "M":
+        return SYMBOL_BY_KIND.get(kind, "Device:R")
+    hint = f"{value} {model or ''}".lower()
+    if "nm" in hint or "nmos" in hint:
+        return "Device:Q_NMOS_GSD"
+    return "Device:Q_PMOS_GSD"
+
+
+def _pin_map_text(nodes: tuple[str, ...]) -> str:
+    pairs = [f"{idx + 1}:{node}" for idx, node in enumerate(nodes)]
+    return "pins " + "  ".join(pairs)
+
+
 def export_kicad_schematic(spec: CircuitSpec) -> str:
     schematic_uuid = _uuid(f"sch:{spec.name}")
     lines: list[str] = [
@@ -51,15 +65,19 @@ def export_kicad_schematic(spec: CircuitSpec) -> str:
     y = 50
     for idx, comp in enumerate(spec.components, start=1):
         symbol_uuid = _uuid(f"sym:{spec.name}:{comp.ref}")
-        lib_id = SYMBOL_BY_KIND.get(comp.kind, "Device:R")
+        lib_id = _symbol_for_component(comp.kind, comp.value, comp.model)
         x = base_x + (idx - 1) % 4 * 35
         if idx > 1 and (idx - 1) % 4 == 0:
             y += 30
         node_text = " ".join(comp.nodes)
+        pin_map = _pin_map_text(comp.nodes)
         lines.extend(
             [
                 f"  (text \"nodes: {node_text}\" (at {x} {y-8} 0)",
                 "    (effects (font (size 1.27 1.27)) (justify left))",
+                "  )",
+                f"  (text \"{pin_map}\" (at {x} {y+8} 0)",
+                "    (effects (font (size 1.0 1.0)) (justify left))",
                 "  )",
                 f"  (symbol (lib_id \"{lib_id}\") (at {x} {y} 0) (unit 1)",
                 "    (in_bom yes) (on_board yes)",
