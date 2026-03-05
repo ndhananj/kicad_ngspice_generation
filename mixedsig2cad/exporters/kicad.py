@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from collections import defaultdict
 from datetime import date
-from typing import DefaultDict
+from typing import DefaultDict, NamedTuple
 
 from mixedsig2cad.spec import CircuitSpec
 
@@ -26,6 +26,46 @@ POWER_SYMBOL_BY_NET = {
     "vss": "GND",
     "vdd": "VCC",
     "vcc": "VCC",
+}
+
+
+class Placement(NamedTuple):
+    x: float
+    y: float
+    angle: int = 0
+
+
+PIN_OFFSETS = {
+    "examples:VSOURCE": ((0.0, 7.62), (0.0, -7.62)),
+    "examples:ISOURCE": ((0.0, 10.16), (0.0, -10.16)),
+    "examples:R": ((0.0, 6.35), (0.0, -6.35)),
+    "examples:CAP": ((0.0, 6.35), (0.0, -6.35)),
+    "examples:INDUCTOR": ((-6.35, 0.0), (6.35, 0.0)),
+    "examples:DIODE": ((-5.08, 0.0), (5.08, 0.0)),
+    "examples:QNPN": ((3.81, 8.89), (-7.62, 0.0), (3.81, -8.89), (-2.54, -8.89)),
+    "examples:MNMOS": ((2.54, 5.08), (-5.08, 0.0), (2.54, -5.08), (5.08, -5.08)),
+    "examples:MPMOS": ((2.54, -5.08), (-5.08, 0.0), (2.54, 5.08), (5.08, 5.08)),
+    "examples:OPAMP": ((-7.62, 2.54), (-7.62, -2.54), (7.62, 0.0), (-2.54, 7.62), (-2.54, -7.62)),
+    "examples:GND": ((0.0, 0.0),),
+    "examples:VCC": ((0.0, 0.0),),
+}
+
+GROUP_X = {
+    "source": 50.0,
+    "passive": 95.0,
+    "active": 150.0,
+}
+
+GROUP_Y = {
+    "source": 55.0,
+    "passive": 55.0,
+    "active": 85.0,
+}
+
+GROUP_STEP_Y = {
+    "source": 35.0,
+    "passive": 35.0,
+    "active": 45.0,
 }
 
 
@@ -78,14 +118,81 @@ def _junction(x: float, y: float) -> str:
     return f"  (junction (at {x:.2f} {y:.2f}) (diameter 1.016) (color 0 0 0 0))"
 
 
-def _pin_anchor(pos: tuple[float, float], pin_index: int, pin_count: int) -> tuple[float, float]:
-    x, y = pos
-    spread = max(1, pin_count - 1)
-    x0 = x - 6.0
-    step = 12.0 / spread
-    px = x0 + (pin_index * step)
-    py = y - 6.0 if pin_index < (pin_count + 1) // 2 else y + 6.0
-    return (px, py)
+def _rotate_point(x: float, y: float, angle: int) -> tuple[float, float]:
+    normalized = angle % 360
+    if normalized == 0:
+        return (x, y)
+    if normalized == 90:
+        return (-y, x)
+    if normalized == 180:
+        return (-x, -y)
+    if normalized == 270:
+        return (y, -x)
+    raise ValueError(f"unsupported angle: {angle}")
+
+
+def _pin_anchor(lib_id: str, placement: Placement, pin_index: int) -> tuple[float, float]:
+    offsets = PIN_OFFSETS.get(lib_id)
+    if offsets is None or pin_index >= len(offsets):
+        return (placement.x, placement.y)
+    local_x, local_y = offsets[pin_index]
+    dx, dy = _rotate_point(local_x, local_y, placement.angle)
+    return (round(placement.x + dx, 2), round(placement.y + dy, 2))
+
+
+def _component_group(kind: str) -> str:
+    if kind in {"V", "I"}:
+        return "source"
+    if kind in {"R", "C", "L", "D"}:
+        return "passive"
+    return "active"
+
+
+def _component_angle(kind: str, ref: str, nodes: tuple[str, ...]) -> int:
+    if kind in {"R", "C"}:
+        return 90
+    if kind in {"V", "I"}:
+        nets = {node.lower() for node in nodes}
+        if ref.upper().startswith(("VCC", "VDD", "VEE")) or "0" in nets or "gnd" in nets:
+            return 0
+        return 90
+    return 0
+
+
+def _placement_overrides(spec: CircuitSpec) -> dict[str, Placement]:
+    if spec.name == "opamp_inverting":
+        return {
+            "VCC": Placement(45.0, 40.0, 0),
+            "VEE": Placement(45.0, 120.0, 0),
+            "VIN": Placement(45.0, 80.0, 90),
+            "RIN": Placement(90.0, 80.0, 90),
+            "RF": Placement(135.0, 55.0, 90),
+            "XU1": Placement(145.0, 80.0, 0),
+        }
+    if spec.name == "schmitt_trigger":
+        return {
+            "VCC": Placement(45.0, 40.0, 0),
+            "VIN": Placement(45.0, 105.0, 90),
+            "R1": Placement(95.0, 40.0, 90),
+            "R2": Placement(140.0, 55.0, 90),
+            "R3": Placement(95.0, 105.0, 90),
+            "XU1": Placement(145.0, 85.0, 0),
+        }
+    return {}
+
+
+def _component_placements(spec: CircuitSpec) -> dict[str, Placement]:
+    placements = _placement_overrides(spec)
+    counts = {"source": 0, "passive": 0, "active": 0}
+    for comp in spec.components:
+        if comp.ref in placements:
+            continue
+        group = _component_group(comp.kind)
+        x = GROUP_X[group]
+        y = GROUP_Y[group] + counts[group] * GROUP_STEP_Y[group]
+        counts[group] += 1
+        placements[comp.ref] = Placement(x, y, _component_angle(comp.kind, comp.ref, comp.nodes))
+    return placements
 
 
 def _orthogonal_wire(
@@ -134,7 +241,18 @@ def _net_map_lines(
             lines.extend(_orthogonal_wire(points[0], points[1], f"net2:{spec.name}:{net}"))
             continue
 
-        y_trunk = round(sum(p[1] for p in points) / len(points) + 6.0, 2)
+        x_span = max(p[0] for p in points) - min(p[0] for p in points)
+        y_min = min(p[1] for p in points)
+        y_max = max(p[1] for p in points)
+        net_lower = net.lower()
+        if net_lower in {"0", "gnd", "vss"}:
+            y_trunk = round(y_max + 6.0, 2)
+        elif net_lower in {"vcc", "vdd", "vee"}:
+            y_trunk = round(y_min - 6.0, 2)
+        elif x_span >= 30.0:
+            y_trunk = round(y_min - 6.0, 2)
+        else:
+            y_trunk = round(y_max + 6.0, 2)
         x_min = min(p[0] for p in points) - 1.0
         x_max = max(p[0] for p in points) + 1.0
         lines.extend(_wire(x_min, y_trunk, x_max, y_trunk, f"trunk:{spec.name}:{net}"))
@@ -160,27 +278,23 @@ def export_kicad_schematic(spec: CircuitSpec) -> str:
         "  (lib_symbols)",
     ]
 
-    base_x = 50
-    y = 50
     pin_positions: DefaultDict[str, list[tuple[float, float]]] = defaultdict(list)
     display_names: dict[str, str] = {}
     symbol_instances: list[tuple[str, str, str]] = []
+    placements = _component_placements(spec)
     for idx, comp in enumerate(spec.components, start=1):
         symbol_uuid = _uuid(f"sym:{spec.name}:{comp.ref}")
         lib_id = _symbol_for_component(comp.kind, comp.value, comp.model)
-        x = base_x + (idx - 1) % 4 * 35
-        if idx > 1 and (idx - 1) % 4 == 0:
-            y += 30
-        comp_pos = (float(x), float(y))
+        placement = placements[comp.ref]
         for pin_index, net in enumerate(comp.nodes):
-            pin_positions[net].append(_pin_anchor(comp_pos, pin_index, len(comp.nodes)))
+            pin_positions[net].append(_pin_anchor(lib_id, placement, pin_index))
         lines.extend(
             [
-                f"  (symbol (lib_id \"{lib_id}\") (at {x} {y} 0) (unit 1)",
+                f"  (symbol (lib_id \"{lib_id}\") (at {placement.x:.2f} {placement.y:.2f} {placement.angle}) (unit 1)",
                 "    (in_bom yes) (on_board yes)",
                 f"    (uuid {symbol_uuid})",
-                *_symbol_property("Reference", comp.ref, x, y - 3.81),
-                *_symbol_property("Value", comp.value, x, y + 3.81),
+                *_symbol_property("Reference", comp.ref, placement.x, placement.y - 3.81),
+                *_symbol_property("Value", comp.value, placement.x, placement.y + 3.81),
                 *_symbol_property("Footprint", "", 0, 0, hidden=True),
                 *_symbol_property("Datasheet", "", 0, 0, hidden=True),
                 "  )",
