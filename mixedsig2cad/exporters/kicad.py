@@ -56,8 +56,8 @@ def export_kicad_schematic(spec: CircuitSpec) -> str:
                 f"    (property \"Value\" \"{comp.value}\" (at {x} {y+3.81} 0)",
                 "      (effects (font (size 1.27 1.27)))",
                 "    )",
-                '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27))) (hide yes))',
-                '    (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27))) (hide yes))',
+                '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27))) (hide))',
+                '    (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27))) (hide))',
                 "  )",
             ]
         )
