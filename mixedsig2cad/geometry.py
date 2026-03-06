@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .intent import GROUND_NETS, SUPPLY_NETS, IntentComponent, IntentPattern, SchematicIntent
+from .intent import IntentComponent, IntentPattern, SchematicIntent
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +29,21 @@ class PlacedShape:
 
 
 @dataclass(frozen=True, slots=True)
+class TerminalRef:
+    owner_ref: str
+    terminal_name: str
+
+
+@dataclass(frozen=True, slots=True)
+class GeometryNode:
+    id: str
+    point: Point
+    attachments: tuple[TerminalRef, ...]
+    render_style: str = "inline"
+    label: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class WirePath:
     points: tuple[Point, ...]
     uuid_seed: str
@@ -52,6 +67,7 @@ class JunctionPlacement:
 class SchematicGeometry:
     name: str
     shapes: list[PlacedShape] = field(default_factory=list)
+    nodes: list[GeometryNode] = field(default_factory=list)
     wires: list[WirePath] = field(default_factory=list)
     labels: list[TextPlacement] = field(default_factory=list)
     junctions: list[JunctionPlacement] = field(default_factory=list)
@@ -103,10 +119,51 @@ GENERIC_SHAPES: dict[tuple[str, str], dict[str, tuple[float, float]]] = {
 def build_schematic_geometry(intent: SchematicIntent) -> SchematicGeometry:
     for pattern in intent.patterns:
         if pattern.kind == "rc_lowpass":
-            return _build_rc_lowpass_geometry(intent, pattern)
+            return _finalize_geometry(_build_rc_lowpass_geometry(intent, pattern))
         if pattern.kind == "rc_highpass":
-            return _build_rc_highpass_geometry(intent, pattern)
-    return _build_fallback_geometry(intent)
+            return _finalize_geometry(_build_rc_highpass_geometry(intent, pattern))
+    return _finalize_geometry(_build_fallback_geometry(intent))
+
+
+def validate_schematic_geometry(geometry: SchematicGeometry) -> None:
+    shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
+    point_usage: dict[tuple[float, float], int] = {}
+    for wire in geometry.wires:
+        if len(wire.points) < 2:
+            raise AssertionError(f"wire path '{wire.uuid_seed}' has fewer than 2 points")
+        for point in (wire.points[0], wire.points[-1]):
+            key = (point.x, point.y)
+            point_usage[key] = point_usage.get(key, 0) + 1
+
+    junction_points = {(junction.point.x, junction.point.y) for junction in geometry.junctions}
+    for junction_point in junction_points:
+        if junction_point not in {(node.point.x, node.point.y) for node in geometry.nodes}:
+            raise AssertionError(f"junction at {junction_point} does not correspond to a geometry node")
+
+    for node in geometry.nodes:
+        if len(node.attachments) < 2:
+            raise AssertionError(f"node '{node.id}' has fewer than 2 attachments")
+        attachment_points = [_resolve_terminal_ref(shape_by_ref, attachment) for attachment in node.attachments]
+        if len({(point.x, point.y) for point in attachment_points}) == 1 and (
+            attachment_points[0].x != node.point.x or attachment_points[0].y != node.point.y
+        ):
+            raise AssertionError(f"node '{node.id}' attachments coincide away from node point")
+        for point in attachment_points:
+            if point.x == node.point.x and point.y == node.point.y:
+                continue
+            key = (point.x, point.y)
+            if key not in point_usage:
+                raise AssertionError(f"node '{node.id}' terminal at {key} is not covered by compiled wires")
+        if node.render_style == "junction" or len(node.attachments) >= 3:
+            key = (node.point.x, node.point.y)
+            if key not in junction_points:
+                raise AssertionError(f"node '{node.id}' expected a visible junction")
+
+
+def _finalize_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
+    _compile_nodes_to_wires(geometry)
+    validate_schematic_geometry(geometry)
+    return geometry
 
 
 def _build_rc_lowpass_geometry(intent: SchematicIntent, pattern: IntentPattern) -> SchematicGeometry:
@@ -118,29 +175,48 @@ def _build_rc_lowpass_geometry(intent: SchematicIntent, pattern: IntentPattern) 
     geometry = SchematicGeometry(name=intent.name)
     source_shape = _place_shape_from_component(source, Point(50.0, 78.0), orientation="vertical_up")
     resistor_shape = _place_shape_from_component(series, Point(90.0, 70.38), orientation="horizontal")
-    capacitor_shape = _place_shape_from_component(shunt, Point(96.35, 76.73), orientation="vertical")
+    capacitor_shape = _place_shape_from_component(shunt, Point(96.35, 89.08), orientation="vertical")
     source_gnd = _place_ground("#PWR0001", Point(50.0, 95.62))
-    cap_gnd = _place_ground("#PWR0002", Point(96.35, 93.08))
-
+    cap_gnd = _place_ground("#PWR0002", Point(96.35, 108.08))
     geometry.shapes.extend([source_shape, resistor_shape, capacitor_shape, source_gnd, cap_gnd])
 
-    src_pos = _terminal_point(source_shape, "pos")
-    src_neg = _terminal_point(source_shape, "neg")
-    r_left = _terminal_point(resistor_shape, "left")
-    r_right = _terminal_point(resistor_shape, "right")
-    c_top = _terminal_point(capacitor_shape, "top")
-    c_bottom = _terminal_point(capacitor_shape, "bottom")
-    gnd1 = _terminal_point(source_gnd, "top")
-    gnd2 = _terminal_point(cap_gnd, "top")
-
-    geometry.wires.extend(
+    geometry.nodes.extend(
         [
-            WirePath(points=(src_pos, r_left), uuid_seed=f"{intent.name}:vin"),
-            WirePath(points=(src_neg, gnd1), uuid_seed=f"{intent.name}:source_gnd"),
-            WirePath(points=(c_bottom, gnd2), uuid_seed=f"{intent.name}:cap_gnd"),
+            GeometryNode(
+                id="vin_path",
+                point=Point(70.0, 70.38),
+                attachments=(
+                    TerminalRef(source_shape.ref, "pos"),
+                    TerminalRef(resistor_shape.ref, "left"),
+                ),
+            ),
+            GeometryNode(
+                id="vout_node",
+                point=Point(96.35, 70.38),
+                attachments=(
+                    TerminalRef(resistor_shape.ref, "right"),
+                    TerminalRef(capacitor_shape.ref, "top"),
+                ),
+                render_style="junction",
+            ),
+            GeometryNode(
+                id="source_ground",
+                point=_terminal_point(source_gnd, "top"),
+                attachments=(
+                    TerminalRef(source_shape.ref, "neg"),
+                    TerminalRef(source_gnd.ref, "top"),
+                ),
+            ),
+            GeometryNode(
+                id="cap_ground",
+                point=_terminal_point(cap_gnd, "top"),
+                attachments=(
+                    TerminalRef(capacitor_shape.ref, "bottom"),
+                    TerminalRef(cap_gnd.ref, "top"),
+                ),
+            ),
         ]
     )
-    geometry.junctions.append(JunctionPlacement(point=r_right))
     geometry.labels.extend(_standard_texts(source_shape))
     geometry.labels.extend(_standard_texts(resistor_shape))
     geometry.labels.extend(_standard_texts(capacitor_shape))
@@ -156,29 +232,48 @@ def _build_rc_highpass_geometry(intent: SchematicIntent, pattern: IntentPattern)
     geometry = SchematicGeometry(name=intent.name)
     source_shape = _place_shape_from_component(source, Point(50.0, 78.0), orientation="vertical_up")
     capacitor_shape = _place_shape_from_component(series, Point(90.0, 70.38), orientation="horizontal")
-    resistor_shape = _place_shape_from_component(shunt, Point(96.35, 98.73), orientation="vertical")
+    resistor_shape = _place_shape_from_component(shunt, Point(106.35, 98.73), orientation="vertical")
     source_gnd = _place_ground("#PWR0001", Point(50.0, 95.62))
-    resistor_gnd = _place_ground("#PWR0002", Point(96.35, 115.08))
-
+    resistor_gnd = _place_ground("#PWR0002", Point(106.35, 115.08))
     geometry.shapes.extend([source_shape, capacitor_shape, resistor_shape, source_gnd, resistor_gnd])
 
-    src_pos = _terminal_point(source_shape, "pos")
-    src_neg = _terminal_point(source_shape, "neg")
-    c_left = _terminal_point(capacitor_shape, "left")
-    c_right = _terminal_point(capacitor_shape, "right")
-    r_top = _terminal_point(resistor_shape, "top")
-    r_bottom = _terminal_point(resistor_shape, "bottom")
-    gnd1 = _terminal_point(source_gnd, "top")
-    gnd2 = _terminal_point(resistor_gnd, "top")
-
-    geometry.wires.extend(
+    geometry.nodes.extend(
         [
-            WirePath(points=(src_pos, c_left), uuid_seed=f"{intent.name}:vin"),
-            WirePath(points=(src_neg, gnd1), uuid_seed=f"{intent.name}:source_gnd"),
-            WirePath(points=(r_bottom, gnd2), uuid_seed=f"{intent.name}:res_gnd"),
+            GeometryNode(
+                id="vin_path",
+                point=Point(70.0, 70.38),
+                attachments=(
+                    TerminalRef(source_shape.ref, "pos"),
+                    TerminalRef(capacitor_shape.ref, "left"),
+                ),
+            ),
+            GeometryNode(
+                id="vmid_node",
+                point=Point(106.35, 82.38),
+                attachments=(
+                    TerminalRef(capacitor_shape.ref, "right"),
+                    TerminalRef(resistor_shape.ref, "top"),
+                ),
+                render_style="junction",
+            ),
+            GeometryNode(
+                id="source_ground",
+                point=_terminal_point(source_gnd, "top"),
+                attachments=(
+                    TerminalRef(source_shape.ref, "neg"),
+                    TerminalRef(source_gnd.ref, "top"),
+                ),
+            ),
+            GeometryNode(
+                id="res_ground",
+                point=_terminal_point(resistor_gnd, "top"),
+                attachments=(
+                    TerminalRef(resistor_shape.ref, "bottom"),
+                    TerminalRef(resistor_gnd.ref, "top"),
+                ),
+            ),
         ]
     )
-    geometry.junctions.append(JunctionPlacement(point=c_right))
     geometry.labels.extend(_standard_texts(source_shape))
     geometry.labels.extend(_standard_texts(capacitor_shape))
     geometry.labels.extend(_standard_texts(resistor_shape))
@@ -189,9 +284,7 @@ def _build_fallback_geometry(intent: SchematicIntent) -> SchematicGeometry:
     geometry = SchematicGeometry(name=intent.name)
     shapes_by_ref: dict[str, PlacedShape] = {}
     counts = {"source": 0, "passive": 0, "active": 0}
-    net_points: dict[str, list[Point]] = {}
 
-    power_ref_idx = 1
     for comp in intent.components:
         group = _component_group(comp.kind)
         x = SHAPE_GROUP_X[group]
@@ -202,52 +295,123 @@ def _build_fallback_geometry(intent: SchematicIntent) -> SchematicGeometry:
         geometry.shapes.append(shape)
         geometry.labels.extend(_standard_texts(shape))
 
+    power_ref_idx = 1
+    net_attachments: dict[str, list[TerminalRef]] = {}
+    net_points: dict[str, list[Point]] = {}
+
     for comp in intent.components:
         shape = shapes_by_ref[comp.ref]
         for pin_index, net_name in enumerate(comp.nodes):
-            point = _component_terminal(shape, comp.kind, pin_index)
+            terminal_name = _component_terminal_name(comp.kind, shape, pin_index)
+            point = _terminal_point(shape, terminal_name)
             role = intent.nets[net_name].role
-            lowered = net_name.lower()
             if role == "ground":
                 ref = f"#PWR{power_ref_idx:04d}"
                 power_ref_idx += 1
-                gnd_center = Point(point.x, point.y + 12.0)
-                gnd_shape = _place_ground(ref, gnd_center)
+                gnd_shape = _place_ground(ref, Point(point.x, point.y + 12.0))
                 geometry.shapes.append(gnd_shape)
-                geometry.wires.append(WirePath(points=(point, _terminal_point(gnd_shape, "top")), uuid_seed=f"{intent.name}:{ref}"))
+                geometry.nodes.append(
+                    GeometryNode(
+                        id=f"{ref}:ground",
+                        point=_terminal_point(gnd_shape, "top"),
+                        attachments=(TerminalRef(shape.ref, terminal_name), TerminalRef(gnd_shape.ref, "top")),
+                    )
+                )
                 continue
             if role == "supply":
                 ref = f"#PWR{power_ref_idx:04d}"
                 power_ref_idx += 1
-                power_shape = _place_power(ref, lowered.upper(), Point(point.x, point.y - 12.0))
+                power_shape = _place_power(ref, net_name.upper(), Point(point.x, point.y - 12.0))
                 geometry.shapes.append(power_shape)
-                geometry.wires.append(WirePath(points=(point, _terminal_point(power_shape, "bottom")), uuid_seed=f"{intent.name}:{ref}"))
+                geometry.nodes.append(
+                    GeometryNode(
+                        id=f"{ref}:supply",
+                        point=_terminal_point(power_shape, "bottom"),
+                        attachments=(TerminalRef(shape.ref, terminal_name), TerminalRef(power_shape.ref, "bottom")),
+                    )
+                )
                 continue
+            net_attachments.setdefault(net_name, []).append(TerminalRef(shape.ref, terminal_name))
             net_points.setdefault(net_name, []).append(point)
 
-    for net_name, points in sorted(net_points.items()):
-        if len(points) == 2:
-            geometry.wires.extend(_orthogonal_path(points[0], points[1], f"net2:{intent.name}:{net_name}", geometry.junctions))
-        elif len(points) > 2:
-            x_min = min(point.x for point in points)
-            x_max = max(point.x for point in points)
-            y_trunk = min(point.y for point in points) - 10.0
-            geometry.wires.append(
-                WirePath(points=(Point(x_min, y_trunk), Point(x_max, y_trunk)), uuid_seed=f"trunk:{intent.name}:{net_name}")
+    for net_name, attachments in sorted(net_attachments.items()):
+        points = net_points[net_name]
+        if len(points) < 2:
+            continue
+        geometry.nodes.append(
+            GeometryNode(
+                id=f"net:{net_name}",
+                point=_choose_node_point(net_name, points),
+                attachments=tuple(attachments),
+                render_style="junction" if len(attachments) >= 3 else "inline",
             )
-            for idx, point in enumerate(points, start=1):
-                geometry.wires.append(
-                    WirePath(points=(point, Point(point.x, y_trunk)), uuid_seed=f"stub:{intent.name}:{net_name}:{idx}")
-                )
-                geometry.junctions.append(JunctionPlacement(point=Point(point.x, y_trunk)))
+        )
     return geometry
+
+
+def _compile_nodes_to_wires(geometry: SchematicGeometry) -> None:
+    shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
+    for node in geometry.nodes:
+        attachment_points = [_resolve_terminal_ref(shape_by_ref, attachment) for attachment in node.attachments]
+        distinct_points = {(point.x, point.y) for point in attachment_points}
+        if node.render_style == "junction" or len(node.attachments) >= 3:
+            geometry.junctions.append(JunctionPlacement(point=node.point))
+        if len(distinct_points) == 1 and next(iter(distinct_points)) == (node.point.x, node.point.y):
+            continue
+        for idx, point in enumerate(attachment_points, start=1):
+            if point.x == node.point.x and point.y == node.point.y:
+                continue
+            path_points = _route_to_node(point, node.point)
+            geometry.wires.append(WirePath(points=path_points, uuid_seed=f"{geometry.name}:{node.id}:{idx}"))
+
+
+def _route_to_node(start: Point, node_point: Point) -> tuple[Point, ...]:
+    if start.x == node_point.x or start.y == node_point.y:
+        return (start, node_point)
+    elbow = Point(node_point.x, start.y)
+    return (start, elbow, node_point)
+
+
+def _resolve_terminal_ref(shape_by_ref: dict[str, PlacedShape], terminal_ref: TerminalRef) -> Point:
+    shape = shape_by_ref.get(terminal_ref.owner_ref)
+    if shape is None:
+        raise AssertionError(f"unknown shape '{terminal_ref.owner_ref}' in geometry node")
+    return _terminal_point(shape, terminal_ref.terminal_name)
+
+
+def _choose_node_point(net_name: str, points: list[Point]) -> Point:
+    if len(points) == 2:
+        p1, p2 = points
+        if p1.x == p2.x or p1.y == p2.y:
+            return Point(round((p1.x + p2.x) / 2.0, 2), round((p1.y + p2.y) / 2.0, 2))
+        return Point(round((p1.x + p2.x) / 2.0, 2), round((p1.y + p2.y) / 2.0, 2))
+    y_min = min(point.y for point in points)
+    y_max = max(point.y for point in points)
+    x_min = min(point.x for point in points)
+    x_max = max(point.x for point in points)
+    lowered = net_name.lower()
+    if lowered in {"vcc", "vdd", "vee"}:
+        y = round(y_min - 10.0, 2)
+    elif lowered in {"0", "gnd", "vss"}:
+        y = round(y_max + 10.0, 2)
+    else:
+        y = round(min(point.y for point in points) - 10.0, 2)
+    x = round((x_min + x_max) / 2.0, 2)
+    return Point(x, y)
 
 
 def _place_shape_from_component(comp: IntentComponent, center: Point, orientation: str | None = None) -> PlacedShape:
     shape_name, default_orientation = _shape_for_component(comp)
     actual_orientation = orientation or default_orientation
     terminals = _make_terminals(shape_name, actual_orientation, center)
-    return PlacedShape(ref=comp.ref, value=comp.value, shape=shape_name, orientation=actual_orientation, center=center, terminals=terminals)
+    return PlacedShape(
+        ref=comp.ref,
+        value=comp.value,
+        shape=shape_name,
+        orientation=actual_orientation,
+        center=center,
+        terminals=terminals,
+    )
 
 
 def _shape_for_component(comp: IntentComponent) -> tuple[str, str]:
@@ -274,11 +438,27 @@ def _shape_for_component(comp: IntentComponent) -> tuple[str, str]:
 
 
 def _place_ground(ref: str, center: Point) -> PlacedShape:
-    return PlacedShape(ref=ref, value="GND", shape="ground", orientation="down", center=center, terminals=_make_terminals("ground", "down", center), hidden_reference=True)
+    return PlacedShape(
+        ref=ref,
+        value="GND",
+        shape="ground",
+        orientation="down",
+        center=center,
+        terminals=_make_terminals("ground", "down", center),
+        hidden_reference=True,
+    )
 
 
 def _place_power(ref: str, value: str, center: Point) -> PlacedShape:
-    return PlacedShape(ref=ref, value=value, shape="power", orientation="up", center=center, terminals=_make_terminals("power", "up", center), hidden_reference=True)
+    return PlacedShape(
+        ref=ref,
+        value=value,
+        shape="power",
+        orientation="up",
+        center=center,
+        terminals=_make_terminals("power", "up", center),
+        hidden_reference=True,
+    )
 
 
 def _make_terminals(shape: str, orientation: str, center: Point) -> tuple[PlacedTerminal, ...]:
@@ -293,23 +473,22 @@ def _terminal_point(shape: PlacedShape, terminal_name: str) -> Point:
     for terminal in shape.terminals:
         if terminal.name == terminal_name:
             return terminal.point
-    raise KeyError(f"terminal {terminal_name} not found for {shape.ref}")
+    raise AssertionError(f"terminal '{terminal_name}' not found on shape '{shape.ref}'")
 
 
-def _component_terminal(shape: PlacedShape, kind: str, pin_index: int) -> Point:
+def _component_terminal_name(kind: str, shape: PlacedShape, pin_index: int) -> str:
     terminal_order = {
         "V": ("pos", "neg"),
         "I": ("pos", "neg"),
-        "R": ("left", "right"),
-        "C": ("top", "bottom"),
+        "R": ("left", "right") if shape.orientation == "horizontal" else ("top", "bottom"),
+        "C": ("top", "bottom") if shape.orientation == "vertical" else ("left", "right"),
         "L": ("left", "right"),
         "D": ("left", "right"),
         "Q": ("collector", "base", "emitter"),
         "X": ("plus", "minus", "out", "vplus", "vminus"),
         "M": ("drain", "gate", "source", "body"),
-    }.get(kind, ("left", "right"))
-    terminal_name = terminal_order[min(pin_index, len(terminal_order) - 1)]
-    return _terminal_point(shape, terminal_name)
+    }.get(kind, tuple(terminal.name for terminal in shape.terminals))
+    return terminal_order[min(pin_index, len(terminal_order) - 1)]
 
 
 def _component_group(kind: str) -> str:
@@ -321,7 +500,6 @@ def _component_group(kind: str) -> str:
 
 
 def _standard_texts(shape: PlacedShape) -> list[TextPlacement]:
-    dx = 0.0
     if shape.shape in {"resistor", "capacitor", "inductor", "diode"}:
         ref_pos = Point(shape.center.x, shape.center.y - 8.0)
         value_pos = Point(shape.center.x, shape.center.y + 8.0)
@@ -329,29 +507,21 @@ def _standard_texts(shape: PlacedShape) -> list[TextPlacement]:
         ref_pos = Point(shape.center.x, shape.center.y - 4.0)
         value_pos = Point(shape.center.x, shape.center.y + 4.0)
     else:
-        ref_pos = Point(shape.center.x + dx, shape.center.y - 10.0)
-        value_pos = Point(shape.center.x + dx, shape.center.y + 10.0)
+        ref_pos = Point(shape.center.x, shape.center.y - 10.0)
+        value_pos = Point(shape.center.x, shape.center.y + 10.0)
     return [
-        TextPlacement(text=shape.ref, role="reference", position=ref_pos, owner_ref=shape.ref, uuid_seed=f"text:{shape.ref}:ref"),
-        TextPlacement(text=shape.value, role="value", position=value_pos, owner_ref=shape.ref, uuid_seed=f"text:{shape.ref}:value"),
-    ]
-
-
-def _orthogonal_path(
-    p1: Point,
-    p2: Point,
-    seed: str,
-    junctions: list[JunctionPlacement],
-) -> list[WirePath]:
-    if p1.x == p2.x or p1.y == p2.y:
-        return [WirePath(points=(p1, p2), uuid_seed=seed)]
-    mid_x = round((p1.x + p2.x) / 2.0, 2)
-    mid1 = Point(mid_x, p1.y)
-    mid2 = Point(mid_x, p2.y)
-    junctions.append(JunctionPlacement(point=mid1))
-    junctions.append(JunctionPlacement(point=mid2))
-    return [
-        WirePath(points=(p1, mid1), uuid_seed=f"{seed}:a"),
-        WirePath(points=(mid1, mid2), uuid_seed=f"{seed}:b"),
-        WirePath(points=(mid2, p2), uuid_seed=f"{seed}:c"),
+        TextPlacement(
+            text=shape.ref,
+            role="reference",
+            position=ref_pos,
+            owner_ref=shape.ref,
+            uuid_seed=f"text:{shape.ref}:ref",
+        ),
+        TextPlacement(
+            text=shape.value,
+            role="value",
+            position=value_pos,
+            owner_ref=shape.ref,
+            uuid_seed=f"text:{shape.ref}:value",
+        ),
     ]

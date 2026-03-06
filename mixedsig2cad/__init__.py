@@ -1,6 +1,18 @@
 """High-level mixed-signal spec to KiCad/ngspice generators."""
 
-from .geometry import JunctionPlacement, Point, PlacedShape, PlacedTerminal, SchematicGeometry, TextPlacement, WirePath, build_schematic_geometry
+from .geometry import (
+    GeometryNode,
+    JunctionPlacement,
+    Point,
+    PlacedShape,
+    PlacedTerminal,
+    SchematicGeometry,
+    TerminalRef,
+    TextPlacement,
+    WirePath,
+    build_schematic_geometry,
+    validate_schematic_geometry,
+)
 from .intent import (
     IntentComponent,
     IntentConnection,
@@ -33,6 +45,7 @@ __all__ = [
     "IntentGroup",
     "IntentNet",
     "IntentPattern",
+    "GeometryNode",
     "JunctionPlacement",
     "KiCadJunctionPlacement",
     "KiCadPlacement",
@@ -45,6 +58,7 @@ __all__ = [
     "Point",
     "SchematicGeometry",
     "SchematicIntent",
+    "TerminalRef",
     "TextPlacement",
     "WirePath",
     "build_kicad_layout",
@@ -53,4 +67,5 @@ __all__ = [
     "export_kicad_schematic",
     "export_ngspice_netlist",
     "project_geometry_to_kicad",
+    "validate_schematic_geometry",
 ]

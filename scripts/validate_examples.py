@@ -51,7 +51,10 @@ def validate_kicad(path: Path) -> None:
     if path.name == "rc_lowpass.kicad_sch":
         assert text.count('(symbol (lib_id "GND")') == 2, "expected local ground symbols in rc_lowpass"
         assert '(label "vin"' not in text and '(label "vout"' not in text, "unexpected compensating net labels in rc_lowpass"
-        assert text.count("  (wire ") == 3, "unexpected wire count in rc_lowpass"
+        assert text.count("  (wire ") >= 4, "expected explicit node-driven connections in rc_lowpass"
+    if path.name == "rc_highpass.kicad_sch":
+        assert text.count('(symbol (lib_id "GND")') == 2, "expected local ground symbols in rc_highpass"
+        assert text.count("  (wire ") >= 5, "expected explicit node-driven connections in rc_highpass"
 
 
 def _kicad_cli_parse(path: Path) -> None:
