@@ -9,15 +9,15 @@ from .spec import CircuitSpec
 
 
 SYMBOL_BY_KIND = {
-    "R": "examples:R",
-    "C": "examples:CAP",
-    "L": "examples:INDUCTOR",
-    "V": "examples:VSOURCE",
-    "I": "examples:ISOURCE",
-    "D": "examples:DIODE",
-    "Q": "examples:QNPN",
-    "M": "examples:MPMOS",
-    "X": "examples:OPAMP",
+    "R": "R",
+    "C": "CAP",
+    "L": "INDUCTOR",
+    "V": "VSOURCE",
+    "I": "ISOURCE",
+    "D": "DIODE",
+    "Q": "QNPN",
+    "M": "MPMOS",
+    "X": "OPAMP",
 }
 
 POWER_SYMBOL_BY_NET = {
@@ -29,18 +29,18 @@ POWER_SYMBOL_BY_NET = {
 }
 
 PIN_OFFSETS = {
-    "examples:VSOURCE": ((0.0, 7.62), (0.0, -7.62)),
-    "examples:ISOURCE": ((0.0, 10.16), (0.0, -10.16)),
-    "examples:R": ((0.0, 6.35), (0.0, -6.35)),
-    "examples:CAP": ((0.0, 6.35), (0.0, -6.35)),
-    "examples:INDUCTOR": ((-6.35, 0.0), (6.35, 0.0)),
-    "examples:DIODE": ((-5.08, 0.0), (5.08, 0.0)),
-    "examples:QNPN": ((3.81, 8.89), (-7.62, 0.0), (3.81, -8.89), (-2.54, -8.89)),
-    "examples:MNMOS": ((2.54, 5.08), (-5.08, 0.0), (2.54, -5.08), (5.08, -5.08)),
-    "examples:MPMOS": ((2.54, -5.08), (-5.08, 0.0), (2.54, 5.08), (5.08, 5.08)),
-    "examples:OPAMP": ((-7.62, 2.54), (-7.62, -2.54), (7.62, 0.0), (-2.54, 7.62), (-2.54, -7.62)),
-    "examples:GND": ((0.0, 0.0),),
-    "examples:VCC": ((0.0, 0.0),),
+    "VSOURCE": ((0.0, 7.62), (0.0, -7.62)),
+    "ISOURCE": ((0.0, 10.16), (0.0, -10.16)),
+    "R": ((0.0, 6.35), (0.0, -6.35)),
+    "CAP": ((0.0, 6.35), (0.0, -6.35)),
+    "INDUCTOR": ((-6.35, 0.0), (6.35, 0.0)),
+    "DIODE": ((-5.08, 0.0), (5.08, 0.0)),
+    "QNPN": ((3.81, 8.89), (-7.62, 0.0), (3.81, -8.89), (-2.54, -8.89)),
+    "MNMOS": ((2.54, 5.08), (-5.08, 0.0), (2.54, -5.08), (5.08, -5.08)),
+    "MPMOS": ((2.54, -5.08), (-5.08, 0.0), (2.54, 5.08), (5.08, 5.08)),
+    "OPAMP": ((-7.62, 2.54), (-7.62, -2.54), (7.62, 0.0), (-2.54, 7.62), (-2.54, -7.62)),
+    "GND": ((0.0, 0.0),),
+    "VCC": ((0.0, 0.0),),
 }
 
 GROUP_X = {
@@ -127,11 +127,11 @@ def deterministic_uuid(seed: str) -> str:
 
 def symbol_for_component(kind: str, value: str, model: str | None) -> str:
     if kind != "M":
-        return SYMBOL_BY_KIND.get(kind, "examples:R")
+        return SYMBOL_BY_KIND.get(kind, "R")
     hint = f"{value} {model or ''}".lower()
     if "nm" in hint or "nmos" in hint:
-        return "examples:MNMOS"
-    return "examples:MPMOS"
+        return "MNMOS"
+    return "MPMOS"
 
 
 def build_kicad_layout(spec: CircuitSpec) -> SchematicLayout:
@@ -266,7 +266,7 @@ def _inject_power_symbols(
                 uuid=sym_uuid,
                 ref=ref,
                 value=symbol_name,
-                lib_id=f"examples:{symbol_name}",
+                lib_id=symbol_name,
                 placement=Placement(px, py, 0),
                 hidden_reference=True,
             )
