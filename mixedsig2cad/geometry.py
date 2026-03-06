@@ -24,6 +24,15 @@ class PlacedTerminal:
     name: str
     point: Point
     side: str
+    preferred_connection_class: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TerminalTemplate:
+    name: str
+    offset: tuple[float, float]
+    exit_direction: str
+    preferred_connection_class: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,27 +132,74 @@ SHAPE_GROUP_STEP_Y = {
 }
 
 
+SHAPE_TERMINALS: dict[tuple[str, str], tuple[TerminalTemplate, ...]] = {
+    ("voltage_source", "vertical_up"): (
+        TerminalTemplate("pos", (0.0, -7.62), "top"),
+        TerminalTemplate("neg", (0.0, 7.62), "bottom", "local_ground_drop"),
+    ),
+    ("current_source", "vertical_up"): (
+        TerminalTemplate("pos", (0.0, -10.16), "top"),
+        TerminalTemplate("neg", (0.0, 10.16), "bottom", "local_ground_drop"),
+    ),
+    ("resistor", "horizontal"): (
+        TerminalTemplate("left", (-6.35, 0.0), "left", "series_inline"),
+        TerminalTemplate("right", (6.35, 0.0), "right", "series_inline"),
+    ),
+    ("resistor", "vertical"): (
+        TerminalTemplate("top", (0.0, -6.35), "top", "branch_to_junction"),
+        TerminalTemplate("bottom", (0.0, 6.35), "bottom", "local_ground_drop"),
+    ),
+    ("capacitor", "vertical"): (
+        TerminalTemplate("top", (0.0, -6.35), "top", "branch_to_junction"),
+        TerminalTemplate("bottom", (0.0, 6.35), "bottom", "local_ground_drop"),
+    ),
+    ("capacitor", "horizontal"): (
+        TerminalTemplate("left", (-6.35, 0.0), "left", "series_inline"),
+        TerminalTemplate("right", (6.35, 0.0), "right", "series_inline"),
+    ),
+    ("inductor", "horizontal"): (
+        TerminalTemplate("left", (-6.35, 0.0), "left", "series_inline"),
+        TerminalTemplate("right", (6.35, 0.0), "right", "series_inline"),
+    ),
+    ("diode", "horizontal"): (
+        TerminalTemplate("left", (-5.08, 0.0), "left", "series_inline"),
+        TerminalTemplate("right", (5.08, 0.0), "right", "branch_to_junction"),
+    ),
+    ("ground", "down"): (
+        TerminalTemplate("top", (0.0, 0.0), "top", "local_ground_drop"),
+    ),
+    ("power", "up"): (
+        TerminalTemplate("bottom", (0.0, 0.0), "bottom", "local_supply_rise"),
+    ),
+    ("opamp", "right"): (
+        TerminalTemplate("plus", (-7.62, 2.54), "left", "branch_to_junction"),
+        TerminalTemplate("minus", (-7.62, -2.54), "left", "feedback_loop"),
+        TerminalTemplate("out", (7.62, 0.0), "right", "series_inline"),
+        TerminalTemplate("vplus", (-2.54, 7.62), "bottom", "local_supply_rise"),
+        TerminalTemplate("vminus", (-2.54, -7.62), "top", "local_ground_drop"),
+    ),
+    ("npn_bjt", "right"): (
+        TerminalTemplate("collector", (3.81, -8.89), "top", "branch_to_junction"),
+        TerminalTemplate("base", (-7.62, 0.0), "left", "branch_to_junction"),
+        TerminalTemplate("emitter", (3.81, 8.89), "bottom", "local_ground_drop"),
+    ),
+    ("pmos", "right"): (
+        TerminalTemplate("drain", (2.54, -5.08), "top", "branch_to_junction"),
+        TerminalTemplate("gate", (-5.08, 0.0), "left", "branch_to_junction"),
+        TerminalTemplate("source", (2.54, 5.08), "bottom", "local_supply_rise"),
+        TerminalTemplate("body", (5.08, 5.08), "right", "local_supply_rise"),
+    ),
+    ("nmos", "right"): (
+        TerminalTemplate("drain", (2.54, 5.08), "bottom", "branch_to_junction"),
+        TerminalTemplate("gate", (-5.08, 0.0), "left", "branch_to_junction"),
+        TerminalTemplate("source", (2.54, -5.08), "top", "local_ground_drop"),
+        TerminalTemplate("body", (5.08, -5.08), "right", "local_ground_drop"),
+    ),
+}
+
 GENERIC_SHAPES: dict[tuple[str, str], dict[str, tuple[float, float]]] = {
-    ("voltage_source", "vertical_up"): {"pos": (0.0, -7.62), "neg": (0.0, 7.62)},
-    ("current_source", "vertical_up"): {"pos": (0.0, -10.16), "neg": (0.0, 10.16)},
-    ("resistor", "horizontal"): {"left": (-6.35, 0.0), "right": (6.35, 0.0)},
-    ("resistor", "vertical"): {"top": (0.0, -6.35), "bottom": (0.0, 6.35)},
-    ("capacitor", "vertical"): {"top": (0.0, -6.35), "bottom": (0.0, 6.35)},
-    ("capacitor", "horizontal"): {"left": (-6.35, 0.0), "right": (6.35, 0.0)},
-    ("inductor", "horizontal"): {"left": (-6.35, 0.0), "right": (6.35, 0.0)},
-    ("diode", "horizontal"): {"left": (-5.08, 0.0), "right": (5.08, 0.0)},
-    ("ground", "down"): {"top": (0.0, 0.0)},
-    ("power", "up"): {"bottom": (0.0, 0.0)},
-    ("opamp", "right"): {
-        "plus": (-7.62, 2.54),
-        "minus": (-7.62, -2.54),
-        "out": (7.62, 0.0),
-        "vplus": (-2.54, 7.62),
-        "vminus": (-2.54, -7.62),
-    },
-    ("npn_bjt", "right"): {"collector": (3.81, -8.89), "base": (-7.62, 0.0), "emitter": (3.81, 8.89)},
-    ("pmos", "right"): {"drain": (2.54, -5.08), "gate": (-5.08, 0.0), "source": (2.54, 5.08), "body": (5.08, 5.08)},
-    ("nmos", "right"): {"drain": (2.54, 5.08), "gate": (-5.08, 0.0), "source": (2.54, -5.08), "body": (5.08, -5.08)},
+    key: {terminal.name: terminal.offset for terminal in terminals}
+    for key, terminals in SHAPE_TERMINALS.items()
 }
 
 SHAPE_BODY_BOXES: dict[tuple[str, str], tuple[float, float, float, float]] = {
@@ -189,6 +245,8 @@ def validate_schematic_geometry(geometry: SchematicGeometry) -> None:
     for wire in geometry.wires:
         if len(wire.points) < 2:
             raise AssertionError(f"wire path '{wire.uuid_seed}' has fewer than 2 points")
+        if _is_local_support_wire(wire.uuid_seed) and _bend_count(wire.points) > 2:
+            raise AssertionError(f"local support wire '{wire.uuid_seed}' has unnecessary bends")
         for point in wire.points:
             wire_points.add((point.x, point.y))
         for point in (wire.points[0], wire.points[-1]):
@@ -439,14 +497,15 @@ def _build_flow_geometry(intent: SchematicIntent) -> SchematicGeometry:
         shape = shapes_by_ref[comp.ref]
         for pin_index, net_name in enumerate(comp.nodes):
             terminal_name = _component_terminal_name(comp.kind, shape, pin_index)
-            point = _terminal_point(shape, terminal_name)
+            terminal = _terminal(shape, terminal_name)
+            point = terminal.point
             role = intent.nets[net_name].role
             if role == "ground":
                 ref = f"#PWR{power_ref_idx:04d}"
                 power_ref_idx += 1
                 gnd_shape = _place_ground(
                     ref,
-                    _choose_support_symbol_center(point, "ground", geometry.shapes, preferred="down"),
+                    _place_support_symbol_for_terminal(terminal, "ground", geometry.shapes, preferred="down"),
                 )
                 geometry.shapes.append(gnd_shape)
                 geometry.nodes.append(
@@ -463,7 +522,7 @@ def _build_flow_geometry(intent: SchematicIntent) -> SchematicGeometry:
                 power_shape = _place_power(
                     ref,
                     net_name.upper(),
-                    _choose_support_symbol_center(point, "power", geometry.shapes, preferred="up"),
+                    _place_support_symbol_for_terminal(terminal, "power", geometry.shapes, preferred="up"),
                 )
                 geometry.shapes.append(power_shape)
                 geometry.nodes.append(
@@ -519,14 +578,15 @@ def _build_fallback_geometry(intent: SchematicIntent) -> SchematicGeometry:
         shape = shapes_by_ref[comp.ref]
         for pin_index, net_name in enumerate(comp.nodes):
             terminal_name = _component_terminal_name(comp.kind, shape, pin_index)
-            point = _terminal_point(shape, terminal_name)
+            terminal = _terminal(shape, terminal_name)
+            point = terminal.point
             role = intent.nets[net_name].role
             if role == "ground":
                 ref = f"#PWR{power_ref_idx:04d}"
                 power_ref_idx += 1
                 gnd_shape = _place_ground(
                     ref,
-                    _choose_support_symbol_center(point, "ground", geometry.shapes, preferred="down"),
+                    _place_support_symbol_for_terminal(terminal, "ground", geometry.shapes, preferred="down"),
                 )
                 geometry.shapes.append(gnd_shape)
                 geometry.nodes.append(
@@ -543,7 +603,7 @@ def _build_fallback_geometry(intent: SchematicIntent) -> SchematicGeometry:
                 power_shape = _place_power(
                     ref,
                     net_name.upper(),
-                    _choose_support_symbol_center(point, "power", geometry.shapes, preferred="up"),
+                    _place_support_symbol_for_terminal(terminal, "power", geometry.shapes, preferred="up"),
                 )
                 geometry.shapes.append(power_shape)
                 geometry.nodes.append(
@@ -588,7 +648,7 @@ def _compile_nodes_to_wires(geometry: SchematicGeometry) -> None:
             continue
         if len(node.attachments) == 2 and node.render_style != "junction":
             start_ref, end_ref = node.attachments
-            path_points = _route_between_terminals(shape_by_ref, occupied, start_ref, end_ref)
+            path_points = _route_connection(shape_by_ref, occupied, start_ref, end_ref)
             geometry.wires.append(
                 WirePath(points=path_points, uuid_seed=f"{geometry.name}:{node.id}:{start_ref.owner_ref}:{end_ref.owner_ref}")
             )
@@ -716,14 +776,15 @@ def _place_power(ref: str, value: str, center: Point) -> PlacedShape:
 
 
 def _make_terminals(shape: str, orientation: str, center: Point) -> tuple[PlacedTerminal, ...]:
-    offsets = GENERIC_SHAPES[(shape, orientation)]
+    templates = SHAPE_TERMINALS[(shape, orientation)]
     return tuple(
         PlacedTerminal(
-            name=name,
-            point=Point(round(center.x + dx, 2), round(center.y + dy, 2)),
-            side=_infer_terminal_side(dx, dy),
+            name=template.name,
+            point=Point(round(center.x + template.offset[0], 2), round(center.y + template.offset[1], 2)),
+            side=template.exit_direction,
+            preferred_connection_class=template.preferred_connection_class,
         )
-        for name, (dx, dy) in offsets.items()
+        for template in templates
     )
 
 
@@ -735,16 +796,6 @@ def _body_box(shape: str, orientation: str, center: Point) -> BoundingBox:
         right=round(center.x + right, 2),
         bottom=round(center.y + bottom, 2),
     )
-
-
-def _infer_terminal_side(dx: float, dy: float) -> str:
-    if abs(dx) >= abs(dy):
-        if dx >= 0:
-            return "right"
-        return "left"
-    if dy >= 0:
-        return "bottom"
-    return "top"
 
 
 def _terminal_point(shape: PlacedShape, terminal_name: str) -> Point:
@@ -780,11 +831,31 @@ def _wire_owner_refs(uuid_seed: str) -> set[str]:
     return {part for part in uuid_seed.split(":") if part and not part.startswith("net")}
 
 
+def _is_local_support_wire(uuid_seed: str) -> bool:
+    return ":ground:" in uuid_seed or ":supply:" in uuid_seed
+
+
 def _resolve_terminal(shape_by_ref: dict[str, PlacedShape], terminal_ref: TerminalRef) -> PlacedTerminal:
     shape = shape_by_ref.get(terminal_ref.owner_ref)
     if shape is None:
         raise AssertionError(f"unknown shape '{terminal_ref.owner_ref}' in geometry node")
     return _terminal(shape, terminal_ref.terminal_name)
+
+
+def _route_connection(
+    shape_by_ref: dict[str, PlacedShape],
+    occupied: list[tuple[str, BoundingBox]],
+    start_ref: TerminalRef,
+    end_ref: TerminalRef,
+) -> tuple[Point, ...]:
+    start_shape = shape_by_ref[start_ref.owner_ref]
+    end_shape = shape_by_ref[end_ref.owner_ref]
+    start = _resolve_terminal(shape_by_ref, start_ref)
+    end = _resolve_terminal(shape_by_ref, end_ref)
+    connection_class = _classify_connection(start_shape, start, end_shape, end)
+    if connection_class in {"local_ground_drop", "local_supply_rise"}:
+        return _route_local_support_connection(start, start_shape.body_box, end, end_shape.body_box)
+    return _route_between_terminals(shape_by_ref, occupied, start_ref, end_ref)
 
 
 def _route_between_terminals(
@@ -820,6 +891,45 @@ def _route_attachment_to_node(
         None,
         boxes,
     )
+
+
+def _classify_connection(
+    start_shape: PlacedShape,
+    start: PlacedTerminal,
+    end_shape: PlacedShape,
+    end: PlacedTerminal,
+) -> str:
+    support_shapes = {"ground", "power"}
+    if start_shape.shape in support_shapes:
+        return start.preferred_connection_class or "generic_net"
+    if end_shape.shape in support_shapes:
+        return end.preferred_connection_class or "generic_net"
+    if start.preferred_connection_class == end.preferred_connection_class and start.preferred_connection_class:
+        return start.preferred_connection_class
+    return "generic_net"
+
+
+def _route_local_support_connection(
+    start: PlacedTerminal,
+    start_box: BoundingBox,
+    end: PlacedTerminal,
+    end_box: BoundingBox,
+) -> tuple[Point, ...]:
+    if (start.point.x == end.point.x or start.point.y == end.point.y) and not _segment_intersects_box(start.point, end.point, end_box):
+        return _normalize_path((start.point, end.point))
+    start_exit = _terminal_exit_point(start.point, start.side, start_box)
+    end_exit = _terminal_exit_point(end.point, end.side, end_box)
+    if start_exit.x == end_exit.x or start_exit.y == end_exit.y:
+        return _normalize_path((start.point, start_exit, end_exit, end.point))
+    if start.side in {"top", "bottom"} and end.side in {"top", "bottom"}:
+        elbow = Point(start_exit.x, end_exit.y)
+    elif start.side in {"left", "right"} and end.side in {"left", "right"}:
+        elbow = Point(end_exit.x, start_exit.y)
+    elif start.side in {"top", "bottom"}:
+        elbow = Point(start_exit.x, end_exit.y)
+    else:
+        elbow = Point(end_exit.x, start_exit.y)
+    return _normalize_path((start.point, start_exit, elbow, end_exit, end.point))
 
 
 def _best_path(
@@ -1076,11 +1186,33 @@ def _segment_hits_shape_body(
 def _is_legal_owner_corridor(shape: PlacedShape, start: Point, end: Point) -> bool:
     for terminal in shape.terminals:
         exit_point = _terminal_exit_point(terminal.point, terminal.side, shape.body_box)
-        if _segment_key(start, end) in {
-            _segment_key(terminal.point, exit_point),
-            _segment_key(exit_point, terminal.point),
-        }:
+        if _segment_uses_terminal_corridor(start, end, terminal.point, exit_point):
             return True
+    return False
+
+
+def _segment_uses_terminal_corridor(start: Point, end: Point, terminal: Point, exit_point: Point) -> bool:
+    if _segment_key(start, end) in {
+        _segment_key(terminal, exit_point),
+        _segment_key(exit_point, terminal),
+    }:
+        return True
+    if terminal.x == exit_point.x == start.x == end.x:
+        seg_top = min(start.y, end.y)
+        seg_bottom = max(start.y, end.y)
+        if not (seg_top <= terminal.y <= seg_bottom):
+            return False
+        if exit_point.y < terminal.y:
+            return seg_top < terminal.y
+        return seg_bottom > terminal.y
+    if terminal.y == exit_point.y == start.y == end.y:
+        seg_left = min(start.x, end.x)
+        seg_right = max(start.x, end.x)
+        if not (seg_left <= terminal.x <= seg_right):
+            return False
+        if exit_point.x < terminal.x:
+            return seg_left < terminal.x
+        return seg_right > terminal.x
     return False
 
 
@@ -1201,21 +1333,36 @@ def _choose_free_vertical_lane(x_min: float, x_max: float, boxes: list[BoundingB
     return min(candidates, key=lambda x: abs(x - ((x_min + x_max) / 2.0)))
 
 
-def _choose_support_symbol_center(
-    terminal_point: Point,
+def _place_support_symbol_for_terminal(
+    terminal: PlacedTerminal,
     symbol_kind: str,
     existing_shapes: list[PlacedShape],
     *,
     preferred: str,
 ) -> Point:
     prototype = SHAPE_BODY_BOXES[(symbol_kind, "down" if symbol_kind == "ground" else "up")]
-    candidate_offsets = {
-        "down": [(0.0, 12.0), (-12.0, 6.0), (12.0, 6.0), (-16.0, 0.0), (16.0, 0.0)],
-        "up": [(0.0, -12.0), (-12.0, -6.0), (12.0, -6.0), (-16.0, 0.0), (16.0, 0.0)],
-    }[preferred]
+    primary_offset = 12.0 if preferred == "down" else -12.0
+    lateral_step = 12.0
+    if terminal.side in {"left", "right"}:
+        lateral_dx = 10.0 if terminal.side == "right" else -10.0
+        candidate_offsets: list[tuple[float, float]] = [
+            (lateral_dx, primary_offset / 2.0),
+            (lateral_dx, primary_offset),
+            (lateral_dx + (4.0 if lateral_dx > 0 else -4.0), primary_offset / 2.0),
+            (lateral_dx + (4.0 if lateral_dx > 0 else -4.0), primary_offset),
+        ]
+    else:
+        candidate_offsets = [
+            (0.0, primary_offset),
+            (-lateral_step, primary_offset / 2.0),
+            (lateral_step, primary_offset / 2.0),
+            (-lateral_step, primary_offset),
+            (lateral_step, primary_offset),
+        ]
+    candidate_offsets.extend([(-16.0, 0.0), (16.0, 0.0)])
     occupied = [shape.body_box for shape in existing_shapes]
     for dx, dy in candidate_offsets:
-        center = Point(round(terminal_point.x + dx, 2), round(terminal_point.y + dy, 2))
+        center = Point(round(terminal.point.x + dx, 2), round(terminal.point.y + dy, 2))
         box = BoundingBox(
             left=center.x + prototype[0],
             top=center.y + prototype[1],
@@ -1225,7 +1372,7 @@ def _choose_support_symbol_center(
         if all(not _boxes_overlap(box, existing) for existing in occupied):
             return center
     dx, dy = candidate_offsets[0]
-    return Point(round(terminal_point.x + dx, 2), round(terminal_point.y + dy, 2))
+    return Point(round(terminal.point.x + dx, 2), round(terminal.point.y + dy, 2))
 
 
 def _boxes_overlap(first: BoundingBox, second: BoundingBox) -> bool:
