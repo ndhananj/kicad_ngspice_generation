@@ -29,11 +29,16 @@ spec = (
 Export:
 
 ```python
-from mixedsig2cad import export_kicad_schematic, export_ngspice_netlist
+from mixedsig2cad import build_kicad_layout, export_kicad_schematic, export_ngspice_netlist
 
+kicad_layout = build_kicad_layout(spec)
 kicad_text = export_kicad_schematic(spec)
 ngspice_text = export_ngspice_netlist(spec)
 ```
+
+`build_kicad_layout(spec)` returns an intermediate layout object that separates
+visual geometry from pure circuit connectivity. It contains symbol placements,
+absolute pin coordinates, wire segments, labels, and junction points.
 
 ## Generate the full example library
 
