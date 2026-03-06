@@ -55,6 +55,11 @@ def validate_kicad(path: Path) -> None:
     if path.name == "rc_highpass.kicad_sch":
         assert text.count('(symbol (lib_id "GND")') == 2, "expected local ground symbols in rc_highpass"
         assert text.count("  (wire ") >= 5, "expected explicit node-driven connections in rc_highpass"
+    if path.name == "rlc_bandpass.kicad_sch":
+        assert text.count("  (junction ") >= 1, "expected an explicit branch junction in rlc_bandpass"
+        assert "(wire (pts (xy 100.00 108.00) (xy 100.00 98.00))" not in text, (
+            "unexpected body-crossing vertical route remains in rlc_bandpass"
+        )
 
 
 def _kicad_cli_parse(path: Path) -> None:

@@ -1,6 +1,7 @@
 """High-level mixed-signal spec to KiCad/ngspice generators."""
 
 from .geometry import (
+    BoundingBox,
     GeometryNode,
     JunctionPlacement,
     Point,
@@ -40,6 +41,7 @@ __all__ = [
     "Analysis",
     "CircuitSpec",
     "Component",
+    "BoundingBox",
     "IntentComponent",
     "IntentConnection",
     "IntentGroup",
