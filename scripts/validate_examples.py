@@ -41,12 +41,17 @@ def validate_kicad(path: Path) -> None:
     assert "(kicad_sch" in text, f"missing schematic header in {path}"
     assert "(symbol_instances" in text, f"missing symbol_instances in {path}"
     assert _balanced_parentheses(text), f"unbalanced parentheses in {path}"
+    assert "examples:" not in text, f"unexpected external project symbol reference in {path}"
     assert "(hide yes)" not in text, f"legacy '(hide yes)' found in {path}"
     assert "(hide))" not in text, f"invalid standalone '(hide)' property child found in {path}"
     if '(property "Footprint"' in text or '(property "Datasheet"' in text:
         assert "effects (font (size 1.27 1.27)) hide" in text, (
             f"expected hidden property syntax '(effects ... hide)' not found in {path}"
         )
+    if path.name == "rc_lowpass.kicad_sch":
+        assert text.count('(symbol (lib_id "GND")') == 2, "expected local ground symbols in rc_lowpass"
+        assert '(label "vin"' not in text and '(label "vout"' not in text, "unexpected compensating net labels in rc_lowpass"
+        assert text.count("  (wire ") == 3, "unexpected wire count in rc_lowpass"
 
 
 def _kicad_cli_parse(path: Path) -> None:

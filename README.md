@@ -29,16 +29,32 @@ spec = (
 Export:
 
 ```python
-from mixedsig2cad import build_kicad_layout, export_kicad_schematic, export_ngspice_netlist
+from mixedsig2cad import (
+    build_kicad_layout,
+    build_schematic_geometry,
+    build_schematic_intent,
+    export_kicad_schematic,
+    export_ngspice_netlist,
+    project_geometry_to_kicad,
+)
 
-kicad_layout = build_kicad_layout(spec)
+kicad_intent = build_schematic_intent(spec)
+kicad_geometry = build_schematic_geometry(kicad_intent)
+kicad_layout = project_geometry_to_kicad(kicad_geometry)
 kicad_text = export_kicad_schematic(spec)
 ngspice_text = export_ngspice_netlist(spec)
 ```
 
-`build_kicad_layout(spec)` returns an intermediate layout object that separates
-visual geometry from pure circuit connectivity. It contains symbol placements,
-absolute pin coordinates, wire segments, labels, and junction points.
+The pipeline is now layered:
+
+- `CircuitSpec`: circuit connectivity and simulation metadata
+- `build_schematic_intent(spec)`: schematic-semantic intent
+- `build_schematic_geometry(intent)`: renderer-agnostic drawing geometry
+- `project_geometry_to_kicad(geometry)`: KiCad-specific projection
+- `export_kicad_schematic(spec)`: full orchestration to KiCad text
+
+`build_kicad_layout(spec)` remains as a compatibility helper that returns the
+KiCad projection layer directly.
 
 ## Generate the full example library
 
