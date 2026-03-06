@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 
-from mixedsig2cad.geometry import JunctionPlacement, Point, SchematicGeometry, TextPlacement, WirePath
+from mixedsig2cad.geometry import GENERIC_SHAPES, JunctionPlacement, Point, SchematicGeometry, TextPlacement, WirePath
 
 
 def deterministic_uuid(seed: str) -> str:
@@ -106,7 +106,28 @@ def project_geometry_to_kicad(geometry: SchematicGeometry) -> KiCadProjection:
 
     for junction in geometry.junctions:
         projection.junctions.append(KiCadJunctionPlacement(junction.point.x, junction.point.y))
+    validate_kicad_projection(projection, geometry)
     return projection
+
+
+def validate_kicad_projection(projection: KiCadProjection, geometry: SchematicGeometry) -> None:
+    symbol_by_ref = {symbol.ref: symbol for symbol in projection.symbols}
+    for shape in geometry.shapes:
+        symbol = symbol_by_ref.get(shape.ref)
+        if symbol is None:
+            raise AssertionError(f"missing projected symbol for '{shape.ref}'")
+        if symbol.placement.x != shape.center.x or symbol.placement.y != shape.center.y:
+            raise AssertionError(f"symbol '{shape.ref}' placement drifted from geometry center")
+        expected_offsets = GENERIC_SHAPES[(shape.shape, shape.orientation)]
+        for terminal in shape.terminals:
+            dx = round(terminal.point.x - shape.center.x, 2)
+            dy = round(terminal.point.y - shape.center.y, 2)
+            expected = expected_offsets[terminal.name]
+            if round(expected[0], 2) != dx or round(expected[1], 2) != dy:
+                raise AssertionError(f"terminal '{shape.ref}.{terminal.name}' drifted from projection mapping")
+    for wire in projection.wires:
+        if wire.x1 != wire.x2 and wire.y1 != wire.y2:
+            raise AssertionError(f"non-orthogonal KiCad wire segment '{wire.uuid_seed}'")
 
 
 def _project_text(text: TextPlacement) -> KiCadTextPlacement:

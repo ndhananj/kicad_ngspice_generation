@@ -4,6 +4,9 @@ from .geometry import (
     BoundingBox,
     GeometryNode,
     JunctionPlacement,
+    NodeAnchor,
+    NodeTrunk,
+    PinExitCorridor,
     Point,
     PlacedShape,
     PlacedTerminal,
@@ -12,6 +15,7 @@ from .geometry import (
     TextPlacement,
     WirePath,
     build_schematic_geometry,
+    pack_schematic_geometry,
     validate_schematic_geometry,
 )
 from .intent import (
@@ -32,6 +36,7 @@ from .projections.kicad import (
     KiCadTextPlacement,
     KiCadWireSegment,
     project_geometry_to_kicad,
+    validate_kicad_projection,
 )
 from .spec import Analysis, CircuitSpec, Component
 from .exporters.kicad import export_kicad_schematic
@@ -55,6 +60,9 @@ __all__ = [
     "KiCadSymbolPlacement",
     "KiCadTextPlacement",
     "KiCadWireSegment",
+    "NodeAnchor",
+    "NodeTrunk",
+    "PinExitCorridor",
     "PlacedShape",
     "PlacedTerminal",
     "Point",
@@ -68,6 +76,8 @@ __all__ = [
     "build_schematic_intent",
     "export_kicad_schematic",
     "export_ngspice_netlist",
+    "pack_schematic_geometry",
     "project_geometry_to_kicad",
+    "validate_kicad_projection",
     "validate_schematic_geometry",
 ]

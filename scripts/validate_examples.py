@@ -10,6 +10,10 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from examples.specs.catalog import all_examples
+from mixedsig2cad import build_schematic_geometry, build_schematic_intent
+from mixedsig2cad.geometry import PAGE_BOTTOM, PAGE_LEFT, PAGE_RIGHT, PAGE_TOP
+
 
 def _balanced_parentheses(text: str) -> bool:
     depth = 0
@@ -60,6 +64,32 @@ def validate_kicad(path: Path) -> None:
         assert "(wire (pts (xy 100.00 108.00) (xy 100.00 98.00))" not in text, (
             "unexpected body-crossing vertical route remains in rlc_bandpass"
         )
+
+
+def validate_geometry() -> None:
+    for spec in all_examples():
+        geometry = build_schematic_geometry(build_schematic_intent(spec))
+        bounds = _geometry_bounds(geometry)
+        assert bounds is not None, f"missing geometry bounds for {spec.name}"
+        assert bounds.left >= PAGE_LEFT, f"{spec.name} extends past left page bound"
+        assert bounds.top >= PAGE_TOP, f"{spec.name} extends past top page bound"
+        assert bounds.right <= PAGE_RIGHT, f"{spec.name} extends past right page bound"
+        assert bounds.bottom <= PAGE_BOTTOM, f"{spec.name} extends past bottom page bound"
+
+
+def _geometry_bounds(geometry) -> tuple[float, float, float, float] | None:
+    xs: list[float] = []
+    ys: list[float] = []
+    for shape in geometry.shapes:
+        xs.extend([shape.body_box.left, shape.body_box.right])
+        ys.extend([shape.body_box.top, shape.body_box.bottom])
+    for wire in geometry.wires:
+        for point in wire.points:
+            xs.append(point.x)
+            ys.append(point.y)
+    if not xs or not ys:
+        return None
+    return type("Bounds", (), {"left": min(xs), "top": min(ys), "right": max(xs), "bottom": max(ys)})()
 
 
 def _kicad_cli_parse(path: Path) -> None:
@@ -116,6 +146,7 @@ def validate_ngspice(path: Path) -> None:
 
 
 def main() -> None:
+    validate_geometry()
     for kicad in (ROOT / "examples" / "generated" / "kicad").glob("*.kicad_sch"):
         validate_kicad(kicad)
         _kicad_cli_parse(kicad)

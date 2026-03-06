@@ -45,6 +45,25 @@ class TerminalRef:
 
 
 @dataclass(frozen=True, slots=True)
+class PinExitCorridor:
+    owner_ref: str
+    terminal_name: str
+    start: Point
+    end: Point
+
+
+@dataclass(frozen=True, slots=True)
+class NodeAnchor:
+    point: Point
+
+
+@dataclass(frozen=True, slots=True)
+class NodeTrunk:
+    start: Point
+    end: Point
+
+
+@dataclass(frozen=True, slots=True)
 class GeometryNode:
     id: str
     point: Point
@@ -78,6 +97,8 @@ class SchematicGeometry:
     name: str
     shapes: list[PlacedShape] = field(default_factory=list)
     nodes: list[GeometryNode] = field(default_factory=list)
+    anchors: list[NodeAnchor] = field(default_factory=list)
+    trunks: list[NodeTrunk] = field(default_factory=list)
     wires: list[WirePath] = field(default_factory=list)
     labels: list[TextPlacement] = field(default_factory=list)
     junctions: list[JunctionPlacement] = field(default_factory=list)
@@ -143,6 +164,11 @@ SHAPE_BODY_BOXES: dict[tuple[str, str], tuple[float, float, float, float]] = {
 }
 
 ROUTING_CLEARANCE = 4.0
+PAGE_LEFT = 30.0
+PAGE_TOP = 30.0
+PAGE_RIGHT = 245.0
+PAGE_BOTTOM = 170.0
+PAGE_FIT_MARGIN = 8.0
 
 
 def build_schematic_geometry(intent: SchematicIntent) -> SchematicGeometry:
@@ -151,6 +177,8 @@ def build_schematic_geometry(intent: SchematicIntent) -> SchematicGeometry:
             return _finalize_geometry(_build_rc_lowpass_geometry(intent, pattern))
         if pattern.kind == "rc_highpass":
             return _finalize_geometry(_build_rc_highpass_geometry(intent, pattern))
+    if _can_use_flow_layout(intent):
+        return _finalize_geometry(_build_flow_geometry(intent))
     return _finalize_geometry(_build_fallback_geometry(intent))
 
 
@@ -167,14 +195,15 @@ def validate_schematic_geometry(geometry: SchematicGeometry) -> None:
             key = (point.x, point.y)
             point_usage[key] = point_usage.get(key, 0) + 1
         for start, end in zip(wire.points, wire.points[1:]):
-            owners = _wire_owner_refs(wire.uuid_seed)
-            for shape in geometry.shapes:
-                if shape.ref in owners:
-                    continue
-                if _segment_intersects_box(start, end, shape.body_box):
-                    raise AssertionError(
-                        f"wire '{wire.uuid_seed}' intersects shape body '{shape.ref}'"
-                    )
+            if _segment_hits_shape_body(shape_by_ref, wire.uuid_seed, start, end):
+                raise AssertionError(f"wire '{wire.uuid_seed}' crosses a component body")
+
+    bounds = _geometry_bounds(geometry)
+    if bounds is not None:
+        if bounds.left < PAGE_LEFT or bounds.top < PAGE_TOP or bounds.right > PAGE_RIGHT or bounds.bottom > PAGE_BOTTOM:
+            raise AssertionError(
+                f"geometry bounds {(bounds.left, bounds.top, bounds.right, bounds.bottom)} exceed usable page area"
+            )
 
     junction_points = {(junction.point.x, junction.point.y) for junction in geometry.junctions}
     for junction_point in junction_points:
@@ -183,9 +212,21 @@ def validate_schematic_geometry(geometry: SchematicGeometry) -> None:
         if junction_point not in wire_points:
             raise AssertionError(f"junction at {junction_point} does not lie on a compiled wire path")
 
+    for anchor in geometry.anchors:
+        if any(_point_in_box(anchor.point, shape.body_box) for shape in geometry.shapes):
+            raise AssertionError(f"node anchor at {(anchor.point.x, anchor.point.y)} lies inside a shape body")
+    for trunk in geometry.trunks:
+        for shape in geometry.shapes:
+            if _segment_intersects_box(trunk.start, trunk.end, shape.body_box):
+                raise AssertionError(
+                    f"node trunk {(trunk.start.x, trunk.start.y)} -> {(trunk.end.x, trunk.end.y)} intersects shape body '{shape.ref}'"
+                )
+
     for node in geometry.nodes:
         if len(node.attachments) < 2:
             raise AssertionError(f"node '{node.id}' has fewer than 2 attachments")
+        if any(_node_point_inside_forbidden_shape(node.point, shape) for shape in geometry.shapes):
+            raise AssertionError(f"node '{node.id}' anchor lies inside a component body")
         attachment_points = [_resolve_terminal_ref(shape_by_ref, attachment) for attachment in node.attachments]
         if len({(point.x, point.y) for point in attachment_points}) == 1 and (
             attachment_points[0].x != node.point.x or attachment_points[0].y != node.point.y
@@ -203,10 +244,30 @@ def validate_schematic_geometry(geometry: SchematicGeometry) -> None:
                 raise AssertionError(f"node '{node.id}' expected a visible junction")
 
 
+def pack_schematic_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
+    bounds = _geometry_bounds(geometry)
+    if bounds is None:
+        return geometry
+    dx = 0.0
+    dy = 0.0
+    if bounds.left < PAGE_LEFT + PAGE_FIT_MARGIN:
+        dx = PAGE_LEFT + PAGE_FIT_MARGIN - bounds.left
+    elif bounds.right > PAGE_RIGHT - PAGE_FIT_MARGIN:
+        dx = PAGE_RIGHT - PAGE_FIT_MARGIN - bounds.right
+    if bounds.top < PAGE_TOP + PAGE_FIT_MARGIN:
+        dy = PAGE_TOP + PAGE_FIT_MARGIN - bounds.top
+    elif bounds.bottom > PAGE_BOTTOM - PAGE_FIT_MARGIN:
+        dy = PAGE_BOTTOM - PAGE_FIT_MARGIN - bounds.bottom
+    if dx == 0.0 and dy == 0.0:
+        return geometry
+    return _translate_geometry(geometry, dx, dy)
+
+
 def _finalize_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
     _compile_nodes_to_wires(geometry)
-    validate_schematic_geometry(geometry)
-    return geometry
+    packed = pack_schematic_geometry(geometry)
+    validate_schematic_geometry(packed)
+    return packed
 
 
 def _build_rc_lowpass_geometry(intent: SchematicIntent, pattern: IntentPattern) -> SchematicGeometry:
@@ -323,6 +384,118 @@ def _build_rc_highpass_geometry(intent: SchematicIntent, pattern: IntentPattern)
     return geometry
 
 
+def _build_flow_geometry(intent: SchematicIntent) -> SchematicGeometry:
+    geometry = SchematicGeometry(name=intent.name)
+    by_ref = {comp.ref: comp for comp in intent.components}
+    net_to_components = _net_to_components(intent)
+    source = _preferred_source_component(intent)
+    main_path = _longest_component_path(source.ref, _component_adjacency(intent)) if source is not None else []
+    main_path_set = set(main_path)
+
+    centers: dict[str, Point] = {}
+    orientations: dict[str, str] = {}
+    main_y = 78.0
+    source_y = 86.0
+    x_cursor = 56.0
+    if source is not None:
+        centers[source.ref] = Point(x_cursor, source_y)
+        orientations[source.ref] = "vertical_up"
+        x_cursor += 34.0
+
+    for idx, ref in enumerate(main_path):
+        comp = by_ref[ref]
+        orientation = _series_orientation(comp)
+        centers[ref] = Point(x_cursor + idx * 30.0, main_y)
+        orientations[ref] = orientation
+
+    shunt_counts: dict[str, int] = {}
+    remaining_x = (x_cursor + len(main_path) * 30.0) if main_path else 100.0
+    for comp in intent.components:
+        if comp.ref in centers:
+            continue
+        if _is_two_pin_shunt(comp, intent):
+            net_name = _first_signal_net(comp, intent)
+            anchor_x = _net_anchor_x(net_name, main_path, centers, by_ref) if net_name is not None else remaining_x
+            slot = shunt_counts.get(net_name or comp.ref, 0)
+            shunt_counts[net_name or comp.ref] = slot + 1
+            centers[comp.ref] = Point(anchor_x + slot * 22.0, main_y + 34.0 + slot * 18.0)
+            orientations[comp.ref] = _shunt_orientation(comp)
+            continue
+        centers[comp.ref] = Point(remaining_x, 120.0 + 24.0 * (len(centers) - len(main_path_set)))
+        orientations[comp.ref] = _shape_for_component(comp)[1]
+        remaining_x += 28.0
+
+    shapes_by_ref: dict[str, PlacedShape] = {}
+    for comp in intent.components:
+        shape = _place_shape_from_component(comp, centers[comp.ref], orientation=orientations[comp.ref])
+        shapes_by_ref[comp.ref] = shape
+        geometry.shapes.append(shape)
+        geometry.labels.extend(_standard_texts(shape))
+
+    power_ref_idx = 1
+    net_attachments: dict[str, list[TerminalRef]] = {}
+    net_points: dict[str, list[Point]] = {}
+    for comp in intent.components:
+        shape = shapes_by_ref[comp.ref]
+        for pin_index, net_name in enumerate(comp.nodes):
+            terminal_name = _component_terminal_name(comp.kind, shape, pin_index)
+            point = _terminal_point(shape, terminal_name)
+            role = intent.nets[net_name].role
+            if role == "ground":
+                ref = f"#PWR{power_ref_idx:04d}"
+                power_ref_idx += 1
+                gnd_shape = _place_ground(
+                    ref,
+                    _choose_support_symbol_center(point, "ground", geometry.shapes, preferred="down"),
+                )
+                geometry.shapes.append(gnd_shape)
+                geometry.nodes.append(
+                    GeometryNode(
+                        id=f"{ref}:ground",
+                        point=_terminal_point(gnd_shape, "top"),
+                        attachments=(TerminalRef(shape.ref, terminal_name), TerminalRef(gnd_shape.ref, "top")),
+                    )
+                )
+                continue
+            if role == "supply":
+                ref = f"#PWR{power_ref_idx:04d}"
+                power_ref_idx += 1
+                power_shape = _place_power(
+                    ref,
+                    net_name.upper(),
+                    _choose_support_symbol_center(point, "power", geometry.shapes, preferred="up"),
+                )
+                geometry.shapes.append(power_shape)
+                geometry.nodes.append(
+                    GeometryNode(
+                        id=f"{ref}:supply",
+                        point=_terminal_point(power_shape, "bottom"),
+                        attachments=(TerminalRef(shape.ref, terminal_name), TerminalRef(power_shape.ref, "bottom")),
+                    )
+                )
+                continue
+            net_attachments.setdefault(net_name, []).append(TerminalRef(shape.ref, terminal_name))
+            net_points.setdefault(net_name, []).append(point)
+
+    for net_name, attachments in sorted(net_attachments.items()):
+        points = net_points[net_name]
+        if len(points) < 2:
+            continue
+        node_point, trunk = _choose_node_layout(net_name, points, attachments, shapes_by_ref)
+        geometry.anchors.append(NodeAnchor(point=node_point))
+        if trunk is not None:
+            geometry.trunks.append(trunk)
+        geometry.nodes.append(
+            GeometryNode(
+                id=f"net:{net_name}",
+                point=node_point,
+                attachments=tuple(attachments),
+                render_style="junction" if len(attachments) >= 3 else "inline",
+            )
+        )
+    return geometry
+
+
 def _build_fallback_geometry(intent: SchematicIntent) -> SchematicGeometry:
     geometry = SchematicGeometry(name=intent.name)
     shapes_by_ref: dict[str, PlacedShape] = {}
@@ -388,10 +561,14 @@ def _build_fallback_geometry(intent: SchematicIntent) -> SchematicGeometry:
         points = net_points[net_name]
         if len(points) < 2:
             continue
+        node_point, trunk = _choose_node_layout(net_name, points, attachments, shapes_by_ref)
+        geometry.anchors.append(NodeAnchor(point=node_point))
+        if trunk is not None:
+            geometry.trunks.append(trunk)
         geometry.nodes.append(
             GeometryNode(
                 id=f"net:{net_name}",
-                point=_choose_node_point(net_name, points, attachments, shapes_by_ref),
+                point=node_point,
                 attachments=tuple(attachments),
                 render_style="junction" if len(attachments) >= 3 else "inline",
             )
@@ -433,15 +610,15 @@ def _resolve_terminal_ref(shape_by_ref: dict[str, PlacedShape], terminal_ref: Te
     return _terminal_point(shape, terminal_ref.terminal_name)
 
 
-def _choose_node_point(
+def _choose_node_layout(
     net_name: str,
     points: list[Point],
     attachments: list[TerminalRef],
     shapes_by_ref: dict[str, PlacedShape],
-) -> Point:
+) -> tuple[Point, NodeTrunk | None]:
     if len(points) == 2:
         p1, p2 = points
-        return Point(round((p1.x + p2.x) / 2.0, 2), round((p1.y + p2.y) / 2.0, 2))
+        return Point(round((p1.x + p2.x) / 2.0, 2), round((p1.y + p2.y) / 2.0, 2)), None
     boxes = [shapes_by_ref[attachment.owner_ref].body_box for attachment in attachments]
     x_min = min(point.x for point in points)
     x_max = max(point.x for point in points)
@@ -457,10 +634,20 @@ def _choose_node_point(
             lane_y = min(lane_y, min(box.top for box in boxes) - ROUTING_CLEARANCE)
         if lowered in {"0", "gnd", "vss"}:
             lane_y = max(lane_y, max(box.bottom for box in boxes) + ROUTING_CLEARANCE)
-        return Point(round((x_min + x_max) / 2.0, 2), round(lane_y, 2))
+        point = Point(round((x_min + x_max) / 2.0, 2), round(lane_y, 2))
+        trunk = NodeTrunk(
+            start=Point(round(x_min, 2), point.y),
+            end=Point(round(x_max, 2), point.y),
+        )
+        return point, trunk
 
     lane_x = _choose_free_vertical_lane(x_min, x_max, boxes)
-    return Point(round(lane_x, 2), round((y_min + y_max) / 2.0, 2))
+    point = Point(round(lane_x, 2), round((y_min + y_max) / 2.0, 2))
+    trunk = NodeTrunk(
+        start=Point(point.x, round(y_min, 2)),
+        end=Point(point.x, round(y_max, 2)),
+    )
+    return point, trunk
 
 
 def _place_shape_from_component(comp: IntentComponent, center: Point, orientation: str | None = None) -> PlacedShape:
@@ -608,14 +795,11 @@ def _route_between_terminals(
 ) -> tuple[Point, ...]:
     start = _resolve_terminal(shape_by_ref, start_ref)
     end = _resolve_terminal(shape_by_ref, end_ref)
-    ignored = {start_ref.owner_ref, end_ref.owner_ref}
-    boxes = [box for owner, box in occupied if owner not in ignored]
+    boxes = [box for _, box in occupied]
     return _best_path(
-        start.point,
-        start.side,
+        start,
         shape_by_ref[start_ref.owner_ref].body_box,
-        end.point,
-        end.side,
+        end,
         shape_by_ref[end_ref.owner_ref].body_box,
         boxes,
     )
@@ -628,38 +812,40 @@ def _route_attachment_to_node(
     node_point: Point,
 ) -> tuple[Point, ...]:
     terminal = _resolve_terminal(shape_by_ref, attachment)
-    boxes = [box for owner, box in occupied if owner != attachment.owner_ref]
+    boxes = [box for _, box in occupied]
     return _best_path(
-        terminal.point,
-        terminal.side,
+        terminal,
         shape_by_ref[attachment.owner_ref].body_box,
         node_point,
-        "",
         None,
         boxes,
     )
 
 
 def _best_path(
-    start: Point,
-    start_side: str,
+    start: PlacedTerminal,
     start_box: BoundingBox,
-    end: Point,
-    end_side: str,
+    end: Point | PlacedTerminal,
     end_box: BoundingBox | None,
     boxes: list[BoundingBox],
 ) -> tuple[Point, ...]:
     candidates: list[tuple[Point, ...]] = []
-    start_exit = _terminal_exit_point(start, start_side, start_box)
-    end_exit = _terminal_exit_point(end, end_side, end_box) if end_box is not None and end_side else end
+    start_exit = _terminal_exit_point(start.point, start.side, start_box)
+    end_point = end.point if isinstance(end, PlacedTerminal) else end
+    end_side = end.side if isinstance(end, PlacedTerminal) else ""
+    end_exit = _terminal_exit_point(end_point, end_side, end_box) if end_box is not None and end_side else end_point
+    start_corridor = PinExitCorridor("", start.name, start.point, start_exit)
+    end_corridor = (
+        PinExitCorridor("", end.name, end_exit, end.point)
+        if isinstance(end, PlacedTerminal) and end_box is not None
+        else None
+    )
 
-    direct = (start, end)
-    candidates.append(direct)
     candidates.extend(
         [
-            (start, start_exit, end_exit, end),
-            (start, start_exit, Point(end_exit.x, start_exit.y), end_exit, end),
-            (start, start_exit, Point(start_exit.x, end_exit.y), end_exit, end),
+            (start.point, start_exit, end_exit, end_point),
+            (start.point, start_exit, Point(end_exit.x, start_exit.y), end_exit, end_point),
+            (start.point, start_exit, Point(start_exit.x, end_exit.y), end_exit, end_point),
         ]
     )
 
@@ -670,13 +856,17 @@ def _best_path(
         y_candidates.extend([end_box.top - ROUTING_CLEARANCE, end_box.bottom + ROUTING_CLEARANCE])
 
     for x in x_candidates:
-        candidates.append((start, start_exit, Point(x, start_exit.y), Point(x, end_exit.y), end_exit, end))
+        candidates.append((start.point, start_exit, Point(x, start_exit.y), Point(x, end_exit.y), end_exit, end_point))
     for y in y_candidates:
-        candidates.append((start, start_exit, Point(start_exit.x, y), Point(end_exit.x, y), end_exit, end))
+        candidates.append((start.point, start_exit, Point(start_exit.x, y), Point(end_exit.x, y), end_exit, end_point))
 
-    valid_paths = [path for path in (_normalize_path(candidate) for candidate in candidates) if _path_is_clear(path, boxes)]
+    valid_paths = [
+        path
+        for path in (_normalize_path(candidate) for candidate in candidates)
+        if _path_is_clear(path, boxes, start_corridor, end_corridor)
+    ]
     if not valid_paths:
-        return _normalize_path((start, start_exit, end_exit, end))
+        return _normalize_path((start.point, start_exit, end_exit, end_point))
     valid_paths.sort(key=lambda path: (_bend_count(path), _path_length(path)))
     return valid_paths[0]
 
@@ -711,8 +901,26 @@ def _normalize_path(path: tuple[Point, ...]) -> tuple[Point, ...]:
     return tuple(compressed)
 
 
-def _path_is_clear(path: tuple[Point, ...], boxes: list[BoundingBox]) -> bool:
+def _path_is_clear(
+    path: tuple[Point, ...],
+    boxes: list[BoundingBox],
+    start_corridor: PinExitCorridor,
+    end_corridor: PinExitCorridor | None,
+) -> bool:
+    corridor_segments = {
+        ((start_corridor.start.x, start_corridor.start.y), (start_corridor.end.x, start_corridor.end.y)),
+        ((start_corridor.end.x, start_corridor.end.y), (start_corridor.start.x, start_corridor.start.y)),
+    }
+    if end_corridor is not None:
+        corridor_segments.update(
+            {
+                ((end_corridor.start.x, end_corridor.start.y), (end_corridor.end.x, end_corridor.end.y)),
+                ((end_corridor.end.x, end_corridor.end.y), (end_corridor.start.x, end_corridor.start.y)),
+            }
+        )
     for start, end in zip(path, path[1:]):
+        if ((start.x, start.y), (end.x, end.y)) in corridor_segments:
+            continue
         for box in boxes:
             if _segment_intersects_box(start, end, box):
                 return False
@@ -746,6 +954,229 @@ def _path_length(path: tuple[Point, ...]) -> float:
     for start, end in zip(path, path[1:]):
         length += abs(end.x - start.x) + abs(end.y - start.y)
     return length
+
+
+def _can_use_flow_layout(intent: SchematicIntent) -> bool:
+    supported = {"V", "I", "R", "C", "L", "D"}
+    return bool(intent.components) and all(comp.kind in supported and len(comp.nodes) == 2 for comp in intent.components)
+
+
+def _net_to_components(intent: SchematicIntent) -> dict[str, list[str]]:
+    mapping: dict[str, list[str]] = {}
+    for comp in intent.components:
+        for net in comp.nodes:
+            mapping.setdefault(net, []).append(comp.ref)
+    return mapping
+
+
+def _component_adjacency(intent: SchematicIntent) -> dict[str, list[str]]:
+    shunts = {comp.ref for comp in intent.components if _is_two_pin_shunt(comp, intent)}
+    adjacency: dict[str, set[str]] = {comp.ref: set() for comp in intent.components if comp.ref not in shunts}
+    for net_name, members in _net_to_components(intent).items():
+        if intent.nets[net_name].role in {"ground", "supply"}:
+            continue
+        path_members = [ref for ref in members if ref not in shunts]
+        for ref in path_members:
+            adjacency.setdefault(ref, set()).update(other for other in path_members if other != ref)
+    return {ref: sorted(neighbors) for ref, neighbors in adjacency.items()}
+
+
+def _preferred_source_component(intent: SchematicIntent) -> IntentComponent | None:
+    grounded_sources = [
+        comp for comp in intent.components if comp.kind in {"V", "I"} and any(intent.nets[net].role == "ground" for net in comp.nodes)
+    ]
+    if grounded_sources:
+        return grounded_sources[0]
+    for comp in intent.components:
+        if comp.kind in {"V", "I"}:
+            return comp
+    return intent.components[0] if intent.components else None
+
+
+def _longest_component_path(start_ref: str, adjacency: dict[str, list[str]]) -> list[str]:
+    best: list[str] = []
+
+    def walk(ref: str, path: list[str], seen: set[str]) -> None:
+        nonlocal best
+        if len(path) > len(best):
+            best = path.copy()
+        for neighbor in adjacency.get(ref, []):
+            if neighbor in seen:
+                continue
+            seen.add(neighbor)
+            path.append(neighbor)
+            walk(neighbor, path, seen)
+            path.pop()
+            seen.remove(neighbor)
+
+    walk(start_ref, [start_ref], {start_ref})
+    return best[1:]
+
+
+def _series_orientation(comp: IntentComponent) -> str:
+    if comp.kind in {"R", "L", "D"}:
+        return "horizontal"
+    if comp.kind == "C":
+        return "horizontal"
+    return _shape_for_component(comp)[1]
+
+
+def _shunt_orientation(comp: IntentComponent) -> str:
+    if comp.kind == "R":
+        return "vertical"
+    if comp.kind == "C":
+        return "vertical"
+    return _shape_for_component(comp)[1]
+
+
+def _is_two_pin_shunt(comp: IntentComponent, intent: SchematicIntent) -> bool:
+    if comp.kind not in {"R", "C", "L", "D"}:
+        return False
+    if len(comp.nodes) != 2:
+        return False
+    roles = {intent.nets[net].role for net in comp.nodes}
+    return "ground" in roles or "supply" in roles
+
+
+def _first_signal_net(comp: IntentComponent, intent: SchematicIntent) -> str | None:
+    for net in comp.nodes:
+        if intent.nets[net].role not in {"ground", "supply"}:
+            return net
+    return None
+
+
+def _net_anchor_x(net_name: str, main_path: list[str], centers: dict[str, Point], by_ref: dict[str, IntentComponent]) -> float:
+    for ref in main_path:
+        comp = by_ref[ref]
+        if net_name in comp.nodes and ref in centers:
+            return centers[ref].x
+    for ref, center in centers.items():
+        comp = by_ref.get(ref)
+        if comp is not None and net_name in comp.nodes:
+            return center.x
+    return 100.0
+
+
+def _segment_hits_shape_body(
+    shape_by_ref: dict[str, PlacedShape],
+    wire_seed: str,
+    start: Point,
+    end: Point,
+) -> bool:
+    owners = _wire_owner_refs(wire_seed)
+    for ref, shape in shape_by_ref.items():
+        if not _segment_intersects_box(start, end, shape.body_box):
+            continue
+        if ref in owners and _is_legal_owner_corridor(shape, start, end):
+            continue
+        return True
+    return False
+
+
+def _is_legal_owner_corridor(shape: PlacedShape, start: Point, end: Point) -> bool:
+    for terminal in shape.terminals:
+        exit_point = _terminal_exit_point(terminal.point, terminal.side, shape.body_box)
+        if _segment_key(start, end) in {
+            _segment_key(terminal.point, exit_point),
+            _segment_key(exit_point, terminal.point),
+        }:
+            return True
+    return False
+
+
+def _point_in_box(point: Point, box: BoundingBox) -> bool:
+    return box.left < point.x < box.right and box.top < point.y < box.bottom
+
+
+def _node_point_inside_forbidden_shape(point: Point, shape: PlacedShape) -> bool:
+    if not _point_in_box(point, shape.body_box):
+        return False
+    if shape.shape in {"ground", "power"}:
+        return False
+    return True
+
+
+def _segment_key(start: Point, end: Point) -> tuple[tuple[float, float], tuple[float, float]]:
+    return ((start.x, start.y), (end.x, end.y))
+
+
+def _geometry_bounds(geometry: SchematicGeometry) -> BoundingBox | None:
+    xs: list[float] = []
+    ys: list[float] = []
+    for shape in geometry.shapes:
+        xs.extend([shape.body_box.left, shape.body_box.right])
+        ys.extend([shape.body_box.top, shape.body_box.bottom])
+    for wire in geometry.wires:
+        for point in wire.points:
+            xs.append(point.x)
+            ys.append(point.y)
+    for text in geometry.labels:
+        xs.append(text.position.x)
+        ys.append(text.position.y)
+    for junction in geometry.junctions:
+        xs.append(junction.point.x)
+        ys.append(junction.point.y)
+    if not xs or not ys:
+        return None
+    return BoundingBox(min(xs), min(ys), max(xs), max(ys))
+
+
+def _translate_geometry(geometry: SchematicGeometry, dx: float, dy: float) -> SchematicGeometry:
+    def move_point(point: Point) -> Point:
+        return Point(round(point.x + dx, 2), round(point.y + dy, 2))
+
+    def move_box(box: BoundingBox) -> BoundingBox:
+        return BoundingBox(
+            left=round(box.left + dx, 2),
+            top=round(box.top + dy, 2),
+            right=round(box.right + dx, 2),
+            bottom=round(box.bottom + dy, 2),
+        )
+
+    geometry.shapes = [
+        PlacedShape(
+            ref=shape.ref,
+            value=shape.value,
+            shape=shape.shape,
+            orientation=shape.orientation,
+            center=move_point(shape.center),
+            terminals=tuple(
+                PlacedTerminal(name=terminal.name, point=move_point(terminal.point), side=terminal.side)
+                for terminal in shape.terminals
+            ),
+            body_box=move_box(shape.body_box),
+            hidden_reference=shape.hidden_reference,
+        )
+        for shape in geometry.shapes
+    ]
+    geometry.nodes = [
+        GeometryNode(
+            id=node.id,
+            point=move_point(node.point),
+            attachments=node.attachments,
+            render_style=node.render_style,
+            label=node.label,
+        )
+        for node in geometry.nodes
+    ]
+    geometry.anchors = [NodeAnchor(point=move_point(anchor.point)) for anchor in geometry.anchors]
+    geometry.trunks = [NodeTrunk(start=move_point(trunk.start), end=move_point(trunk.end)) for trunk in geometry.trunks]
+    geometry.wires = [
+        WirePath(points=tuple(move_point(point) for point in wire.points), uuid_seed=wire.uuid_seed)
+        for wire in geometry.wires
+    ]
+    geometry.labels = [
+        TextPlacement(
+            text=text.text,
+            role=text.role,
+            position=move_point(text.position),
+            owner_ref=text.owner_ref,
+            uuid_seed=text.uuid_seed,
+        )
+        for text in geometry.labels
+    ]
+    geometry.junctions = [JunctionPlacement(point=move_point(junction.point)) for junction in geometry.junctions]
+    return geometry
 
 
 def _choose_free_horizontal_lane(y_min: float, y_max: float, boxes: list[BoundingBox]) -> float:
