@@ -9,12 +9,11 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 
-from mixedsig2cad.compiled import make_body_box, make_terminals
+from mixedsig2cad.compiled import CompiledSchematic, make_body_box, make_terminals
 from mixedsig2cad.exporters.kicad import render_kicad_schematic
 from mixedsig2cad.geometry import (
     Point,
     PlacedShape,
-    SchematicGeometry,
     TextPlacement,
     WirePath,
 )
@@ -56,10 +55,10 @@ class RenderedSymbolComparison:
     notes: tuple[str, ...]
 
 
-def build_symbol_probe_geometry(shape: str, orientation: str) -> SchematicGeometry:
+def build_symbol_probe_geometry(shape: str, orientation: str) -> CompiledSchematic:
     ref = _probe_ref(shape)
     value = _probe_value(shape)
-    geometry = SchematicGeometry(name=f"probe_{shape}_{orientation}")
+    geometry = CompiledSchematic(name=f"probe_{shape}_{orientation}")
     placed = PlacedShape(
         ref=ref,
         value=value,

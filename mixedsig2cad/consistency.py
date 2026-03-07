@@ -4,8 +4,9 @@ from dataclasses import dataclass
 from pathlib import Path
 import tempfile
 
+from mixedsig2cad.compiled import CompiledSchematic
 from mixedsig2cad.exporters.kicad import render_kicad_schematic
-from mixedsig2cad.geometry import Point, SchematicGeometry
+from mixedsig2cad.geometry import Point
 from mixedsig2cad.importers.kicad_schematic import import_kicad_schematic
 from mixedsig2cad.importers.raster_extract import extract_geometry_from_image
 from mixedsig2cad.projections.kicad import project_geometry_to_kicad
@@ -44,7 +45,7 @@ class RoundTripReport:
     exact_roundtrip: bool
 
 
-def derive_topology_layout(geometry: SchematicGeometry) -> TopologyLayout:
+def derive_topology_layout(geometry: CompiledSchematic) -> TopologyLayout:
     layout = TopologyLayout(name=geometry.name)
     for shape in geometry.shapes:
         layout.placements.append(
@@ -73,8 +74,8 @@ def derive_topology_layout(geometry: SchematicGeometry) -> TopologyLayout:
 
 
 def compare_geometries(
-    expected: SchematicGeometry,
-    observed: SchematicGeometry,
+    expected: CompiledSchematic,
+    observed: CompiledSchematic,
     *,
     coordinate_tolerance: float = 0.01,
 ) -> GeometryComparison:
@@ -175,7 +176,7 @@ def roundtrip_image(path: str | Path, *, mode: str = "kicad_raster") -> RoundTri
     )
 
 
-def _regenerate_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
+def _regenerate_geometry(geometry: CompiledSchematic) -> CompiledSchematic:
     projection = project_geometry_to_kicad(geometry)
     text = render_kicad_schematic(projection)
     with tempfile.TemporaryDirectory(prefix="mixedsig2cad-roundtrip-") as tmp:
@@ -184,7 +185,7 @@ def _regenerate_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
         return import_kicad_schematic(path)
 
 
-def _normalized_wire_segments(geometry: SchematicGeometry) -> set[tuple[tuple[float, float], tuple[float, float]]]:
+def _normalized_wire_segments(geometry: CompiledSchematic) -> set[tuple[tuple[float, float], tuple[float, float]]]:
     segments: set[tuple[tuple[float, float], tuple[float, float]]] = set()
     for wire in geometry.wires:
         for start, end in zip(wire.points, wire.points[1:]):

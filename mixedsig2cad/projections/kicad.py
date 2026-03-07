@@ -4,7 +4,8 @@ import math
 import uuid
 from dataclasses import dataclass, field
 
-from mixedsig2cad.geometry import GENERIC_SHAPES, JunctionPlacement, Point, SchematicGeometry, TextPlacement, WirePath
+from mixedsig2cad.compiled import CompiledSchematic
+from mixedsig2cad.geometry import GENERIC_SHAPES, JunctionPlacement, Point, TextPlacement, WirePath
 from mixedsig2cad.kicad_symbols import KiCadLibPin, project_symbol_pins
 from mixedsig2cad.symbols import KICAD_PIN_MAPS, KICAD_SYMBOLS, kicad_pin_map, kicad_symbol, terminal_defs
 
@@ -63,7 +64,7 @@ class KiCadProjection:
     wires: list[KiCadWireSegment] = field(default_factory=list)
     junctions: list[KiCadJunctionPlacement] = field(default_factory=list)
 
-def project_geometry_to_kicad(geometry: SchematicGeometry) -> KiCadProjection:
+def project_geometry_to_kicad(geometry: CompiledSchematic) -> KiCadProjection:
     projection = KiCadProjection(name=geometry.name)
     for shape in geometry.shapes:
         lib_id, angle = kicad_symbol(shape.shape, shape.orientation)
@@ -94,7 +95,7 @@ def project_geometry_to_kicad(geometry: SchematicGeometry) -> KiCadProjection:
     return projection
 
 
-def validate_kicad_projection(projection: KiCadProjection, geometry: SchematicGeometry) -> None:
+def validate_kicad_projection(projection: KiCadProjection, geometry: CompiledSchematic) -> None:
     symbol_by_ref = {symbol.ref: symbol for symbol in projection.symbols}
     for shape in geometry.shapes:
         symbol = symbol_by_ref.get(shape.ref)

@@ -50,9 +50,7 @@ The pipeline is now layered:
 - `project_geometry_to_kicad(geometry)`: KiCad-specific projection adapter
 - `export_kicad_schematic(spec)`: full orchestration to KiCad text
 
-`build_kicad_layout(spec)` and `build_schematic_geometry(intent)` remain only as
-legacy compatibility helpers. New code should treat `compile_schematic()` as the
-single supported forward compilation path.
+`compile_schematic()` is the single supported forward compilation path.
 
 Reverse extraction is also available:
 

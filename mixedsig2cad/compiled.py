@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from .compiler_impl import compile_intent_geometry
 from .geometry import (
     BoundingBox,
     GeometryNode,
@@ -11,7 +12,6 @@ from .geometry import (
     PlacedShape,
     PlacedTerminal,
     Point,
-    SchematicGeometry,
     TextPlacement,
     WirePath,
 )
@@ -31,7 +31,7 @@ class CompiledSchematic:
     junctions: list[JunctionPlacement] = field(default_factory=list)
 
 
-def _as_compiled_schematic(geometry: SchematicGeometry) -> CompiledSchematic:
+def _as_compiled_schematic(geometry) -> CompiledSchematic:
     return CompiledSchematic(
         name=geometry.name,
         shapes=list(geometry.shapes),
@@ -45,28 +45,7 @@ def _as_compiled_schematic(geometry: SchematicGeometry) -> CompiledSchematic:
 
 
 def compile_schematic(intent: SchematicIntent) -> CompiledSchematic:
-    from .geometry import (
-        _build_fallback_geometry,
-        _build_flow_geometry,
-        _build_rc_highpass_geometry,
-        _build_rc_lowpass_geometry,
-        _can_use_flow_layout,
-        _compile_topology_layout,
-        _finalize_geometry,
-    )
-    from .topology_layout import build_topology_layout
-
-    topology_layout = build_topology_layout(intent)
-    if topology_layout is not None:
-        return _as_compiled_schematic(_finalize_geometry(_compile_topology_layout(intent, topology_layout)))
-    for pattern in intent.patterns:
-        if pattern.kind == "rc_lowpass":
-            return _as_compiled_schematic(_finalize_geometry(_build_rc_lowpass_geometry(intent, pattern)))
-        if pattern.kind == "rc_highpass":
-            return _as_compiled_schematic(_finalize_geometry(_build_rc_highpass_geometry(intent, pattern)))
-    if _can_use_flow_layout(intent):
-        return _as_compiled_schematic(_finalize_geometry(_build_flow_geometry(intent)))
-    return _as_compiled_schematic(_finalize_geometry(_build_fallback_geometry(intent)))
+    return _as_compiled_schematic(compile_intent_geometry(intent))
 
 
 def make_terminals(shape: str, orientation: str, center: Point) -> tuple[PlacedTerminal, ...]:
