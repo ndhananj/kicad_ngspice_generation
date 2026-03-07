@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from examples.specs.catalog import all_examples
-from mixedsig2cad import build_schematic_geometry, build_schematic_intent
+from mixedsig2cad import build_schematic_geometry, build_schematic_intent, project_geometry_to_kicad
 from mixedsig2cad.geometry import PAGE_BOTTOM, PAGE_LEFT, PAGE_RIGHT, PAGE_TOP
 
 
@@ -69,6 +69,7 @@ def validate_kicad(path: Path) -> None:
 def validate_geometry() -> None:
     for spec in all_examples():
         geometry = build_schematic_geometry(build_schematic_intent(spec))
+        project_geometry_to_kicad(geometry)
         bounds = _geometry_bounds(geometry)
         assert bounds is not None, f"missing geometry bounds for {spec.name}"
         assert bounds.left >= PAGE_LEFT, f"{spec.name} extends past left page bound"

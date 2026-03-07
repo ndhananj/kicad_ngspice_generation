@@ -239,7 +239,7 @@
       (effects (font (size 1.27 1.27)) hide)
     )
   )
-  (symbol (lib_id "DIODE") (at 96.35 95.08 270) (unit 1)
+  (symbol (lib_id "DIODE") (at 96.35 95.08 90) (unit 1)
     (in_bom yes) (on_board yes)
     (uuid 6d337348-46f7-501d-8787-9fc457eabff9)
     (property "Reference" "D1" (at 96.35 87.08 0)
