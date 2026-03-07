@@ -143,14 +143,10 @@ SHAPE_GROUP_STEP_Y = {
 }
 
 
-SHAPE_TERMINALS = SYMBOL_TERMINALS
-
 GENERIC_SHAPES: dict[tuple[str, str], dict[str, tuple[float, float]]] = {
     key: {terminal.name: terminal.offset for terminal in terminals}
-    for key, terminals in SHAPE_TERMINALS.items()
+    for key, terminals in SYMBOL_TERMINALS.items()
 }
-
-SHAPE_BODY_BOXES = SYMBOL_BODY_BOXES
 
 ROUTING_CLEARANCE = 5.08
 KICAD_CONNECTION_GRID = 1.27
@@ -976,7 +972,7 @@ def _place_power(ref: str, value: str, center: Point) -> PlacedShape:
 
 
 def _make_terminals(shape: str, orientation: str, center: Point) -> tuple[PlacedTerminal, ...]:
-    templates = SHAPE_TERMINALS[(shape, orientation)]
+    templates = SYMBOL_TERMINALS[(shape, orientation)]
     return tuple(
         PlacedTerminal(
             name=template.name,
@@ -990,7 +986,7 @@ def _make_terminals(shape: str, orientation: str, center: Point) -> tuple[Placed
 
 
 def _body_box(shape: str, orientation: str, center: Point) -> BoundingBox:
-    left, top, right, bottom = SHAPE_BODY_BOXES[(shape, orientation)]
+    left, top, right, bottom = SYMBOL_BODY_BOXES[(shape, orientation)]
     return BoundingBox(
         left=round(center.x + left, 2),
         top=round(center.y + top, 2),
@@ -1552,7 +1548,7 @@ def _place_support_symbol_for_terminal(
     *,
     preferred: str,
 ) -> Point:
-    prototype = SHAPE_BODY_BOXES[(symbol_kind, "down" if symbol_kind == "ground" else "up")]
+    prototype = SYMBOL_BODY_BOXES[(symbol_kind, "down" if symbol_kind == "ground" else "up")]
     primary_offset = 12.0 if preferred == "down" else -12.0
     lateral_step = 12.0
     if terminal.side in {"left", "right"}:

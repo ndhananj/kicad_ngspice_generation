@@ -18,8 +18,8 @@ from mixedsig2cad.geometry import (
     TextPlacement,
     WirePath,
 )
-from mixedsig2cad.projections.kicad import GENERIC_TO_KICAD_PIN, SHAPE_TO_KICAD, _embedded_kicad_symbols, project_geometry_to_kicad
-from mixedsig2cad.symbols import terminal_defs
+from mixedsig2cad.projections.kicad import _embedded_kicad_symbols, project_geometry_to_kicad
+from mixedsig2cad.symbols import KICAD_SYMBOLS, kicad_pin_map, kicad_symbol, terminal_defs
 
 PROBE_CENTER = Point(100.0, 100.0)
 PROBE_STUB_LENGTH = 14.0
@@ -132,7 +132,7 @@ def validate_rendered_kicad_symbols(*, strict_pin_labels: bool = False) -> list[
     results: list[RenderedSymbolComparison] = []
     with tempfile.TemporaryDirectory(prefix="kicad-symbol-probes-") as tmpdir:
         tmp = Path(tmpdir)
-        for shape, orientation in sorted(SHAPE_TO_KICAD):
+        for shape, orientation in sorted(KICAD_SYMBOLS):
             geometry = build_symbol_probe_geometry(shape, orientation)
             projection = project_geometry_to_kicad(geometry)
             schematic_path = tmp / f"{geometry.name}.kicad_sch"
@@ -157,10 +157,10 @@ def _compare_rendered_symbol(
     *,
     strict_pin_labels: bool,
 ) -> RenderedSymbolComparison:
-    lib_id, angle = SHAPE_TO_KICAD[(shape, orientation)]
+    lib_id, angle = kicad_symbol(shape, orientation)
     expected_terminal_sides = {template.name: template.exit_direction for template in terminal_defs(shape, orientation)}
     expected_pin_name_terminals: dict[str, str] = {}
-    pin_map = GENERIC_TO_KICAD_PIN[(shape, orientation)]
+    pin_map = kicad_pin_map(shape, orientation)
     lib_pins = _embedded_kicad_symbols()[lib_id]
     for terminal_name, pin_number in pin_map.items():
         pin = lib_pins.get(pin_number)
@@ -290,7 +290,7 @@ def _observe_pin_name_terminals(
     shape: str,
     orientation: str,
 ) -> dict[str, str]:
-    lib_id, _ = SHAPE_TO_KICAD[(shape, orientation)]
+    lib_id, _ = kicad_symbol(shape, orientation)
     lib_pins = _embedded_kicad_symbols()[lib_id]
     valid_pin_names = {pin.name for pin in lib_pins.values() if pin.name not in {"", "~"}}
     expected_points = _expected_pin_name_points(shape, orientation)
@@ -306,8 +306,8 @@ def _observe_pin_name_terminals(
 
 
 def _expected_pin_name_points(shape: str, orientation: str) -> dict[str, Point]:
-    lib_id, angle = SHAPE_TO_KICAD[(shape, orientation)]
-    pin_map = GENERIC_TO_KICAD_PIN[(shape, orientation)]
+    lib_id, angle = kicad_symbol(shape, orientation)
+    pin_map = kicad_pin_map(shape, orientation)
     lib_pins = _embedded_kicad_symbols()[lib_id]
     expected: dict[str, Point] = {}
     for terminal_name, pin_number in pin_map.items():

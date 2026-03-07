@@ -4,12 +4,11 @@ import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from mixedsig2cad.compiled import make_body_box, make_terminals
+from mixedsig2cad.compiled import CompiledSchematic, make_body_box, make_terminals
 from mixedsig2cad.geometry import (
     JunctionPlacement,
     Point,
     PlacedShape,
-    SchematicGeometry,
     TextPlacement,
     WirePath,
 )
@@ -29,7 +28,7 @@ _PIN_LABELS_BY_KIND = {
 }
 
 
-def extract_geometry_from_image(path: str | Path, *, mode: str = "kicad_raster") -> SchematicGeometry:
+def extract_geometry_from_image(path: str | Path, *, mode: str = "kicad_raster") -> CompiledSchematic:
     image_path = Path(path)
     if image_path.suffix.lower() == ".svg":
         observation = observe_kicad_svg(image_path)
@@ -48,8 +47,8 @@ def observe_kicad_svg(path: str | Path) -> DrawingObservation:
     return DrawingObservation(symbols=symbols, wires=wires, junctions=junctions, source_kind="kicad_svg")
 
 
-def _observation_to_geometry(observation: DrawingObservation, name: str) -> SchematicGeometry:
-    geometry = SchematicGeometry(name=name)
+def _observation_to_geometry(observation: DrawingObservation, name: str) -> CompiledSchematic:
+    geometry = CompiledSchematic(name=name)
     for symbol in observation.symbols:
         if symbol.kind == "ground":
             value = symbol.value_text or "GND"

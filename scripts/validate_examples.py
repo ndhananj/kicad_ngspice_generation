@@ -25,7 +25,8 @@ from mixedsig2cad import (
 )
 from mixedsig2cad.geometry import PAGE_BOTTOM, PAGE_LEFT, PAGE_RIGHT, PAGE_TOP
 from mixedsig2cad.importers.raster_extract import observe_kicad_svg
-from mixedsig2cad.projections.kicad import SHAPE_TO_KICAD, project_geometry_to_kicad
+from mixedsig2cad.projections.kicad import project_geometry_to_kicad
+from mixedsig2cad.symbols import KICAD_SYMBOLS
 
 EXPECTED_CONNECTIVITY_PASS = {
     "rc_lowpass": True,
@@ -135,7 +136,7 @@ def validate_rendered_symbols() -> None:
     results = validate_rendered_kicad_symbols()
     assert results or shutil.which("kicad-cli") is None, "expected rendered symbol validation results when kicad-cli is installed"
     by_shape = {(result.shape, result.orientation): result for result in results}
-    for key in SHAPE_TO_KICAD:
+    for key in KICAD_SYMBOLS:
         if shutil.which("kicad-cli") is None:
             break
         assert key in by_shape, f"missing rendered validation result for symbol mapping {key}"

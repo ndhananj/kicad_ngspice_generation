@@ -30,17 +30,14 @@ Export:
 
 ```python
 from mixedsig2cad import (
-    build_kicad_layout,
-    build_schematic_geometry,
     build_schematic_intent,
+    compile_schematic,
     export_kicad_schematic,
     export_ngspice_netlist,
-    project_geometry_to_kicad,
 )
 
 kicad_intent = build_schematic_intent(spec)
-kicad_geometry = build_schematic_geometry(kicad_intent)
-kicad_layout = project_geometry_to_kicad(kicad_geometry)
+kicad_geometry = compile_schematic(kicad_intent)
 kicad_text = export_kicad_schematic(spec)
 ngspice_text = export_ngspice_netlist(spec)
 ```
@@ -49,12 +46,13 @@ The pipeline is now layered:
 
 - `CircuitSpec`: circuit connectivity and simulation metadata
 - `build_schematic_intent(spec)`: schematic-semantic intent
-- `build_schematic_geometry(intent)`: renderer-agnostic drawing geometry
-- `project_geometry_to_kicad(geometry)`: KiCad-specific projection
+- `compile_schematic(intent)`: canonical compiled schematic
+- `project_geometry_to_kicad(geometry)`: KiCad-specific projection adapter
 - `export_kicad_schematic(spec)`: full orchestration to KiCad text
 
-`build_kicad_layout(spec)` remains as a compatibility helper that returns the
-KiCad projection layer directly.
+`build_kicad_layout(spec)` and `build_schematic_geometry(intent)` remain only as
+legacy compatibility helpers. New code should treat `compile_schematic()` as the
+single supported forward compilation path.
 
 Reverse extraction is also available:
 
@@ -74,7 +72,7 @@ report = roundtrip_kicad_schematic("examples/generated/kicad/rc_lowpass.kicad_sc
 
 Current reverse-import guarantees:
 
-- `.kicad_sch -> SchematicGeometry -> TopologyLayout` is exact for the generated example corpus.
+- `.kicad_sch -> CompiledSchematic -> TopologyLayout` is exact for the generated example corpus.
 - KiCad image import is implemented through `extract_geometry_from_image(...)`.
 - SVG images exported from KiCad are the supported image path today.
 - Bitmap and hand-drawn image extraction remain best-effort.
@@ -85,6 +83,17 @@ Current reverse-import guarantees:
 python3 scripts/generate_examples.py
 python3 scripts/validate_examples.py
 ```
+
+## Architecture
+
+The supported layering is:
+
+- semantic layer: `CircuitSpec -> build_schematic_intent(spec)`
+- canonical compiler layer: `compile_schematic(intent) -> CompiledSchematic`
+- adapter layer: KiCad export/import, ngspice export, topology comparison, and raster extraction
+
+Lower-level geometry and projection modules still exist internally, but they are
+not the primary API surface.
 
 ## Example library catalog
 

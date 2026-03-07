@@ -63,10 +63,6 @@ class KiCadProjection:
     wires: list[KiCadWireSegment] = field(default_factory=list)
     junctions: list[KiCadJunctionPlacement] = field(default_factory=list)
 
-
-SHAPE_TO_KICAD = KICAD_SYMBOLS
-GENERIC_TO_KICAD_PIN = KICAD_PIN_MAPS
-
 def project_geometry_to_kicad(geometry: SchematicGeometry) -> KiCadProjection:
     projection = KiCadProjection(name=geometry.name)
     for shape in geometry.shapes:
