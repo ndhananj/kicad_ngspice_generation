@@ -40,6 +40,14 @@ from .projections.kicad import (
     validate_kicad_projection,
 )
 from .spec import Analysis, CircuitSpec, Component
+from .topology_layout import (
+    TopologyAttachment,
+    TopologyConnection,
+    TopologyLayout,
+    TopologyPlacement,
+    TopologyPoint,
+    build_topology_layout,
+)
 from .exporters.kicad import export_kicad_schematic
 from .exporters.ngspice import export_ngspice_netlist
 
@@ -72,10 +80,16 @@ __all__ = [
     "TerminalRef",
     "TerminalTemplate",
     "TextPlacement",
+    "TopologyAttachment",
+    "TopologyConnection",
+    "TopologyLayout",
+    "TopologyPlacement",
+    "TopologyPoint",
     "WirePath",
     "build_kicad_layout",
     "build_schematic_geometry",
     "build_schematic_intent",
+    "build_topology_layout",
     "export_kicad_schematic",
     "export_ngspice_netlist",
     "pack_schematic_geometry",

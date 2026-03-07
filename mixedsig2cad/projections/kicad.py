@@ -70,6 +70,7 @@ SHAPE_TO_KICAD = {
     ("capacitor", "horizontal"): ("CAP", 90),
     ("inductor", "horizontal"): ("INDUCTOR", 0),
     ("diode", "horizontal"): ("DIODE", 0),
+    ("diode", "vertical"): ("DIODE", 270),
     ("ground", "down"): ("GND", 0),
     ("power", "up"): ("VCC", 0),
     ("opamp", "right"): ("OPAMP", 0),

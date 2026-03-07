@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .intent import IntentComponent, IntentPattern, SchematicIntent
+from .topology_layout import TopologyLayout, TopologyPlacement, build_topology_layout
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,6 +166,10 @@ SHAPE_TERMINALS: dict[tuple[str, str], tuple[TerminalTemplate, ...]] = {
         TerminalTemplate("left", (-5.08, 0.0), "left", "series_inline"),
         TerminalTemplate("right", (5.08, 0.0), "right", "branch_to_junction"),
     ),
+    ("diode", "vertical"): (
+        TerminalTemplate("top", (0.0, -5.08), "top", "branch_to_junction"),
+        TerminalTemplate("bottom", (0.0, 5.08), "bottom", "local_ground_drop"),
+    ),
     ("ground", "down"): (
         TerminalTemplate("top", (0.0, 0.0), "top", "local_ground_drop"),
     ),
@@ -211,6 +216,7 @@ SHAPE_BODY_BOXES: dict[tuple[str, str], tuple[float, float, float, float]] = {
     ("capacitor", "horizontal"): (-2.0, -4.0, 2.0, 4.0),
     ("inductor", "horizontal"): (-5.2, -2.0, 5.2, 2.0),
     ("diode", "horizontal"): (-3.5, -3.0, 3.5, 3.0),
+    ("diode", "vertical"): (-3.0, -3.5, 3.0, 3.5),
     ("ground", "down"): (-2.0, -3.0, 2.0, 1.0),
     ("power", "up"): (-2.0, -1.0, 2.0, 3.0),
     ("opamp", "right"): (-6.0, -6.0, 6.0, 6.0),
@@ -228,6 +234,9 @@ PAGE_FIT_MARGIN = 8.0
 
 
 def build_schematic_geometry(intent: SchematicIntent) -> SchematicGeometry:
+    topology_layout = build_topology_layout(intent)
+    if topology_layout is not None:
+        return _finalize_geometry(_compile_topology_layout(intent, topology_layout))
     for pattern in intent.patterns:
         if pattern.kind == "rc_lowpass":
             return _finalize_geometry(_build_rc_lowpass_geometry(intent, pattern))
@@ -326,6 +335,43 @@ def _finalize_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
     packed = pack_schematic_geometry(geometry)
     validate_schematic_geometry(packed)
     return packed
+
+
+def _compile_topology_layout(intent: SchematicIntent, layout: TopologyLayout) -> SchematicGeometry:
+    geometry = SchematicGeometry(name=layout.name)
+    by_ref = {comp.ref: comp for comp in intent.components}
+    for placement in layout.placements:
+        shape = _place_topology_item(by_ref, placement)
+        geometry.shapes.append(shape)
+        if shape.shape not in {"ground", "power"}:
+            geometry.labels.extend(_standard_texts(shape))
+    geometry.nodes.extend(
+        GeometryNode(
+            id=connection.id,
+            point=Point(connection.point.x, connection.point.y),
+            attachments=tuple(
+                TerminalRef(owner_ref=attachment.owner_ref, terminal_name=attachment.terminal_name)
+                for attachment in connection.attachments
+            ),
+            render_style=connection.render_style,
+        )
+        for connection in layout.connections
+    )
+    return geometry
+
+
+def _place_topology_item(by_ref: dict[str, IntentComponent], placement: TopologyPlacement) -> PlacedShape:
+    if placement.ref in by_ref:
+        return _place_shape_from_component(
+            by_ref[placement.ref],
+            Point(placement.center.x, placement.center.y),
+            orientation=placement.orientation,
+        )
+    if placement.shape == "ground":
+        return _place_ground(placement.ref, Point(placement.center.x, placement.center.y))
+    if placement.shape == "power":
+        return _place_power(placement.ref, placement.value or "VCC", Point(placement.center.x, placement.center.y))
+    raise AssertionError(f"unknown topology placement '{placement.ref}'")
 
 
 def _build_rc_lowpass_geometry(intent: SchematicIntent, pattern: IntentPattern) -> SchematicGeometry:
