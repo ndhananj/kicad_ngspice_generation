@@ -56,6 +56,29 @@ The pipeline is now layered:
 `build_kicad_layout(spec)` remains as a compatibility helper that returns the
 KiCad projection layer directly.
 
+Reverse extraction is also available:
+
+```python
+from mixedsig2cad import (
+    compare_geometries,
+    compare_topologies,
+    derive_topology_layout,
+    import_kicad_schematic,
+    roundtrip_kicad_schematic,
+)
+
+geometry = import_kicad_schematic("examples/generated/kicad/rc_lowpass.kicad_sch")
+topology = derive_topology_layout(geometry)
+report = roundtrip_kicad_schematic("examples/generated/kicad/rc_lowpass.kicad_sch")
+```
+
+Current reverse-import guarantees:
+
+- `.kicad_sch -> SchematicGeometry -> TopologyLayout` is exact for the generated example corpus.
+- KiCad image import is implemented through `extract_geometry_from_image(...)`.
+- SVG images exported from KiCad are the supported image path today.
+- Bitmap and hand-drawn image extraction remain best-effort.
+
 ## Generate the full example library
 
 ```bash

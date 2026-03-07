@@ -11,7 +11,16 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from examples.specs.catalog import all_examples
-from mixedsig2cad import build_schematic_geometry, build_schematic_intent, project_geometry_to_kicad
+from mixedsig2cad import (
+    build_schematic_geometry,
+    build_schematic_intent,
+    compare_geometries,
+    compare_topologies,
+    derive_topology_layout,
+    import_kicad_schematic,
+    project_geometry_to_kicad,
+    roundtrip_kicad_schematic,
+)
 from mixedsig2cad.geometry import PAGE_BOTTOM, PAGE_LEFT, PAGE_RIGHT, PAGE_TOP
 
 
@@ -64,11 +73,14 @@ def validate_kicad(path: Path) -> None:
         assert "(wire (pts (xy 100.00 108.00) (xy 100.00 98.00))" not in text, (
             "unexpected body-crossing vertical route remains in rlc_bandpass"
         )
+    report = roundtrip_kicad_schematic(path)
+    assert report.exact_roundtrip, f"structured KiCad roundtrip failed for {path}: {report}"
 
 
 def validate_geometry() -> None:
     for spec in all_examples():
-        geometry = build_schematic_geometry(build_schematic_intent(spec))
+        intent = build_schematic_intent(spec)
+        geometry = build_schematic_geometry(intent)
         project_geometry_to_kicad(geometry)
         bounds = _geometry_bounds(geometry)
         assert bounds is not None, f"missing geometry bounds for {spec.name}"
@@ -76,6 +88,13 @@ def validate_geometry() -> None:
         assert bounds.top >= PAGE_TOP, f"{spec.name} extends past top page bound"
         assert bounds.right <= PAGE_RIGHT, f"{spec.name} extends past right page bound"
         assert bounds.bottom <= PAGE_BOTTOM, f"{spec.name} extends past bottom page bound"
+        kicad_path = ROOT / "examples" / "generated" / "kicad" / f"{spec.name}.kicad_sch"
+        if kicad_path.exists():
+            imported = import_kicad_schematic(kicad_path)
+            geometry_report = compare_geometries(geometry, imported)
+            topology_report = compare_topologies(derive_topology_layout(geometry), derive_topology_layout(imported))
+            assert geometry_report.within_tolerance, f"geometry import mismatch for {spec.name}: {geometry_report}"
+            assert topology_report.equivalent, f"topology import mismatch for {spec.name}: {topology_report}"
 
 
 def _geometry_bounds(geometry) -> tuple[float, float, float, float] | None:

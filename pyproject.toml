@@ -5,4 +5,4 @@ description = "Generate KiCad and ngspice examples from high-level mixed-signal 
 requires-python = ">=3.11"
 
 [tool.setuptools]
-packages = ["mixedsig2cad", "mixedsig2cad.exporters", "examples", "examples.specs"]
+packages = ["mixedsig2cad", "mixedsig2cad.exporters", "mixedsig2cad.projections", "mixedsig2cad.importers", "examples", "examples.specs"]
