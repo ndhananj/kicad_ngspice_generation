@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 from .intent import IntentComponent, SchematicIntent
 
+KICAD_CONNECTION_GRID = 1.27
 
 @dataclass(frozen=True, slots=True)
 class TopologyPoint:
@@ -339,6 +340,8 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
         return None
     opamp = opamps[0]
     plus_net, minus_net, out_net = opamp.nodes[:3]
+    supply_plus_net = opamp.nodes[3] if len(opamp.nodes) >= 4 else None
+    supply_minus_net = opamp.nodes[4] if len(opamp.nodes) >= 5 else None
     resistors = [comp for comp in intent.components if comp.kind == "R" and len(comp.nodes) == 2]
     rin = next((comp for comp in resistors if minus_net in comp.nodes and any(intent.nets[node].role == "signal_in" for node in comp.nodes)), None)
     rf = next((comp for comp in resistors if minus_net in comp.nodes and out_net in comp.nodes), None)
@@ -349,17 +352,17 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
     layout = TopologyLayout(name=intent.name)
     layout.placements.extend(
         [
-            TopologyPlacement(ref=opamp.ref, center=TopologyPoint(170.0, 90.0), orientation="right"),
-            TopologyPlacement(ref=rin.ref, center=TopologyPoint(130.03, 87.46), orientation="horizontal"),
-            TopologyPlacement(ref=rf.ref, center=TopologyPoint(170.0, 68.0), orientation="horizontal"),
-            TopologyPlacement(ref="#PWR0001", center=TopologyPoint(162.38, 104.54), shape="ground", value="GND", orientation="down"),
+            TopologyPlacement(ref=opamp.ref, center=_point(170.0, 90.0), orientation="right"),
+            TopologyPlacement(ref=rin.ref, center=_point(130.03, 87.46), orientation="horizontal"),
+            TopologyPlacement(ref=rf.ref, center=_point(170.0, 68.0), orientation="horizontal"),
+            TopologyPlacement(ref="#PWR0001", center=_point(162.38, 104.54), shape="ground", value="GND", orientation="down"),
         ]
     )
     sources = [comp for comp in intent.components if comp.kind == "V"]
     source_y = 60.0
     for idx, source in enumerate(sources, start=2):
-        layout.placements.append(TopologyPlacement(ref=source.ref, center=TopologyPoint(80.0, source_y), orientation="vertical_up"))
-        layout.placements.append(TopologyPlacement(ref=f"#PWR{idx:04d}", center=TopologyPoint(80.0, source_y + 19.62), shape="ground", value="GND", orientation="down"))
+        layout.placements.append(TopologyPlacement(ref=source.ref, center=_point(80.0, source_y), orientation="vertical_up"))
+        layout.placements.append(TopologyPlacement(ref=f"#PWR{idx:04d}", center=_point(80.0, source_y + 19.62), shape="ground", value="GND", orientation="down"))
         layout.connections.append(
             TopologyConnection(
                 id=f"#PWR{idx:04d}:ground",
@@ -371,6 +374,8 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
         source_y += 40.0
 
     vin_source = next((source for source in sources if any(intent.nets[node].role == "signal_in" for node in source.nodes)), None)
+    supply_plus_source = next((source for source in sources if supply_plus_net is not None and source.nodes[0] == supply_plus_net), None)
+    supply_minus_source = next((source for source in sources if supply_minus_net is not None and source.nodes[0] == supply_minus_net), None)
     if vin_source is not None:
         layout.connections.append(
             TopologyConnection(
@@ -407,6 +412,26 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
             ),
         ]
     )
+    if supply_plus_source is not None:
+        layout.connections.append(
+            TopologyConnection(
+                id="supply_plus",
+                point=_point(167.46, 82.38),
+                attachments=(TopologyAttachment(opamp.ref, "vplus"), TopologyAttachment(supply_plus_source.ref, "pos")),
+                role="local_supply",
+            )
+        )
+    if supply_minus_source is not None:
+        layout.connections.append(
+            TopologyConnection(
+                id="supply_minus",
+                point=_point(167.46, 97.62),
+                attachments=(TopologyAttachment(opamp.ref, "vminus"), TopologyAttachment(supply_minus_source.ref, "pos")),
+                role="local_supply",
+            )
+        )
+    if plus_net != "0":
+        return None
     return layout
 
 
@@ -495,4 +520,8 @@ def _default_orientation(comp: IntentComponent) -> str:
 
 
 def _point(x: float, y: float) -> TopologyPoint:
-    return TopologyPoint(round(x, 2), round(y, 2))
+    return TopologyPoint(_snap_value(x), _snap_value(y))
+
+
+def _snap_value(value: float) -> float:
+    return round(round(value / KICAD_CONNECTION_GRID) * KICAD_CONNECTION_GRID, 2)

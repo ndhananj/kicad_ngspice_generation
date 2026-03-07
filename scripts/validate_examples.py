@@ -21,6 +21,7 @@ from mixedsig2cad import (
     import_kicad_schematic,
     project_geometry_to_kicad,
     roundtrip_kicad_schematic,
+    validate_kicad_connectivity,
     validate_rendered_kicad_symbols,
 )
 from mixedsig2cad.geometry import PAGE_BOTTOM, PAGE_LEFT, PAGE_RIGHT, PAGE_TOP
@@ -87,6 +88,13 @@ def validate_kicad(path: Path) -> None:
     assert report.exact_roundtrip, f"structured KiCad roundtrip failed for {path}: {report}"
     if path.name == "bjt_common_emitter.kicad_sch":
         _validate_common_emitter_svg_orientation(path)
+
+
+def validate_connectivity() -> None:
+    for spec in all_examples():
+        path = ROOT / "examples" / "generated" / "kicad" / f"{spec.name}.kicad_sch"
+        report = validate_kicad_connectivity(spec, path)
+        assert report.passed, f"KiCad connectivity validation failed for {spec.name}: {report}"
 
 
 def validate_geometry() -> None:
@@ -238,6 +246,7 @@ def main() -> None:
     for kicad in (ROOT / "examples" / "generated" / "kicad").glob("*.kicad_sch"):
         validate_kicad(kicad)
         _kicad_cli_parse(kicad)
+    validate_connectivity()
     for cir in (ROOT / "examples" / "generated" / "ngspice").glob("*.cir"):
         validate_ngspice(cir)
     print("all generated examples passed structural + kicad-cli validation")

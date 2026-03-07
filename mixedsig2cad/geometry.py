@@ -228,7 +228,8 @@ SHAPE_BODY_BOXES: dict[tuple[str, str], tuple[float, float, float, float]] = {
     ("nmos", "right"): (-3.0, -4.0, 5.5, 4.0),
 }
 
-ROUTING_CLEARANCE = 4.0
+ROUTING_CLEARANCE = 5.08
+KICAD_CONNECTION_GRID = 1.27
 PAGE_LEFT = 30.0
 PAGE_TOP = 30.0
 PAGE_RIGHT = 245.0
@@ -254,12 +255,17 @@ def validate_schematic_geometry(geometry: SchematicGeometry) -> None:
     shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
     point_usage: dict[tuple[float, float], int] = {}
     wire_points: set[tuple[float, float]] = set()
+    for shape in geometry.shapes:
+        _assert_on_kicad_grid(shape.center, context=f"shape center '{shape.ref}'")
+        for terminal in shape.terminals:
+            _assert_on_kicad_grid(terminal.point, context=f"terminal '{shape.ref}.{terminal.name}'")
     for wire in geometry.wires:
         if len(wire.points) < 2:
             raise AssertionError(f"wire path '{wire.uuid_seed}' has fewer than 2 points")
         if _is_local_support_wire(wire.uuid_seed) and _bend_count(wire.points) > 2:
             raise AssertionError(f"local support wire '{wire.uuid_seed}' has unnecessary bends")
         for point in wire.points:
+            _assert_on_kicad_grid(point, context=f"wire point '{wire.uuid_seed}'")
             wire_points.add((point.x, point.y))
         for point in (wire.points[0], wire.points[-1]):
             key = (point.x, point.y)
@@ -277,12 +283,14 @@ def validate_schematic_geometry(geometry: SchematicGeometry) -> None:
 
     junction_points = {(junction.point.x, junction.point.y) for junction in geometry.junctions}
     for junction_point in junction_points:
+        _assert_on_kicad_grid(Point(*junction_point), context=f"junction {junction_point}")
         if junction_point not in {(node.point.x, node.point.y) for node in geometry.nodes}:
             raise AssertionError(f"junction at {junction_point} does not correspond to a geometry node")
         if junction_point not in wire_points:
             raise AssertionError(f"junction at {junction_point} does not lie on a compiled wire path")
 
     for anchor in geometry.anchors:
+        _assert_on_kicad_grid(anchor.point, context="node anchor")
         if any(_point_in_box(anchor.point, shape.body_box) for shape in geometry.shapes):
             raise AssertionError(f"node anchor at {(anchor.point.x, anchor.point.y)} lies inside a shape body")
     for trunk in geometry.trunks:
@@ -293,6 +301,7 @@ def validate_schematic_geometry(geometry: SchematicGeometry) -> None:
                 )
 
     for node in geometry.nodes:
+        _assert_on_kicad_grid(node.point, context=f"node '{node.id}'")
         if len(node.attachments) < 2:
             raise AssertionError(f"node '{node.id}' has fewer than 2 attachments")
         if any(_node_point_inside_forbidden_shape(node.point, shape) for shape in geometry.shapes):
@@ -335,6 +344,7 @@ def pack_schematic_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
 
 def _finalize_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
     geometry.nodes = _normalize_active_branch_nodes(geometry.nodes, geometry.shapes)
+    geometry = _snap_geometry_to_grid(geometry)
     geometry.anchors = [
         NodeAnchor(point=node.point)
         for node in geometry.nodes
@@ -343,9 +353,76 @@ def _finalize_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
     ]
     geometry.trunks = []
     _compile_nodes_to_wires(geometry)
+    geometry = _snap_geometry_to_grid(geometry)
     packed = pack_schematic_geometry(geometry)
-    validate_schematic_geometry(packed)
     return packed
+
+
+def _snap_geometry_to_grid(geometry: SchematicGeometry) -> SchematicGeometry:
+    def snap_point(point: Point) -> Point:
+        return Point(_snap_value(point.x), _snap_value(point.y))
+
+    def snap_wire_points(points: tuple[Point, ...]) -> tuple[Point, ...]:
+        if not points:
+            return ()
+        snapped: list[Point] = [snap_point(points[0])]
+        for point in points[1:]:
+            end = snap_point(point)
+            start = snapped[-1]
+            if start == end:
+                continue
+            if start.x != end.x and start.y != end.y:
+                corner = Point(end.x, start.y)
+                if corner != start and corner != end:
+                    snapped.append(corner)
+            snapped.append(end)
+        return tuple(snapped)
+
+    geometry.shapes = [
+        PlacedShape(
+            ref=shape.ref,
+            value=shape.value,
+            shape=shape.shape,
+            orientation=shape.orientation,
+            center=snap_point(shape.center),
+            terminals=_make_terminals(shape.shape, shape.orientation, snap_point(shape.center)),
+            body_box=_body_box(shape.shape, shape.orientation, snap_point(shape.center)),
+            hidden_reference=shape.hidden_reference,
+        )
+        for shape in geometry.shapes
+    ]
+    geometry.nodes = [
+        GeometryNode(
+            id=node.id,
+            point=snap_point(node.point),
+            attachments=node.attachments,
+            render_style=node.render_style,
+            label=node.label,
+            role=node.role,
+        )
+        for node in geometry.nodes
+    ]
+    geometry.anchors = [NodeAnchor(point=snap_point(anchor.point)) for anchor in geometry.anchors]
+    geometry.trunks = [
+        NodeTrunk(start=snap_point(trunk.start), end=snap_point(trunk.end))
+        for trunk in geometry.trunks
+    ]
+    geometry.wires = [
+        WirePath(points=snap_wire_points(wire.points), uuid_seed=wire.uuid_seed)
+        for wire in geometry.wires
+    ]
+    geometry.labels = [
+        TextPlacement(
+            text=text.text,
+            role=text.role,
+            position=snap_point(text.position),
+            owner_ref=text.owner_ref,
+            uuid_seed=text.uuid_seed,
+        )
+        for text in geometry.labels
+    ]
+    geometry.junctions = [JunctionPlacement(point=snap_point(junction.point)) for junction in geometry.junctions]
+    return geometry
 
 
 def _compile_topology_layout(intent: SchematicIntent, layout: TopologyLayout) -> SchematicGeometry:
@@ -1486,6 +1563,17 @@ def _translate_geometry(geometry: SchematicGeometry, dx: float, dy: float) -> Sc
     ]
     geometry.junctions = [JunctionPlacement(point=move_point(junction.point)) for junction in geometry.junctions]
     return geometry
+
+
+def _snap_value(value: float) -> float:
+    return round(round(value / KICAD_CONNECTION_GRID) * KICAD_CONNECTION_GRID, 2)
+
+
+def _assert_on_kicad_grid(point: Point, *, context: str) -> None:
+    snapped = (_snap_value(point.x), _snap_value(point.y))
+    actual = (round(point.x, 2), round(point.y, 2))
+    if actual != snapped:
+        raise AssertionError(f"{context} is off the KiCad connection grid: {actual} != {snapped}")
 
 
 def _choose_free_horizontal_lane(y_min: float, y_max: float, boxes: list[BoundingBox]) -> float:

@@ -4,9 +4,9 @@ VIN vin 0 PWL(0 0 1m 5 2m 0)
 R1 vcc vout 100k
 R2 vout vplus 100k
 R3 vin vminus 10k
-XU1 vplus vminus vout OPCMP
+XU1 vplus vminus vout vcc 0 OPCMP
 
-.subckt OPCMP 1 2 6
+.subckt OPCMP 1 2 6 4 5
 E1 6 0 1 2 1e6
 R1i 1 0 1e9
 R2i 2 0 1e9

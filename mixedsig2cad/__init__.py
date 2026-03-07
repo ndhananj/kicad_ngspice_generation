@@ -39,6 +39,7 @@ from .consistency import (
     roundtrip_image,
     roundtrip_kicad_schematic,
 )
+from .kicad_connectivity import ConnectivityReport, KiCadErcViolation, validate_kicad_connectivity
 from .importers import (
     DrawingObservation,
     ObservedJunction,
@@ -84,6 +85,7 @@ __all__ = [
     "BoundingBox",
     "compare_geometries",
     "compare_topologies",
+    "ConnectivityReport",
     "IntentComponent",
     "IntentConnection",
     "IntentGroup",
@@ -92,6 +94,7 @@ __all__ = [
     "GeometryNode",
     "JunctionPlacement",
     "KiCadJunctionPlacement",
+    "KiCadErcViolation",
     "KiCadPlacement",
     "KiCadProjection",
     "KiCadSymbolPlacement",
@@ -140,6 +143,7 @@ __all__ = [
     "roundtrip_kicad_schematic",
     "observe_rendered_symbol_svg",
     "validate_kicad_projection",
+    "validate_kicad_connectivity",
     "validate_rendered_kicad_symbols",
     "validate_schematic_geometry",
 ]
