@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from datetime import date
-from pathlib import Path
 
 from mixedsig2cad.geometry import build_schematic_geometry
 from mixedsig2cad.intent import build_schematic_intent
+from mixedsig2cad.kicad_symbols import extract_project_symbol_block
 from mixedsig2cad.projections.kicad import KiCadProjection, deterministic_uuid, project_geometry_to_kicad
 from mixedsig2cad.spec import CircuitSpec
-
-SYMBOL_LIBRARY_PATH = Path(__file__).resolve().parents[1] / "assets" / "examples.kicad_sym"
 
 
 def _symbol_property(name: str, value: str, x: float, y: float, *, hidden: bool = False) -> list[str]:
@@ -43,25 +41,7 @@ def _junction(x: float, y: float) -> str:
 
 
 def _extract_symbol_block(symbol_name: str) -> str:
-    text = SYMBOL_LIBRARY_PATH.read_text(encoding="utf-8")
-    needle = f'(symbol "{symbol_name}"'
-    start = text.find(needle)
-    if start < 0:
-        raise RuntimeError(f"symbol '{symbol_name}' not found in {SYMBOL_LIBRARY_PATH}")
-    depth = 0
-    end = -1
-    for idx in range(start, len(text)):
-        ch = text[idx]
-        if ch == "(":
-            depth += 1
-        elif ch == ")":
-            depth -= 1
-            if depth == 0:
-                end = idx + 1
-                break
-    if end < 0:
-        raise RuntimeError(f"failed to parse symbol block '{symbol_name}' in {SYMBOL_LIBRARY_PATH}")
-    return text[start:end]
+    return extract_project_symbol_block(symbol_name)
 
 
 def _lib_symbols_block(projection: KiCadProjection) -> list[str]:

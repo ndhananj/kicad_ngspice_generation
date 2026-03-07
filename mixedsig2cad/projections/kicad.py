@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import math
-import re
 import uuid
 from dataclasses import dataclass, field
-from functools import lru_cache
-from pathlib import Path
 
 from mixedsig2cad.geometry import GENERIC_SHAPES, SHAPE_TERMINALS, JunctionPlacement, Point, SchematicGeometry, TextPlacement, WirePath
+from mixedsig2cad.kicad_symbols import KiCadLibPin, project_symbol_pins
 
 
 def deterministic_uuid(seed: str) -> str:
@@ -101,15 +99,6 @@ GENERIC_TO_KICAD_PIN = {
     ("nmos", "right"): {"drain": "1", "gate": "2", "source": "3", "body": "4"},
 }
 
-
-@dataclass(frozen=True, slots=True)
-class KiCadLibPin:
-    number: str
-    name: str
-    x: float
-    y: float
-
-
 def project_geometry_to_kicad(geometry: SchematicGeometry) -> KiCadProjection:
     projection = KiCadProjection(name=geometry.name)
     for shape in geometry.shapes:
@@ -161,48 +150,27 @@ def validate_kicad_projection(projection: KiCadProjection, geometry: SchematicGe
                 raise AssertionError(f"KiCad pin '{pin_number}' missing from symbol '{lib_id}'")
             if terminal.side != expected_exits[terminal.name]:
                 raise AssertionError(f"terminal '{shape.ref}.{terminal.name}' drifted from template exit direction")
+        if shape.shape == "opamp" and shape.orientation == "right":
+            projected_offsets = _projected_kicad_offsets(shape.shape, shape.orientation)
+            for terminal in shape.terminals:
+                offset = projected_offsets.get(terminal.name)
+                if offset is None:
+                    raise AssertionError(f"missing projected offset for '{shape.shape}/{shape.orientation}:{terminal.name}'")
+                actual = (
+                    round(terminal.point.x - shape.center.x, 2),
+                    round(terminal.point.y - shape.center.y, 2),
+                )
+                if actual != offset:
+                    raise AssertionError(
+                        f"terminal '{shape.ref}.{terminal.name}' drifted from KiCad symbol offset {offset}; got {actual}"
+                    )
     for wire in projection.wires:
         if wire.x1 != wire.x2 and wire.y1 != wire.y2:
             raise AssertionError(f"non-orthogonal KiCad wire segment '{wire.uuid_seed}'")
 
 
-@lru_cache(maxsize=1)
 def _embedded_kicad_symbols() -> dict[str, dict[str, KiCadLibPin]]:
-    text = (Path(__file__).resolve().parents[1] / "assets" / "examples.kicad_sym").read_text(encoding="utf-8")
-    symbols: dict[str, dict[str, KiCadLibPin]] = {}
-    for lib_id in {lib_id for lib_id, _ in SHAPE_TO_KICAD.values()}:
-        block = _extract_symbol_block(text, lib_id)
-        pins: dict[str, KiCadLibPin] = {}
-        for match in re.finditer(
-            r'\(pin\s+\w+\s+\w+\s+\(at\s+([-0-9.]+)\s+([-0-9.]+)\s+[-0-9.]+\).*?\n\s*\(name\s+"([^"]+)".*?\n\s*\(number\s+"([^"]+)"',
-            block,
-            re.S,
-        ):
-            pin = KiCadLibPin(
-                number=match.group(4),
-                name=match.group(3),
-                x=float(match.group(1)),
-                y=float(match.group(2)),
-            )
-            pins[pin.number] = pin
-        symbols[lib_id] = pins
-    return symbols
-
-
-def _extract_symbol_block(text: str, lib_id: str) -> str:
-    start = text.find(f'(symbol "{lib_id}"')
-    if start < 0:
-        raise AssertionError(f"embedded KiCad symbol '{lib_id}' not found")
-    depth = 0
-    for idx in range(start, len(text)):
-        ch = text[idx]
-        if ch == "(":
-            depth += 1
-        elif ch == ")":
-            depth -= 1
-            if depth == 0:
-                return text[start : idx + 1]
-    raise AssertionError(f"unterminated symbol block for '{lib_id}'")
+    return project_symbol_pins()
 
 
 def _projected_kicad_offsets(shape_name: str, orientation: str) -> dict[str, tuple[float, float]]:
@@ -233,6 +201,13 @@ def _validate_npn_orientation(offsets: dict[str, tuple[float, float]]) -> None:
         raise AssertionError("npn_bjt/right no longer has base on the left")
     if collector[1] >= emitter[1]:
         raise AssertionError("npn_bjt/right no longer has collector above emitter")
+
+
+_opamp_offsets = _projected_kicad_offsets("opamp", "right")
+if _opamp_offsets != GENERIC_SHAPES[("opamp", "right")]:
+    raise AssertionError(
+        f"KiCad symbol offsets for 'opamp/right' no longer match geometry template: {_opamp_offsets} != {GENERIC_SHAPES[('opamp', 'right')]}"
+    )
 
 
 def _project_text(text: TextPlacement) -> KiCadTextPlacement:

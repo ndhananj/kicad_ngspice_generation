@@ -17,6 +17,17 @@ from mixedsig2cad.geometry import (
 from mixedsig2cad.importers.kicad_schematic import _derive_nodes
 from mixedsig2cad.importers.raster_observation import DrawingObservation, ObservedJunction, ObservedSymbol, ObservedWire
 
+_ACTIVE_SYMBOL_KINDS = {"opamp", "npn_bjt", "pmos", "nmos"}
+_PIN_LABELS_BY_KIND = {
+    "voltage_source": {"E1", "E2"},
+    "current_source": {"E1", "E2"},
+    "diode": {"A", "K"},
+    "opamp": {"+", "-", "V+", "V-", "~"},
+    "npn_bjt": {"B", "C", "E"},
+    "pmos": {"G", "D", "S", "B"},
+    "nmos": {"G", "D", "S", "B"},
+}
+
 
 def extract_geometry_from_image(path: str | Path, *, mode: str = "kicad_raster") -> SchematicGeometry:
     image_path = Path(path)
@@ -168,9 +179,12 @@ def _infer_svg_symbols(texts: list[tuple[str, Point]], wires: tuple[ObservedWire
         kind = _shape_from_reference(content)
         if kind is None:
             continue
-        value_idx, value_point, value_text = _nearest_value_text(idx, texts)
-        center = _estimate_center(point, value_point or point)
+        value_idx, value_point, value_text = _nearest_value_text(idx, texts, kind)
+        center_seed = point if kind in _ACTIVE_SYMBOL_KINDS else (value_point or point)
+        center = _estimate_center(point, center_seed)
         orientation = _best_orientation(kind, center, wires)
+        if kind in _ACTIVE_SYMBOL_KINDS:
+            center = _fit_center_from_wires(kind, orientation, point, wires) or center
         center = _refine_center(kind, orientation, center, wires)
         symbols.append(
             ObservedSymbol(
@@ -213,13 +227,18 @@ def _shape_from_reference(text: str) -> str | None:
     return None
 
 
-def _nearest_value_text(index: int, texts: list[tuple[str, Point]]) -> tuple[int | None, Point | None, str | None]:
+def _nearest_value_text(index: int, texts: list[tuple[str, Point]], kind: str) -> tuple[int | None, Point | None, str | None]:
     content, point = texts[index]
     best: tuple[float, int, Point, str] | None = None
+    excluded_pin_labels = _PIN_LABELS_BY_KIND.get(kind, set())
     for other_idx, (other_text, other_point) in enumerate(texts):
         if other_idx == index or _looks_like_reference(other_text):
             continue
         if _is_pin_number(other_text):
+            continue
+        if other_text in excluded_pin_labels:
+            continue
+        if kind in _ACTIVE_SYMBOL_KINDS and _looks_like_passive_value(other_text):
             continue
         distance = ((point.x - other_point.x) ** 2 + (point.y - other_point.y) ** 2) ** 0.5
         if distance > 16.0:
@@ -280,6 +299,32 @@ def _refine_center(kind: str, orientation: str, center: Point, wires: tuple[Obse
     )
 
 
+def _fit_center_from_wires(kind: str, orientation: str, reference: Point, wires: tuple[ObservedWire, ...]) -> Point | None:
+    candidates: dict[tuple[float, float], tuple[int, float]] = {}
+    templates = _make_terminals(kind, orientation, Point(0.0, 0.0))
+    wire_points = [point for wire in wires for point in wire.points]
+    if not wire_points:
+        return None
+    for wire_point in wire_points:
+        for terminal in templates:
+            center = Point(round(wire_point.x - terminal.point.x, 2), round(wire_point.y - terminal.point.y, 2))
+            score = sum(
+                1 for probe in _make_terminals(kind, orientation, center)
+                if _nearest_wire_point(probe.point, wires, radius=4.0) is not None
+            )
+            if score == 0:
+                continue
+            distance = ((center.x - reference.x) ** 2 + (center.y - reference.y) ** 2) ** 0.5
+            key = (center.x, center.y)
+            best = candidates.get(key)
+            if best is None or score > best[0] or (score == best[0] and distance < best[1]):
+                candidates[key] = (score, distance)
+    if not candidates:
+        return None
+    best_center, _ = max(candidates.items(), key=lambda item: (item[1][0], -item[1][1]))
+    return Point(best_center[0], best_center[1])
+
+
 def _nearest_wire_point(target: Point, wires: tuple[ObservedWire, ...], *, radius: float) -> Point | None:
     best: tuple[float, Point] | None = None
     for wire in wires:
@@ -334,6 +379,10 @@ def _relative_side(center: Point, point: Point) -> str:
 
 def _is_pin_number(text: str) -> bool:
     return bool(re.fullmatch(r"\d+", text))
+
+
+def _looks_like_passive_value(text: str) -> bool:
+    return bool(re.fullmatch(r"[0-9.]+(?:[fpnumkMGT]|meg)?(?:[A-Za-z0-9()]*)?", text))
 
 
 def _is_noise_text(text: str, x: float, y: float) -> bool:

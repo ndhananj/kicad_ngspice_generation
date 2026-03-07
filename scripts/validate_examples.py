@@ -117,6 +117,10 @@ def validate_rendered_symbols() -> None:
         if shutil.which("kicad-cli") is None:
             break
         assert key in by_shape, f"missing rendered validation result for symbol mapping {key}"
+    if shutil.which("kicad-cli") is not None:
+        opamp = by_shape[("opamp", "right")]
+        expected = {"plus", "minus", "out", "vplus", "vminus"}
+        assert set(opamp.rendered_terminal_sides) == expected, f"missing rendered OPAMP terminals: {opamp.rendered_terminal_sides}"
 
 
 def _geometry_bounds(geometry) -> tuple[float, float, float, float] | None:

@@ -294,18 +294,42 @@ def _observe_pin_name_terminals(
     lib_id, _ = SHAPE_TO_KICAD[(shape, orientation)]
     lib_pins = _embedded_kicad_symbols()[lib_id]
     valid_pin_names = {pin.name for pin in lib_pins.values() if pin.name not in {"", "~"}}
+    expected_points = _expected_pin_name_points(shape, orientation)
     assignments: dict[str, str] = {}
     for content, point in texts:
         if content not in valid_pin_names:
             continue
-        if content in assignments or not terminal_points:
+        if content in assignments:
             continue
-        nearest = min(
-            terminal_points.items(),
-            key=lambda item: _distance(point, item[1]),
-        )
+        nearest = min(expected_points.items(), key=lambda item: _distance(point, item[1]))
         assignments[content] = nearest[0]
     return assignments
+
+
+def _expected_pin_name_points(shape: str, orientation: str) -> dict[str, Point]:
+    lib_id, angle = SHAPE_TO_KICAD[(shape, orientation)]
+    pin_map = GENERIC_TO_KICAD_PIN[(shape, orientation)]
+    lib_pins = _embedded_kicad_symbols()[lib_id]
+    expected: dict[str, Point] = {}
+    for terminal_name, pin_number in pin_map.items():
+        pin = lib_pins.get(pin_number)
+        if pin is None or pin.name in {"", "~"}:
+            continue
+        x, y = _rotate_offset(pin.x, pin.y, angle)
+        expected[terminal_name] = Point(round(PROBE_CENTER.x + x, 2), round(PROBE_CENTER.y + y, 2))
+    return expected
+
+
+def _rotate_offset(x: float, y: float, angle: int) -> tuple[float, float]:
+    if angle == 0:
+        return round(x, 2), round(y, 2)
+    if angle == 90:
+        return round(-y, 2), round(x, 2)
+    if angle == 180:
+        return round(-x, 2), round(-y, 2)
+    if angle == 270:
+        return round(y, 2), round(-x, 2)
+    raise AssertionError(f"unsupported pin rotation angle {angle}")
 
 
 def _nearest_wire_endpoint(point: Point, wires: list[tuple[Point, ...]], radius: float = 8.0) -> tuple[Point, tuple[Point, ...]] | None:
