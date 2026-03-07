@@ -199,20 +199,24 @@ def _build_bjt_common_emitter_layout(intent: SchematicIntent) -> TopologyLayout 
         return None
 
     layout = TopologyLayout(name=intent.name)
+    transistor_center = TopologyPoint(170.0, 100.0)
+    collector_x = 173.81
+    base_x = 156.38
+    vcc_y = 68.41
     layout.placements.extend(
         [
-            TopologyPlacement(ref=supply.ref, center=TopologyPoint(80.0, 76.03), orientation="vertical_up"),
-            TopologyPlacement(ref=transistor.ref, center=TopologyPoint(170.0, 90.0), orientation="right"),
-            TopologyPlacement(ref=rc.ref, center=TopologyPoint(173.81, 74.76), orientation="vertical"),
-            TopologyPlacement(ref=re.ref, center=TopologyPoint(173.81, 105.24), orientation="vertical"),
-            TopologyPlacement(ref=rb.ref, center=TopologyPoint(162.38, 83.65), orientation="vertical"),
-            TopologyPlacement(ref="#PWR0001", center=TopologyPoint(80.0, 95.65), shape="ground", value="GND", orientation="down"),
-            TopologyPlacement(ref="#PWR0002", center=TopologyPoint(173.81, 123.59), shape="ground", value="GND", orientation="down"),
+            TopologyPlacement(ref=supply.ref, center=TopologyPoint(215.0, 76.03), orientation="vertical_up"),
+            TopologyPlacement(ref=transistor.ref, center=transistor_center, orientation="right"),
+            TopologyPlacement(ref=rc.ref, center=TopologyPoint(collector_x, 84.76), orientation="vertical"),
+            TopologyPlacement(ref=re.ref, center=TopologyPoint(collector_x, 115.24), orientation="vertical"),
+            TopologyPlacement(ref=rb.ref, center=TopologyPoint(base_x, 74.76), orientation="vertical"),
+            TopologyPlacement(ref="#PWR0001", center=TopologyPoint(215.0, 95.65), shape="ground", value="GND", orientation="down"),
+            TopologyPlacement(ref="#PWR0002", center=TopologyPoint(collector_x, 133.59), shape="ground", value="GND", orientation="down"),
         ]
     )
     floating_sources = [comp for comp in intent.components if comp.kind == "V" and comp.ref != supply.ref]
     for idx, source in enumerate(floating_sources, start=3):
-        center = TopologyPoint(110.0, 97.62 + (idx - 3) * 36.0)
+        center = TopologyPoint(95.0, 107.62 + (idx - 3) * 36.0)
         gnd_center = TopologyPoint(center.x, center.y + 19.62)
         layout.placements.append(TopologyPlacement(ref=source.ref, center=center, orientation="vertical_up"))
         layout.placements.append(TopologyPlacement(ref=f"#PWR{idx:04d}", center=gnd_center, shape="ground", value="GND", orientation="down"))
@@ -234,19 +238,19 @@ def _build_bjt_common_emitter_layout(intent: SchematicIntent) -> TopologyLayout 
         [
             TopologyConnection(
                 id="supply_ground",
-                point=_point(80.0, 95.65),
+                point=_point(215.0, 95.65),
                 attachments=(TopologyAttachment(supply.ref, "neg"), TopologyAttachment("#PWR0001", "top")),
                 role="local_ground",
             ),
             TopologyConnection(
                 id="emitter_ground",
-                point=_point(173.81, 123.59),
+                point=_point(collector_x, 133.59),
                 attachments=(TopologyAttachment(re.ref, "bottom"), TopologyAttachment("#PWR0002", "top")),
                 role="local_ground",
             ),
             TopologyConnection(
                 id="vcc_node",
-                point=_point(173.81, 68.41),
+                point=_point(collector_x, vcc_y),
                 attachments=(
                     TopologyAttachment(supply.ref, "pos"),
                     TopologyAttachment(rc.ref, "top"),
@@ -257,20 +261,20 @@ def _build_bjt_common_emitter_layout(intent: SchematicIntent) -> TopologyLayout 
             ),
             TopologyConnection(
                 id="collector_node",
-                point=_point(173.81, 81.11),
+                point=_point(collector_x, 91.11),
                 attachments=(TopologyAttachment(rc.ref, "bottom"), TopologyAttachment(transistor.ref, "collector")),
                 role="collector_node",
             ),
             TopologyConnection(
                 id="base_node",
-                point=_point(162.38, 90.0),
+                point=_point(base_x, 100.0),
                 attachments=tuple(base_attachments),
                 render_style="junction",
                 role="base_drive",
             ),
             TopologyConnection(
                 id="emitter_node",
-                point=_point(173.81, 98.89),
+                point=_point(collector_x, 108.89),
                 attachments=(TopologyAttachment(transistor.ref, "emitter"), TopologyAttachment(re.ref, "top")),
                 role="emitter_node",
             ),
