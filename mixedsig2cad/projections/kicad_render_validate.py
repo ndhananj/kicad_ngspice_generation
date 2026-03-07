@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 
+from mixedsig2cad.compiled import make_body_box, make_terminals
 from mixedsig2cad.exporters.kicad import render_kicad_schematic
 from mixedsig2cad.geometry import (
     Point,
@@ -16,11 +17,9 @@ from mixedsig2cad.geometry import (
     SchematicGeometry,
     TextPlacement,
     WirePath,
-    SHAPE_TERMINALS,
-    _body_box,
-    _make_terminals,
 )
 from mixedsig2cad.projections.kicad import GENERIC_TO_KICAD_PIN, SHAPE_TO_KICAD, _embedded_kicad_symbols, project_geometry_to_kicad
+from mixedsig2cad.symbols import terminal_defs
 
 PROBE_CENTER = Point(100.0, 100.0)
 PROBE_STUB_LENGTH = 14.0
@@ -67,8 +66,8 @@ def build_symbol_probe_geometry(shape: str, orientation: str) -> SchematicGeomet
         shape=shape,
         orientation=orientation,
         center=PROBE_CENTER,
-        terminals=_make_terminals(shape, orientation, PROBE_CENTER),
-        body_box=_body_box(shape, orientation, PROBE_CENTER),
+        terminals=make_terminals(shape, orientation, PROBE_CENTER),
+        body_box=make_body_box(shape, orientation, PROBE_CENTER),
         hidden_reference=False,
     )
     geometry.shapes.append(placed)
@@ -159,7 +158,7 @@ def _compare_rendered_symbol(
     strict_pin_labels: bool,
 ) -> RenderedSymbolComparison:
     lib_id, angle = SHAPE_TO_KICAD[(shape, orientation)]
-    expected_terminal_sides = {template.name: template.exit_direction for template in SHAPE_TERMINALS[(shape, orientation)]}
+    expected_terminal_sides = {template.name: template.exit_direction for template in terminal_defs(shape, orientation)}
     expected_pin_name_terminals: dict[str, str] = {}
     pin_map = GENERIC_TO_KICAD_PIN[(shape, orientation)]
     lib_pins = _embedded_kicad_symbols()[lib_id]

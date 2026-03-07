@@ -4,6 +4,7 @@ import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from mixedsig2cad.compiled import make_body_box, make_terminals
 from mixedsig2cad.geometry import (
     JunctionPlacement,
     Point,
@@ -11,11 +12,10 @@ from mixedsig2cad.geometry import (
     SchematicGeometry,
     TextPlacement,
     WirePath,
-    _body_box,
-    _make_terminals,
 )
 from mixedsig2cad.importers.kicad_schematic import _derive_nodes
 from mixedsig2cad.importers.raster_observation import DrawingObservation, ObservedJunction, ObservedSymbol, ObservedWire
+from mixedsig2cad.symbols import default_orientation_for_shape
 
 _ACTIVE_SYMBOL_KINDS = {"opamp", "npn_bjt", "pmos", "nmos"}
 _PIN_LABELS_BY_KIND = {
@@ -72,8 +72,8 @@ def _observation_to_geometry(observation: DrawingObservation, name: str) -> Sche
             shape=shape_name,
             orientation=orientation,
             center=symbol.center,
-            terminals=_make_terminals(shape_name, orientation, symbol.center),
-            body_box=_body_box(shape_name, orientation, symbol.center),
+            terminals=make_terminals(shape_name, orientation, symbol.center),
+            body_box=make_body_box(shape_name, orientation, symbol.center),
             hidden_reference=ref.startswith("#PWR"),
         )
         geometry.shapes.append(shape)
@@ -276,7 +276,7 @@ def _best_orientation(kind: str, center: Point, wires: tuple[ObservedWire, ...])
     best_orientation = orientations[0]
     best_score = -1
     for orientation in orientations:
-        terminals = _make_terminals(kind, orientation, center)
+        terminals = make_terminals(kind, orientation, center)
         score = sum(1 for terminal in terminals if _nearest_wire_point(terminal.point, wires, radius=3.0) is not None)
         if score > best_score:
             best_score = score
@@ -286,7 +286,7 @@ def _best_orientation(kind: str, center: Point, wires: tuple[ObservedWire, ...])
 
 def _refine_center(kind: str, orientation: str, center: Point, wires: tuple[ObservedWire, ...]) -> Point:
     estimates: list[Point] = []
-    for terminal in _make_terminals(kind, orientation, center):
+    for terminal in make_terminals(kind, orientation, center):
         match = _nearest_wire_point(terminal.point, wires, radius=3.0)
         if match is None:
             continue
@@ -301,7 +301,7 @@ def _refine_center(kind: str, orientation: str, center: Point, wires: tuple[Obse
 
 def _fit_center_from_wires(kind: str, orientation: str, reference: Point, wires: tuple[ObservedWire, ...]) -> Point | None:
     candidates: dict[tuple[float, float], tuple[int, float]] = {}
-    templates = _make_terminals(kind, orientation, Point(0.0, 0.0))
+    templates = make_terminals(kind, orientation, Point(0.0, 0.0))
     wire_points = [point for wire in wires for point in wire.points]
     if not wire_points:
         return None
@@ -309,7 +309,7 @@ def _fit_center_from_wires(kind: str, orientation: str, reference: Point, wires:
         for terminal in templates:
             center = Point(round(wire_point.x - terminal.point.x, 2), round(wire_point.y - terminal.point.y, 2))
             score = sum(
-                1 for probe in _make_terminals(kind, orientation, center)
+                1 for probe in make_terminals(kind, orientation, center)
                 if _nearest_wire_point(probe.point, wires, radius=4.0) is not None
             )
             if score == 0:
@@ -338,20 +338,7 @@ def _nearest_wire_point(target: Point, wires: tuple[ObservedWire, ...], *, radiu
 
 
 def _default_orientation(shape_name: str) -> str:
-    return {
-        "voltage_source": "vertical_up",
-        "current_source": "vertical_up",
-        "resistor": "horizontal",
-        "capacitor": "vertical",
-        "inductor": "horizontal",
-        "diode": "horizontal",
-        "ground": "down",
-        "power": "up",
-        "opamp": "right",
-        "npn_bjt": "right",
-        "pmos": "right",
-        "nmos": "right",
-    }[shape_name]
+    return default_orientation_for_shape(shape_name)
 
 
 def _terminal_hints(
@@ -363,7 +350,7 @@ def _terminal_hints(
     if kind not in {"npn_bjt", "opamp", "pmos", "nmos"}:
         return None
     hints: dict[str, str] = {}
-    for terminal in _make_terminals(kind, orientation, center):
+    for terminal in make_terminals(kind, orientation, center):
         point = _nearest_wire_point(terminal.point, wires, radius=4.0) or terminal.point
         hints[terminal.name] = _relative_side(center, point)
     return hints

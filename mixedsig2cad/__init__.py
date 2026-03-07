@@ -1,5 +1,6 @@
 """High-level mixed-signal spec to KiCad/ngspice generators."""
 
+from .compiled import CompiledSchematic, compile_schematic
 from .geometry import (
     BoundingBox,
     GeometryNode,
@@ -81,7 +82,9 @@ from .exporters.ngspice import export_ngspice_netlist
 __all__ = [
     "Analysis",
     "CircuitSpec",
+    "CompiledSchematic",
     "Component",
+    "compile_schematic",
     "BoundingBox",
     "compare_geometries",
     "compare_topologies",
@@ -127,23 +130,14 @@ __all__ = [
     "TopologyPlacement",
     "TopologyPoint",
     "WirePath",
-    "build_kicad_layout",
-    "build_schematic_geometry",
     "build_schematic_intent",
-    "build_symbol_probe_geometry",
-    "build_topology_layout",
     "derive_topology_layout",
     "extract_geometry_from_image",
     "export_kicad_schematic",
     "export_ngspice_netlist",
     "import_kicad_schematic",
-    "pack_schematic_geometry",
-    "project_geometry_to_kicad",
     "roundtrip_image",
     "roundtrip_kicad_schematic",
-    "observe_rendered_symbol_svg",
-    "validate_kicad_projection",
     "validate_kicad_connectivity",
     "validate_rendered_kicad_symbols",
-    "validate_schematic_geometry",
 ]

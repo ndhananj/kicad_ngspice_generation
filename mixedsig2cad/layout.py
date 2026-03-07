@@ -20,11 +20,11 @@ from .projections.kicad import (
     project_geometry_to_kicad,
 )
 from .spec import CircuitSpec
-from .geometry import build_schematic_geometry
+from .compiled import compile_schematic
 
 
 def build_kicad_layout(spec: CircuitSpec) -> SchematicLayout:
-    return project_geometry_to_kicad(build_schematic_geometry(build_schematic_intent(spec)))
+    return project_geometry_to_kicad(compile_schematic(build_schematic_intent(spec)))
 
 
 __all__ = [

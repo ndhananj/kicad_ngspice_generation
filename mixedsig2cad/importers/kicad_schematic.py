@@ -3,28 +3,25 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from mixedsig2cad.compiled import CompiledSchematic, make_body_box, make_terminals
 from mixedsig2cad.geometry import (
     GeometryNode,
     JunctionPlacement,
     Point,
     PlacedShape,
-    SchematicGeometry,
     TerminalRef,
     TextPlacement,
     WirePath,
-    _body_box,
-    _make_terminals,
 )
-from mixedsig2cad.projections.kicad import SHAPE_TO_KICAD
+from mixedsig2cad.symbols import inverse_kicad_symbol_map
+
+_INVERSE_KICAD = inverse_kicad_symbol_map()
 
 
-_INVERSE_KICAD = {value: key for key, value in SHAPE_TO_KICAD.items()}
-
-
-def import_kicad_schematic(path: str | Path) -> SchematicGeometry:
+def import_kicad_schematic(path: str | Path) -> CompiledSchematic:
     text = Path(path).read_text(encoding="utf-8")
     name = _match_group(text, r'\(title "([^"]+)"\)') or Path(path).stem
-    geometry = SchematicGeometry(name=name)
+    geometry = CompiledSchematic(name=name)
 
     for block in _top_level_blocks(text, "symbol"):
         shape = _parse_symbol(block)
@@ -50,8 +47,8 @@ def _parse_symbol(block: str) -> PlacedShape:
         shape=shape_name,
         orientation=orientation,
         center=center,
-        terminals=_make_terminals(shape_name, orientation, center),
-        body_box=_body_box(shape_name, orientation, center),
+        terminals=make_terminals(shape_name, orientation, center),
+        body_box=make_body_box(shape_name, orientation, center),
         hidden_reference=ref_hidden,
     )
 

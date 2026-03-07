@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .intent import IntentComponent, SchematicIntent
+from .symbols import default_orientation_for_component, terminal_offset_for_component
 
 KICAD_CONNECTION_GRID = 1.27
 
@@ -41,20 +42,6 @@ class TopologyLayout:
     name: str
     placements: list[TopologyPlacement] = field(default_factory=list)
     connections: list[TopologyConnection] = field(default_factory=list)
-
-
-TERMINAL_OFFSETS: dict[tuple[str, str], dict[str, tuple[float, float]]] = {
-    ("V", "vertical_up"): {"pos": (0.0, -7.62), "neg": (0.0, 7.62)},
-    ("R", "horizontal"): {"left": (-6.35, 0.0), "right": (6.35, 0.0)},
-    ("R", "vertical"): {"top": (0.0, -6.35), "bottom": (0.0, 6.35)},
-    ("C", "horizontal"): {"left": (-6.35, 0.0), "right": (6.35, 0.0)},
-    ("C", "vertical"): {"top": (0.0, -6.35), "bottom": (0.0, 6.35)},
-    ("L", "horizontal"): {"left": (-6.35, 0.0), "right": (6.35, 0.0)},
-    ("D", "horizontal"): {"left": (-5.08, 0.0), "right": (5.08, 0.0)},
-    ("D", "vertical"): {"top": (0.0, -5.08), "bottom": (0.0, 5.08)},
-    ("Q", "right"): {"collector": (3.81, -8.89), "base": (-7.62, 0.0), "emitter": (3.81, 8.89)},
-    ("ground", "down"): {"top": (0.0, 0.0)},
-}
 
 
 def build_topology_layout(intent: SchematicIntent) -> TopologyLayout | None:
@@ -504,19 +491,17 @@ def terminal_point(comp: IntentComponent, layout: TopologyLayout, terminal_name:
 
 
 def _terminal_offset(comp: IntentComponent, orientation: str, terminal_name: str) -> tuple[float, float]:
-    return TERMINAL_OFFSETS[(comp.kind, orientation)][terminal_name]
+    return terminal_offset_for_component(
+        comp.kind,
+        orientation,
+        terminal_name,
+        value=comp.value,
+        model=comp.model,
+    )
 
 
 def _default_orientation(comp: IntentComponent) -> str:
-    return {
-        "V": "vertical_up",
-        "R": "horizontal",
-        "C": "vertical",
-        "L": "horizontal",
-        "D": "horizontal",
-        "Q": "right",
-        "X": "right",
-    }.get(comp.kind, "horizontal")
+    return default_orientation_for_component(comp.kind, comp.value, comp.model)
 
 
 def _point(x: float, y: float) -> TopologyPoint:

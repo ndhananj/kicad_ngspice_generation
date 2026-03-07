@@ -3,6 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .intent import IntentComponent, IntentPattern, SchematicIntent
+from .symbols import (
+    SYMBOL_BODY_BOXES,
+    SYMBOL_TERMINALS,
+    component_symbol,
+    terminal_name_for_component,
+)
 from .topology_layout import TopologyLayout, TopologyPlacement, build_topology_layout
 
 
@@ -136,97 +142,14 @@ SHAPE_GROUP_STEP_Y = {
 }
 
 
-SHAPE_TERMINALS: dict[tuple[str, str], tuple[TerminalTemplate, ...]] = {
-    ("voltage_source", "vertical_up"): (
-        TerminalTemplate("pos", (0.0, -7.62), "top"),
-        TerminalTemplate("neg", (0.0, 7.62), "bottom", "local_ground_drop"),
-    ),
-    ("current_source", "vertical_up"): (
-        TerminalTemplate("pos", (0.0, -10.16), "top"),
-        TerminalTemplate("neg", (0.0, 10.16), "bottom", "local_ground_drop"),
-    ),
-    ("resistor", "horizontal"): (
-        TerminalTemplate("left", (-6.35, 0.0), "left", "series_inline"),
-        TerminalTemplate("right", (6.35, 0.0), "right", "series_inline"),
-    ),
-    ("resistor", "vertical"): (
-        TerminalTemplate("top", (0.0, -6.35), "top", "branch_to_junction"),
-        TerminalTemplate("bottom", (0.0, 6.35), "bottom", "local_ground_drop"),
-    ),
-    ("capacitor", "vertical"): (
-        TerminalTemplate("top", (0.0, -6.35), "top", "branch_to_junction"),
-        TerminalTemplate("bottom", (0.0, 6.35), "bottom", "local_ground_drop"),
-    ),
-    ("capacitor", "horizontal"): (
-        TerminalTemplate("left", (-6.35, 0.0), "left", "series_inline"),
-        TerminalTemplate("right", (6.35, 0.0), "right", "series_inline"),
-    ),
-    ("inductor", "horizontal"): (
-        TerminalTemplate("left", (-6.35, 0.0), "left", "series_inline"),
-        TerminalTemplate("right", (6.35, 0.0), "right", "series_inline"),
-    ),
-    ("diode", "horizontal"): (
-        TerminalTemplate("left", (-5.08, 0.0), "left", "series_inline"),
-        TerminalTemplate("right", (5.08, 0.0), "right", "branch_to_junction"),
-    ),
-    ("diode", "vertical"): (
-        TerminalTemplate("top", (0.0, -5.08), "top", "branch_to_junction"),
-        TerminalTemplate("bottom", (0.0, 5.08), "bottom", "local_ground_drop"),
-    ),
-    ("ground", "down"): (
-        TerminalTemplate("top", (0.0, 0.0), "top", "local_ground_drop"),
-    ),
-    ("power", "up"): (
-        TerminalTemplate("bottom", (0.0, 0.0), "bottom", "local_supply_rise"),
-    ),
-    ("opamp", "right"): (
-        TerminalTemplate("plus", (-7.62, 2.54), "left", "branch_to_junction", (-6.0, 0.0)),
-        TerminalTemplate("minus", (-7.62, -2.54), "left", "feedback_loop", (-6.0, 0.0)),
-        TerminalTemplate("out", (7.62, 0.0), "right", "series_inline", (6.0, 0.0)),
-        TerminalTemplate("vplus", (-2.54, 7.62), "bottom", "local_supply_rise"),
-        TerminalTemplate("vminus", (-2.54, -7.62), "top", "local_ground_drop"),
-    ),
-    ("npn_bjt", "right"): (
-        TerminalTemplate("collector", (3.81, -8.89), "top", "branch_to_junction", (0.0, -6.0)),
-        TerminalTemplate("base", (-7.62, 0.0), "left", "branch_to_junction", (-6.0, 0.0)),
-        TerminalTemplate("emitter", (3.81, 8.89), "bottom", "local_ground_drop", (0.0, 6.0)),
-    ),
-    ("pmos", "right"): (
-        TerminalTemplate("drain", (2.54, -5.08), "top", "branch_to_junction", (0.0, -6.0)),
-        TerminalTemplate("gate", (-5.08, 0.0), "left", "branch_to_junction", (-6.0, 0.0)),
-        TerminalTemplate("source", (2.54, 5.08), "bottom", "local_supply_rise"),
-        TerminalTemplate("body", (5.08, 5.08), "right", "local_supply_rise"),
-    ),
-    ("nmos", "right"): (
-        TerminalTemplate("drain", (2.54, 5.08), "bottom", "branch_to_junction", (0.0, 6.0)),
-        TerminalTemplate("gate", (-5.08, 0.0), "left", "branch_to_junction", (-6.0, 0.0)),
-        TerminalTemplate("source", (2.54, -5.08), "top", "local_ground_drop"),
-        TerminalTemplate("body", (5.08, -5.08), "right", "local_ground_drop"),
-    ),
-}
+SHAPE_TERMINALS = SYMBOL_TERMINALS
 
 GENERIC_SHAPES: dict[tuple[str, str], dict[str, tuple[float, float]]] = {
     key: {terminal.name: terminal.offset for terminal in terminals}
     for key, terminals in SHAPE_TERMINALS.items()
 }
 
-SHAPE_BODY_BOXES: dict[tuple[str, str], tuple[float, float, float, float]] = {
-    ("voltage_source", "vertical_up"): (-5.5, -5.5, 5.5, 5.5),
-    ("current_source", "vertical_up"): (-5.5, -5.5, 5.5, 5.5),
-    ("resistor", "horizontal"): (-4.5, -2.0, 4.5, 2.0),
-    ("resistor", "vertical"): (-2.0, -4.5, 2.0, 4.5),
-    ("capacitor", "vertical"): (-4.0, -2.0, 4.0, 2.0),
-    ("capacitor", "horizontal"): (-2.0, -4.0, 2.0, 4.0),
-    ("inductor", "horizontal"): (-5.2, -2.0, 5.2, 2.0),
-    ("diode", "horizontal"): (-3.5, -3.0, 3.5, 3.0),
-    ("diode", "vertical"): (-3.0, -3.5, 3.0, 3.5),
-    ("ground", "down"): (-2.0, -3.0, 2.0, 1.0),
-    ("power", "up"): (-2.0, -1.0, 2.0, 3.0),
-    ("opamp", "right"): (-6.0, -6.0, 6.0, 6.0),
-    ("npn_bjt", "right"): (-3.0, -5.0, 4.5, 5.0),
-    ("pmos", "right"): (-3.0, -4.0, 5.5, 4.0),
-    ("nmos", "right"): (-3.0, -4.0, 5.5, 4.0),
-}
+SHAPE_BODY_BOXES = SYMBOL_BODY_BOXES
 
 ROUTING_CLEARANCE = 5.08
 KICAD_CONNECTION_GRID = 1.27
@@ -969,26 +892,7 @@ def _place_shape_from_component(comp: IntentComponent, center: Point, orientatio
 
 
 def _shape_for_component(comp: IntentComponent) -> tuple[str, str]:
-    if comp.kind == "V":
-        return ("voltage_source", "vertical_up")
-    if comp.kind == "I":
-        return ("current_source", "vertical_up")
-    if comp.kind == "R":
-        return ("resistor", "horizontal")
-    if comp.kind == "C":
-        return ("capacitor", "vertical")
-    if comp.kind == "L":
-        return ("inductor", "horizontal")
-    if comp.kind == "D":
-        return ("diode", "horizontal")
-    if comp.kind == "Q":
-        return ("npn_bjt", "right")
-    if comp.kind == "X":
-        return ("opamp", "right")
-    if comp.kind == "M":
-        hint = f"{comp.value} {comp.model or ''}".lower()
-        return ("nmos", "right") if "nm" in hint or "nmos" in hint else ("pmos", "right")
-    return ("resistor", "horizontal")
+    return component_symbol(comp.kind, comp.value, comp.model)
 
 
 def _place_ground(ref: str, center: Point) -> PlacedShape:
@@ -1056,18 +960,7 @@ def _terminal(shape: PlacedShape, terminal_name: str) -> PlacedTerminal:
 
 
 def _component_terminal_name(kind: str, shape: PlacedShape, pin_index: int) -> str:
-    terminal_order = {
-        "V": ("pos", "neg"),
-        "I": ("pos", "neg"),
-        "R": ("left", "right") if shape.orientation == "horizontal" else ("top", "bottom"),
-        "C": ("top", "bottom") if shape.orientation == "vertical" else ("left", "right"),
-        "L": ("left", "right"),
-        "D": ("left", "right"),
-        "Q": ("collector", "base", "emitter"),
-        "X": ("plus", "minus", "out", "vplus", "vminus"),
-        "M": ("drain", "gate", "source", "body"),
-    }.get(kind, tuple(terminal.name for terminal in shape.terminals))
-    return terminal_order[min(pin_index, len(terminal_order) - 1)]
+    return terminal_name_for_component(kind, shape.orientation, pin_index)
 
 
 def _wire_owner_refs(uuid_seed: str) -> set[str]:

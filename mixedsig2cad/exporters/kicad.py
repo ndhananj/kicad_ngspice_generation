@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from mixedsig2cad.geometry import build_schematic_geometry
+from mixedsig2cad.compiled import compile_schematic
 from mixedsig2cad.intent import build_schematic_intent
 from mixedsig2cad.kicad_symbols import extract_project_symbol_block
 from mixedsig2cad.projections.kicad import KiCadProjection, deterministic_uuid, project_geometry_to_kicad
@@ -57,7 +57,7 @@ def _lib_symbols_block(projection: KiCadProjection) -> list[str]:
 
 def export_kicad_schematic(spec: CircuitSpec) -> str:
     intent = build_schematic_intent(spec)
-    geometry = build_schematic_geometry(intent)
+    geometry = compile_schematic(intent)
     projection = project_geometry_to_kicad(geometry)
     return render_kicad_schematic(projection)
 

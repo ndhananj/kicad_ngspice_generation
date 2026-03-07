@@ -4,8 +4,9 @@ import math
 import uuid
 from dataclasses import dataclass, field
 
-from mixedsig2cad.geometry import GENERIC_SHAPES, SHAPE_TERMINALS, JunctionPlacement, Point, SchematicGeometry, TextPlacement, WirePath
+from mixedsig2cad.geometry import GENERIC_SHAPES, JunctionPlacement, Point, SchematicGeometry, TextPlacement, WirePath
 from mixedsig2cad.kicad_symbols import KiCadLibPin, project_symbol_pins
+from mixedsig2cad.symbols import KICAD_PIN_MAPS, KICAD_SYMBOLS, kicad_pin_map, kicad_symbol, terminal_defs
 
 
 def deterministic_uuid(seed: str) -> str:
@@ -63,46 +64,13 @@ class KiCadProjection:
     junctions: list[KiCadJunctionPlacement] = field(default_factory=list)
 
 
-SHAPE_TO_KICAD = {
-    ("voltage_source", "vertical_up"): ("VSOURCE", 180),
-    ("current_source", "vertical_up"): ("ISOURCE", 180),
-    ("resistor", "horizontal"): ("R", 90),
-    ("resistor", "vertical"): ("R", 180),
-    ("capacitor", "vertical"): ("CAP", 180),
-    ("capacitor", "horizontal"): ("CAP", 90),
-    ("inductor", "horizontal"): ("INDUCTOR", 0),
-    ("diode", "horizontal"): ("DIODE", 0),
-    ("diode", "vertical"): ("DIODE", 90),
-    ("ground", "down"): ("GND", 0),
-    ("power", "up"): ("VCC", 0),
-    ("opamp", "right"): ("OPAMP", 0),
-    ("npn_bjt", "right"): ("QNPN", 0),
-    ("pmos", "right"): ("MPMOS", 0),
-    ("nmos", "right"): ("MNMOS", 0),
-}
-
-GENERIC_TO_KICAD_PIN = {
-    ("voltage_source", "vertical_up"): {"pos": "1", "neg": "2"},
-    ("current_source", "vertical_up"): {"pos": "1", "neg": "2"},
-    ("resistor", "horizontal"): {"left": "1", "right": "2"},
-    ("resistor", "vertical"): {"top": "1", "bottom": "2"},
-    ("capacitor", "vertical"): {"top": "1", "bottom": "2"},
-    ("capacitor", "horizontal"): {"left": "1", "right": "2"},
-    ("inductor", "horizontal"): {"left": "1", "right": "2"},
-    ("diode", "horizontal"): {"left": "1", "right": "2"},
-    ("diode", "vertical"): {"top": "1", "bottom": "2"},
-    ("ground", "down"): {"top": "1"},
-    ("power", "up"): {"bottom": "1"},
-    ("opamp", "right"): {"plus": "1", "minus": "2", "out": "3", "vplus": "4", "vminus": "5"},
-    ("npn_bjt", "right"): {"collector": "1", "base": "2", "emitter": "3"},
-    ("pmos", "right"): {"drain": "1", "gate": "2", "source": "3", "body": "4"},
-    ("nmos", "right"): {"drain": "1", "gate": "2", "source": "3", "body": "4"},
-}
+SHAPE_TO_KICAD = KICAD_SYMBOLS
+GENERIC_TO_KICAD_PIN = KICAD_PIN_MAPS
 
 def project_geometry_to_kicad(geometry: SchematicGeometry) -> KiCadProjection:
     projection = KiCadProjection(name=geometry.name)
     for shape in geometry.shapes:
-        lib_id, angle = SHAPE_TO_KICAD[(shape.shape, shape.orientation)]
+        lib_id, angle = kicad_symbol(shape.shape, shape.orientation)
         if shape.shape == "power" and shape.value.upper() in {"VCC", "VDD"}:
             lib_id = "VCC"
         projection.symbols.append(
@@ -138,9 +106,9 @@ def validate_kicad_projection(projection: KiCadProjection, geometry: SchematicGe
             raise AssertionError(f"missing projected symbol for '{shape.ref}'")
         if symbol.placement.x != shape.center.x or symbol.placement.y != shape.center.y:
             raise AssertionError(f"symbol '{shape.ref}' placement drifted from geometry center")
-        expected_exits = {template.name: template.exit_direction for template in SHAPE_TERMINALS[(shape.shape, shape.orientation)]}
-        pin_map = GENERIC_TO_KICAD_PIN[(shape.shape, shape.orientation)]
-        lib_id, _ = SHAPE_TO_KICAD[(shape.shape, shape.orientation)]
+        expected_exits = {template.name: template.exit_direction for template in terminal_defs(shape.shape, shape.orientation)}
+        pin_map = kicad_pin_map(shape.shape, shape.orientation)
+        lib_id, _ = kicad_symbol(shape.shape, shape.orientation)
         lib_pins = _embedded_kicad_symbols()[lib_id]
         for terminal in shape.terminals:
             pin_number = pin_map.get(terminal.name)
@@ -174,8 +142,8 @@ def _embedded_kicad_symbols() -> dict[str, dict[str, KiCadLibPin]]:
 
 
 def _projected_kicad_offsets(shape_name: str, orientation: str) -> dict[str, tuple[float, float]]:
-    lib_id, angle = SHAPE_TO_KICAD[(shape_name, orientation)]
-    pin_map = GENERIC_TO_KICAD_PIN[(shape_name, orientation)]
+    lib_id, angle = kicad_symbol(shape_name, orientation)
+    pin_map = kicad_pin_map(shape_name, orientation)
     lib_pins = _embedded_kicad_symbols()[lib_id]
     offsets: dict[str, tuple[float, float]] = {}
     for terminal_name, pin_number in pin_map.items():
