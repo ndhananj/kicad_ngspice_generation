@@ -32,6 +32,7 @@ class TopologyConnection:
     point: TopologyPoint
     attachments: tuple[TopologyAttachment, ...]
     render_style: str = "inline"
+    role: str | None = None
 
 
 @dataclass(slots=True)
@@ -129,6 +130,7 @@ def _build_series_shunt_layout(intent: SchematicIntent) -> TopologyLayout | None
                     TopologyAttachment(comp.ref, _ground_terminal_name(comp)),
                     TopologyAttachment(gnd_ref, "top"),
                 ),
+                role="local_ground",
             )
         )
 
@@ -137,6 +139,7 @@ def _build_series_shunt_layout(intent: SchematicIntent) -> TopologyLayout | None
             id="source_ground",
             point=_point(source_gnd.center.x, source_gnd.center.y),
             attachments=(TopologyAttachment(source.ref, "neg"), TopologyAttachment(source_gnd.ref, "top")),
+            role="local_ground",
         )
     )
 
@@ -146,6 +149,7 @@ def _build_series_shunt_layout(intent: SchematicIntent) -> TopologyLayout | None
             id="source_path",
             point=_point((source_pos(source_center).x + terminal_point(first, layout, "left").x) / 2.0, main_y),
             attachments=(TopologyAttachment(source.ref, "pos"), TopologyAttachment(first.ref, "left")),
+            role="series_inline",
         )
     )
 
@@ -156,6 +160,7 @@ def _build_series_shunt_layout(intent: SchematicIntent) -> TopologyLayout | None
                 id=f"{first_comp.ref}:{second_comp.ref}",
                 point=_point(point.x, point.y),
                 attachments=(TopologyAttachment(first_comp.ref, "right"), TopologyAttachment(second_comp.ref, "left")),
+                role="series_inline",
             )
         )
 
@@ -168,6 +173,7 @@ def _build_series_shunt_layout(intent: SchematicIntent) -> TopologyLayout | None
             point=output_point,
             attachments=tuple(shunt_attachments),
             render_style="junction" if len(shunt_attachments) >= 3 else "inline",
+            role="shunt_branch",
         )
     )
     return layout
@@ -215,6 +221,7 @@ def _build_bjt_common_emitter_layout(intent: SchematicIntent) -> TopologyLayout 
                 id=f"#PWR{idx:04d}:ground",
                 point=_point(gnd_center.x, gnd_center.y),
                 attachments=(TopologyAttachment(source.ref, "neg"), TopologyAttachment(f"#PWR{idx:04d}", "top")),
+                role="local_ground",
             )
         )
 
@@ -229,11 +236,13 @@ def _build_bjt_common_emitter_layout(intent: SchematicIntent) -> TopologyLayout 
                 id="supply_ground",
                 point=_point(80.0, 95.65),
                 attachments=(TopologyAttachment(supply.ref, "neg"), TopologyAttachment("#PWR0001", "top")),
+                role="local_ground",
             ),
             TopologyConnection(
                 id="emitter_ground",
                 point=_point(173.81, 123.59),
                 attachments=(TopologyAttachment(re.ref, "bottom"), TopologyAttachment("#PWR0002", "top")),
+                role="local_ground",
             ),
             TopologyConnection(
                 id="vcc_node",
@@ -244,22 +253,26 @@ def _build_bjt_common_emitter_layout(intent: SchematicIntent) -> TopologyLayout 
                     TopologyAttachment(rb.ref, "top"),
                 ),
                 render_style="junction",
+                role="local_supply",
             ),
             TopologyConnection(
                 id="collector_node",
                 point=_point(173.81, 81.11),
                 attachments=(TopologyAttachment(rc.ref, "bottom"), TopologyAttachment(transistor.ref, "collector")),
+                role="collector_node",
             ),
             TopologyConnection(
                 id="base_node",
                 point=_point(162.38, 90.0),
                 attachments=tuple(base_attachments),
                 render_style="junction",
+                role="base_drive",
             ),
             TopologyConnection(
                 id="emitter_node",
                 point=_point(173.81, 98.89),
                 attachments=(TopologyAttachment(transistor.ref, "emitter"), TopologyAttachment(re.ref, "top")),
+                role="emitter_node",
             ),
         ]
     )
@@ -298,6 +311,7 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
                 id=f"#PWR{idx:04d}:ground",
                 point=_point(80.0, source_y + 19.62),
                 attachments=(TopologyAttachment(source.ref, "neg"), TopologyAttachment(f"#PWR{idx:04d}", "top")),
+                role="local_ground",
             )
         )
         source_y += 40.0
@@ -309,6 +323,7 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
                 id="vin_node",
                 point=_point(123.68, 87.46),
                 attachments=(TopologyAttachment(vin_source.ref, "pos"), TopologyAttachment(rin.ref, "left")),
+                role="series_inline",
             )
         )
     layout.connections.extend(
@@ -317,6 +332,7 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
                 id="plus_ground",
                 point=_point(162.38, 104.54),
                 attachments=(TopologyAttachment(opamp.ref, "plus"), TopologyAttachment("#PWR0001", "top")),
+                role="local_ground",
             ),
             TopologyConnection(
                 id="minus_sum",
@@ -327,11 +343,13 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
                     TopologyAttachment(rf.ref, "left"),
                 ),
                 render_style="junction",
+                role="sum_node",
             ),
             TopologyConnection(
                 id="feedback_out",
                 point=_point(177.62, 90.0),
                 attachments=(TopologyAttachment(opamp.ref, "out"), TopologyAttachment(rf.ref, "right")),
+                role="stage_output",
             ),
         ]
     )

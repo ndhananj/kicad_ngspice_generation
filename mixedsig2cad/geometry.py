@@ -26,6 +26,7 @@ class PlacedTerminal:
     point: Point
     side: str
     preferred_connection_class: str | None = None
+    preferred_branch_offset: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,6 +35,7 @@ class TerminalTemplate:
     offset: tuple[float, float]
     exit_direction: str
     preferred_connection_class: str | None = None
+    preferred_branch_offset: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,6 +82,7 @@ class GeometryNode:
     attachments: tuple[TerminalRef, ...]
     render_style: str = "inline"
     label: str | None = None
+    role: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -177,26 +180,26 @@ SHAPE_TERMINALS: dict[tuple[str, str], tuple[TerminalTemplate, ...]] = {
         TerminalTemplate("bottom", (0.0, 0.0), "bottom", "local_supply_rise"),
     ),
     ("opamp", "right"): (
-        TerminalTemplate("plus", (-7.62, 2.54), "left", "branch_to_junction"),
-        TerminalTemplate("minus", (-7.62, -2.54), "left", "feedback_loop"),
-        TerminalTemplate("out", (7.62, 0.0), "right", "series_inline"),
+        TerminalTemplate("plus", (-7.62, 2.54), "left", "branch_to_junction", (-6.0, 0.0)),
+        TerminalTemplate("minus", (-7.62, -2.54), "left", "feedback_loop", (-6.0, 0.0)),
+        TerminalTemplate("out", (7.62, 0.0), "right", "series_inline", (6.0, 0.0)),
         TerminalTemplate("vplus", (-2.54, 7.62), "bottom", "local_supply_rise"),
         TerminalTemplate("vminus", (-2.54, -7.62), "top", "local_ground_drop"),
     ),
     ("npn_bjt", "right"): (
-        TerminalTemplate("collector", (3.81, -8.89), "top", "branch_to_junction"),
-        TerminalTemplate("base", (-7.62, 0.0), "left", "branch_to_junction"),
-        TerminalTemplate("emitter", (3.81, 8.89), "bottom", "local_ground_drop"),
+        TerminalTemplate("collector", (3.81, -8.89), "top", "branch_to_junction", (0.0, -6.0)),
+        TerminalTemplate("base", (-7.62, 0.0), "left", "branch_to_junction", (-6.0, 0.0)),
+        TerminalTemplate("emitter", (3.81, 8.89), "bottom", "local_ground_drop", (0.0, 6.0)),
     ),
     ("pmos", "right"): (
-        TerminalTemplate("drain", (2.54, -5.08), "top", "branch_to_junction"),
-        TerminalTemplate("gate", (-5.08, 0.0), "left", "branch_to_junction"),
+        TerminalTemplate("drain", (2.54, -5.08), "top", "branch_to_junction", (0.0, -6.0)),
+        TerminalTemplate("gate", (-5.08, 0.0), "left", "branch_to_junction", (-6.0, 0.0)),
         TerminalTemplate("source", (2.54, 5.08), "bottom", "local_supply_rise"),
         TerminalTemplate("body", (5.08, 5.08), "right", "local_supply_rise"),
     ),
     ("nmos", "right"): (
-        TerminalTemplate("drain", (2.54, 5.08), "bottom", "branch_to_junction"),
-        TerminalTemplate("gate", (-5.08, 0.0), "left", "branch_to_junction"),
+        TerminalTemplate("drain", (2.54, 5.08), "bottom", "branch_to_junction", (0.0, 6.0)),
+        TerminalTemplate("gate", (-5.08, 0.0), "left", "branch_to_junction", (-6.0, 0.0)),
         TerminalTemplate("source", (2.54, -5.08), "top", "local_ground_drop"),
         TerminalTemplate("body", (5.08, -5.08), "right", "local_ground_drop"),
     ),
@@ -331,6 +334,14 @@ def pack_schematic_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
 
 
 def _finalize_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
+    geometry.nodes = _normalize_active_branch_nodes(geometry.nodes, geometry.shapes)
+    geometry.anchors = [
+        NodeAnchor(point=node.point)
+        for node in geometry.nodes
+        if node.role not in {"local_ground", "local_supply"}
+        and all(not _point_in_box(node.point, shape.body_box) for shape in geometry.shapes)
+    ]
+    geometry.trunks = []
     _compile_nodes_to_wires(geometry)
     packed = pack_schematic_geometry(geometry)
     validate_schematic_geometry(packed)
@@ -354,6 +365,7 @@ def _compile_topology_layout(intent: SchematicIntent, layout: TopologyLayout) ->
                 for attachment in connection.attachments
             ),
             render_style=connection.render_style,
+            role=connection.role,
         )
         for connection in layout.connections
     )
@@ -686,13 +698,16 @@ def _compile_nodes_to_wires(geometry: SchematicGeometry) -> None:
     shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
     occupied = [(shape.ref, shape.body_box) for shape in geometry.shapes]
     for node in geometry.nodes:
-        attachment_points = [_resolve_terminal_ref(shape_by_ref, attachment) for attachment in node.attachments]
+        attachment_terminals = [_resolve_terminal(shape_by_ref, attachment) for attachment in node.attachments]
+        attachment_points = [terminal.point for terminal in attachment_terminals]
         distinct_points = {(point.x, point.y) for point in attachment_points}
         if node.render_style == "junction" or len(node.attachments) >= 3:
             geometry.junctions.append(JunctionPlacement(point=node.point))
+        route_via_node = _should_route_via_node(node, attachment_terminals)
         if len(distinct_points) == 1 and next(iter(distinct_points)) == (node.point.x, node.point.y):
-            continue
-        if len(node.attachments) == 2 and node.render_style != "junction":
+            if not route_via_node:
+                continue
+        if len(node.attachments) == 2 and not route_via_node:
             start_ref, end_ref = node.attachments
             path_points = _route_connection(shape_by_ref, occupied, start_ref, end_ref)
             geometry.wires.append(
@@ -709,6 +724,64 @@ def _compile_nodes_to_wires(geometry: SchematicGeometry) -> None:
             )
 
 
+def _normalize_active_branch_nodes(nodes: list[GeometryNode], shapes: list[PlacedShape]) -> list[GeometryNode]:
+    shape_by_ref = {shape.ref: shape for shape in shapes}
+    normalized: list[GeometryNode] = []
+    for node in nodes:
+        point = _preferred_branch_point(node, shape_by_ref)
+        normalized.append(
+            GeometryNode(
+                id=node.id,
+                point=point,
+                attachments=node.attachments,
+                render_style=node.render_style,
+                label=node.label,
+                role=node.role,
+            )
+        )
+    return normalized
+
+
+def _preferred_branch_point(node: GeometryNode, shape_by_ref: dict[str, PlacedShape]) -> Point:
+    if node.role in {"collector_node", "emitter_node"}:
+        return node.point
+    boxes = [shape.body_box for shape in shape_by_ref.values()]
+    active_terminals = [
+        _resolve_terminal(shape_by_ref, attachment)
+        for attachment in node.attachments
+        if shape_by_ref[attachment.owner_ref].shape in {"opamp", "npn_bjt", "pmos", "nmos"}
+    ]
+    if not active_terminals:
+        return node.point
+    attachment_points = [_resolve_terminal_ref(shape_by_ref, attachment) for attachment in node.attachments]
+    distinct_points = {(point.x, point.y) for point in attachment_points}
+    if (
+        node.role not in {"sum_node", "feedback_join", "stage_output", "base_drive"}
+        and len(node.attachments) < 3
+        and len(distinct_points) > 1
+    ):
+        return node.point
+    for terminal in active_terminals:
+        if terminal.preferred_branch_offset is None:
+            continue
+        candidate = _branch_point_from_terminal(terminal, boxes)
+        if candidate is not None:
+            return candidate
+    return node.point
+
+
+def _should_route_via_node(node: GeometryNode, terminals: list[PlacedTerminal]) -> bool:
+    if node.role in {"sum_node", "feedback_join", "stage_output", "base_drive"}:
+        return True
+    if node.render_style == "junction" or len(terminals) >= 3:
+        return True
+    active_terminals = [terminal for terminal in terminals if terminal.preferred_branch_offset is not None]
+    if not active_terminals:
+        return False
+    distinct_points = {(terminal.point.x, terminal.point.y) for terminal in terminals}
+    return len(distinct_points) == 1
+
+
 def _resolve_terminal_ref(shape_by_ref: dict[str, PlacedShape], terminal_ref: TerminalRef) -> Point:
     shape = shape_by_ref.get(terminal_ref.owner_ref)
     if shape is None:
@@ -722,6 +795,9 @@ def _choose_node_layout(
     attachments: list[TerminalRef],
     shapes_by_ref: dict[str, PlacedShape],
 ) -> tuple[Point, NodeTrunk | None]:
+    active_branch_point = _active_attachment_branch_point(attachments, shapes_by_ref)
+    if active_branch_point is not None:
+        return active_branch_point, None
     if len(points) == 2:
         p1, p2 = points
         return Point(round((p1.x + p2.x) / 2.0, 2), round((p1.y + p2.y) / 2.0, 2)), None
@@ -754,6 +830,43 @@ def _choose_node_layout(
         end=Point(point.x, round(y_max, 2)),
     )
     return point, trunk
+
+
+def _active_attachment_branch_point(
+    attachments: list[TerminalRef],
+    shapes_by_ref: dict[str, PlacedShape],
+) -> Point | None:
+    if len(attachments) < 2:
+        return None
+    active_terminals: list[PlacedTerminal] = []
+    all_points: list[Point] = []
+    for attachment in attachments:
+        shape = shapes_by_ref[attachment.owner_ref]
+        terminal = _terminal(shape, attachment.terminal_name)
+        all_points.append(terminal.point)
+        if shape.shape in {"opamp", "npn_bjt", "pmos", "nmos"} and terminal.preferred_branch_offset is not None:
+            active_terminals.append(terminal)
+    if not active_terminals:
+        return None
+    if len(attachments) < 3 and len({(point.x, point.y) for point in all_points}) > 1:
+        return None
+    boxes = [shape.body_box for shape in shapes_by_ref.values()]
+    terminal = active_terminals[0]
+    return _branch_point_from_terminal(terminal, boxes)
+
+
+def _branch_point_from_terminal(terminal: PlacedTerminal, boxes: list[BoundingBox]) -> Point | None:
+    if terminal.preferred_branch_offset is None:
+        return None
+    dx, dy = terminal.preferred_branch_offset
+    for scale in (1.0, 1.5, 2.0, 2.5, 3.0):
+        candidate = Point(
+            round(terminal.point.x + dx * scale, 2),
+            round(terminal.point.y + dy * scale, 2),
+        )
+        if all(not _point_in_box(candidate, box) for box in boxes):
+            return candidate
+    return None
 
 
 def _place_shape_from_component(comp: IntentComponent, center: Point, orientation: str | None = None) -> PlacedShape:
@@ -829,6 +942,7 @@ def _make_terminals(shape: str, orientation: str, center: Point) -> tuple[Placed
             point=Point(round(center.x + template.offset[0], 2), round(center.y + template.offset[1], 2)),
             side=template.exit_direction,
             preferred_connection_class=template.preferred_connection_class,
+            preferred_branch_offset=template.preferred_branch_offset,
         )
         for template in templates
     )
@@ -1319,7 +1433,13 @@ def _translate_geometry(geometry: SchematicGeometry, dx: float, dy: float) -> Sc
             orientation=shape.orientation,
             center=move_point(shape.center),
             terminals=tuple(
-                PlacedTerminal(name=terminal.name, point=move_point(terminal.point), side=terminal.side)
+                PlacedTerminal(
+                    name=terminal.name,
+                    point=move_point(terminal.point),
+                    side=terminal.side,
+                    preferred_connection_class=terminal.preferred_connection_class,
+                    preferred_branch_offset=terminal.preferred_branch_offset,
+                )
                 for terminal in shape.terminals
             ),
             body_box=move_box(shape.body_box),
@@ -1334,6 +1454,7 @@ def _translate_geometry(geometry: SchematicGeometry, dx: float, dy: float) -> Sc
             attachments=node.attachments,
             render_style=node.render_style,
             label=node.label,
+            role=node.role,
         )
         for node in geometry.nodes
     ]
