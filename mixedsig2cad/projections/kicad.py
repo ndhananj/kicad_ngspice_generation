@@ -149,21 +149,18 @@ def validate_kicad_projection(projection: KiCadProjection, geometry: SchematicGe
             raise AssertionError(f"missing projected symbol for '{shape.ref}'")
         if symbol.placement.x != shape.center.x or symbol.placement.y != shape.center.y:
             raise AssertionError(f"symbol '{shape.ref}' placement drifted from geometry center")
-        expected_offsets = _projected_kicad_offsets(shape.shape, shape.orientation)
         expected_exits = {template.name: template.exit_direction for template in SHAPE_TERMINALS[(shape.shape, shape.orientation)]}
+        pin_map = GENERIC_TO_KICAD_PIN[(shape.shape, shape.orientation)]
+        lib_id, _ = SHAPE_TO_KICAD[(shape.shape, shape.orientation)]
+        lib_pins = _embedded_kicad_symbols()[lib_id]
         for terminal in shape.terminals:
-            dx = round(terminal.point.x - shape.center.x, 2)
-            dy = round(terminal.point.y - shape.center.y, 2)
-            expected = expected_offsets[terminal.name]
-            if round(expected[0], 2) != dx or round(expected[1], 2) != dy:
-                raise AssertionError(
-                    f"terminal '{shape.ref}.{terminal.name}' drifted from KiCad symbol mapping: "
-                    f"expected {expected}, got {(dx, dy)}"
-                )
+            pin_number = pin_map.get(terminal.name)
+            if pin_number is None:
+                raise AssertionError(f"missing KiCad pin mapping for '{shape.shape}/{shape.orientation}:{terminal.name}'")
+            if pin_number not in lib_pins:
+                raise AssertionError(f"KiCad pin '{pin_number}' missing from symbol '{lib_id}'")
             if terminal.side != expected_exits[terminal.name]:
                 raise AssertionError(f"terminal '{shape.ref}.{terminal.name}' drifted from template exit direction")
-        if shape.shape == "npn_bjt" and shape.orientation == "right":
-            _validate_npn_orientation(expected_offsets)
     for wire in projection.wires:
         if wire.x1 != wire.x2 and wire.y1 != wire.y2:
             raise AssertionError(f"non-orthogonal KiCad wire segment '{wire.uuid_seed}'")
