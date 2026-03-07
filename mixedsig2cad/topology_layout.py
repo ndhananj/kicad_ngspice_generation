@@ -186,97 +186,147 @@ def _build_bjt_common_emitter_layout(intent: SchematicIntent) -> TopologyLayout 
     transistor = bjts[0]
     collector_net, base_net, emitter_net = transistor.nodes[:3]
     resistors = [comp for comp in intent.components if comp.kind == "R" and len(comp.nodes) == 2]
-    supply_sources = [comp for comp in intent.components if comp.kind == "V" and len(comp.nodes) == 2 and intent.nets[comp.nodes[1]].role == "ground" and intent.nets[comp.nodes[0]].role == "supply"]
+    capacitors = [comp for comp in intent.components if comp.kind == "C" and len(comp.nodes) == 2]
+    sources = [
+        comp
+        for comp in intent.components
+        if comp.kind == "V" and len(comp.nodes) == 2 and intent.nets[comp.nodes[1]].role == "ground"
+    ]
+    supply_sources = [comp for comp in sources if intent.nets[comp.nodes[0]].role == "supply"]
     if len(supply_sources) != 1:
         return None
     supply = supply_sources[0]
     supply_net = supply.nodes[0]
+    signal_sources = [comp for comp in sources if comp.ref != supply.ref]
+    if len(signal_sources) != 1:
+        return None
+    signal = signal_sources[0]
+    signal_net = signal.nodes[0]
 
     rc = _find_resistor(resistors, supply_net, collector_net)
     re = _find_resistor(resistors, emitter_net, "0")
-    rb = _find_resistor(resistors, supply_net, base_net)
-    if rc is None or re is None or rb is None:
+    r1 = _find_resistor(resistors, supply_net, base_net)
+    r2 = _find_resistor(resistors, base_net, "0")
+    rl = next(
+        (
+            comp
+            for comp in resistors
+            if comp.ref not in {ref for ref in {rc, re, r1, r2} if ref is not None}
+            and "0" in comp.nodes
+            and base_net not in comp.nodes
+            and collector_net not in comp.nodes
+            and emitter_net not in comp.nodes
+        ),
+        None,
+    )
+    cb = _find_capacitor(capacitors, signal_net, base_net)
+    ce = _find_capacitor(capacitors, emitter_net, "0")
+    cc = next((comp for comp in capacitors if collector_net in comp.nodes and "0" not in comp.nodes and base_net not in comp.nodes and emitter_net not in comp.nodes), None)
+    if None in {rc, re, r1, r2, rl, cb, ce, cc}:
+        return None
+
+    output_net = next(node for node in cc.nodes if node != collector_net)
+    if set(rl.nodes) != {output_net, "0"}:
         return None
 
     layout = TopologyLayout(name=intent.name)
-    transistor_center = TopologyPoint(170.0, 100.0)
-    collector_x = 173.81
-    base_x = 156.38
-    vcc_y = 68.41
+    q_center = TopologyPoint(160.0, 100.0)
+    top_rail_y = 68.41
+    bottom_rail_y = 121.59
+    base_node = _point(126.0, 100.0)
+    collector_node = _point(163.81, 91.11)
+    emitter_node = _point(163.81, 108.89)
+    output_node = _point(200.0, 91.11)
+
     layout.placements.extend(
         [
-            TopologyPlacement(ref=supply.ref, center=TopologyPoint(215.0, 76.03), orientation="vertical_up"),
-            TopologyPlacement(ref=transistor.ref, center=transistor_center, orientation="right"),
-            TopologyPlacement(ref=rc.ref, center=TopologyPoint(collector_x, 84.76), orientation="vertical"),
-            TopologyPlacement(ref=re.ref, center=TopologyPoint(collector_x, 115.24), orientation="vertical"),
-            TopologyPlacement(ref=rb.ref, center=TopologyPoint(base_x, 74.76), orientation="vertical"),
-            TopologyPlacement(ref="#PWR0001", center=TopologyPoint(215.0, 95.65), shape="ground", value="GND", orientation="down"),
-            TopologyPlacement(ref="#PWR0002", center=TopologyPoint(collector_x, 133.59), shape="ground", value="GND", orientation="down"),
+            TopologyPlacement(ref=signal.ref, center=TopologyPoint(70.0, 107.62), orientation="vertical_up"),
+            TopologyPlacement(ref=cb.ref, center=TopologyPoint(100.0, 100.0), orientation="horizontal"),
+            TopologyPlacement(ref=r1.ref, center=TopologyPoint(base_node.x, 93.65), orientation="vertical"),
+            TopologyPlacement(ref=r2.ref, center=TopologyPoint(base_node.x, 115.24), orientation="vertical"),
+            TopologyPlacement(ref=transistor.ref, center=q_center, orientation="right"),
+            TopologyPlacement(ref=rc.ref, center=TopologyPoint(163.81, 84.76), orientation="vertical"),
+            TopologyPlacement(ref=re.ref, center=TopologyPoint(163.81, 115.24), orientation="vertical"),
+            TopologyPlacement(ref=ce.ref, center=TopologyPoint(178.0, 115.24), orientation="vertical"),
+            TopologyPlacement(ref=cc.ref, center=TopologyPoint(193.65, 91.11), orientation="horizontal"),
+            TopologyPlacement(ref=rl.ref, center=TopologyPoint(output_node.x, 115.24), orientation="vertical"),
+            TopologyPlacement(ref=supply.ref, center=TopologyPoint(220.0, 76.03), orientation="vertical_up"),
         ]
     )
-    floating_sources = [comp for comp in intent.components if comp.kind == "V" and comp.ref != supply.ref]
-    for idx, source in enumerate(floating_sources, start=3):
-        center = TopologyPoint(95.0, 107.62 + (idx - 3) * 36.0)
-        gnd_center = TopologyPoint(center.x, center.y + 19.62)
-        layout.placements.append(TopologyPlacement(ref=source.ref, center=center, orientation="vertical_up"))
-        layout.placements.append(TopologyPlacement(ref=f"#PWR{idx:04d}", center=gnd_center, shape="ground", value="GND", orientation="down"))
-        layout.connections.append(
-            TopologyConnection(
-                id=f"#PWR{idx:04d}:ground",
-                point=_point(gnd_center.x, gnd_center.y),
-                attachments=(TopologyAttachment(source.ref, "neg"), TopologyAttachment(f"#PWR{idx:04d}", "top")),
-                role="local_ground",
-            )
-        )
-
-    base_attachments = [TopologyAttachment(rb.ref, "bottom"), TopologyAttachment(transistor.ref, "base")]
-    for source in floating_sources:
-        if any(intent.nets[node].role == "signal_in" for node in source.nodes):
-            base_attachments.append(TopologyAttachment(source.ref, "pos"))
 
     layout.connections.extend(
         [
             TopologyConnection(
-                id="supply_ground",
-                point=_point(215.0, 95.65),
-                attachments=(TopologyAttachment(supply.ref, "neg"), TopologyAttachment("#PWR0001", "top")),
-                role="local_ground",
-            ),
-            TopologyConnection(
-                id="emitter_ground",
-                point=_point(collector_x, 133.59),
-                attachments=(TopologyAttachment(re.ref, "bottom"), TopologyAttachment("#PWR0002", "top")),
-                role="local_ground",
-            ),
-            TopologyConnection(
-                id="vcc_node",
-                point=_point(collector_x, vcc_y),
+                id="top_rail",
+                point=_point(190.0, top_rail_y),
                 attachments=(
                     TopologyAttachment(supply.ref, "pos"),
+                    TopologyAttachment(r1.ref, "top"),
                     TopologyAttachment(rc.ref, "top"),
-                    TopologyAttachment(rb.ref, "top"),
                 ),
                 render_style="junction",
                 role="local_supply",
             ),
             TopologyConnection(
-                id="collector_node",
-                point=_point(collector_x, 91.11),
-                attachments=(TopologyAttachment(rc.ref, "bottom"), TopologyAttachment(transistor.ref, "collector")),
-                role="collector_node",
+                id="bottom_rail",
+                point=_point(200.0, bottom_rail_y),
+                attachments=(
+                    TopologyAttachment(signal.ref, "neg"),
+                    TopologyAttachment(r2.ref, "bottom"),
+                    TopologyAttachment(re.ref, "bottom"),
+                    TopologyAttachment(ce.ref, "bottom"),
+                    TopologyAttachment(rl.ref, "bottom"),
+                    TopologyAttachment(supply.ref, "neg"),
+                ),
+                render_style="junction",
+                role="local_ground",
             ),
             TopologyConnection(
                 id="base_node",
-                point=_point(base_x, 100.0),
-                attachments=tuple(base_attachments),
+                point=base_node,
+                attachments=(
+                    TopologyAttachment(cb.ref, "right"),
+                    TopologyAttachment(r1.ref, "bottom"),
+                    TopologyAttachment(r2.ref, "top"),
+                    TopologyAttachment(transistor.ref, "base"),
+                ),
                 render_style="junction",
                 role="base_drive",
             ),
             TopologyConnection(
+                id="input_coupling",
+                point=_point(81.83, 100.0),
+                attachments=(TopologyAttachment(signal.ref, "pos"), TopologyAttachment(cb.ref, "left")),
+                role="series_inline",
+            ),
+            TopologyConnection(
+                id="collector_node",
+                point=collector_node,
+                attachments=(
+                    TopologyAttachment(rc.ref, "bottom"),
+                    TopologyAttachment(transistor.ref, "collector"),
+                    TopologyAttachment(cc.ref, "left"),
+                ),
+                render_style="junction",
+                role="collector_node",
+            ),
+            TopologyConnection(
                 id="emitter_node",
-                point=_point(collector_x, 108.89),
-                attachments=(TopologyAttachment(transistor.ref, "emitter"), TopologyAttachment(re.ref, "top")),
+                point=emitter_node,
+                attachments=(
+                    TopologyAttachment(transistor.ref, "emitter"),
+                    TopologyAttachment(re.ref, "top"),
+                    TopologyAttachment(ce.ref, "top"),
+                ),
+                render_style="junction",
                 role="emitter_node",
+            ),
+            TopologyConnection(
+                id="output_node",
+                point=output_node,
+                attachments=(TopologyAttachment(cc.ref, "right"), TopologyAttachment(rl.ref, "top")),
+                render_style="junction",
+                role="stage_output",
             ),
         ]
     )
@@ -365,6 +415,14 @@ def _find_resistor(resistors: list[IntentComponent], net_a: str, net_b: str) -> 
     for resistor in resistors:
         if set(resistor.nodes) == nets:
             return resistor
+    return None
+
+
+def _find_capacitor(capacitors: list[IntentComponent], net_a: str, net_b: str) -> IntentComponent | None:
+    nets = {net_a, net_b}
+    for capacitor in capacitors:
+        if set(capacitor.nodes) == nets:
+            return capacitor
     return None
 
 

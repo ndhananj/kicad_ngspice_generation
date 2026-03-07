@@ -73,6 +73,12 @@ def validate_kicad(path: Path) -> None:
         assert "(wire (pts (xy 100.00 108.00) (xy 100.00 98.00))" not in text, (
             "unexpected body-crossing vertical route remains in rlc_bandpass"
         )
+    if path.name == "bjt_common_emitter.kicad_sch":
+        assert text.count('(symbol (lib_id "R")') == 5, "expected 5 resistors in canonical common-emitter example"
+        assert text.count('(symbol (lib_id "CAP")') == 3, "expected 3 capacitors in canonical common-emitter example"
+        assert text.count('(symbol (lib_id "VSOURCE")') == 2, "expected signal and supply sources in canonical common-emitter example"
+        assert text.count('(symbol (lib_id "QNPN")') == 1, "expected one NPN transistor in canonical common-emitter example"
+        assert text.count("  (junction ") >= 4, "expected explicit stage junctions in canonical common-emitter example"
     report = roundtrip_kicad_schematic(path)
     assert report.exact_roundtrip, f"structured KiCad roundtrip failed for {path}: {report}"
 

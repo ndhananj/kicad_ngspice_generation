@@ -1,9 +1,14 @@
 * bjt_common_emitter
 VCC vcc 0 DC 12
-VIN vin 0 SIN(0 0.02 1k)
-RB vcc base 220k
+VS vin_src 0 SIN(0 0.02 1k)
+CB vin_src base 10u
+R1 vcc base 100k
+R2 base 0 22k
 RC vcc collector 2.2k
 RE emitter 0 1k
+CE emitter 0 100u
+CC collector vout 10u
+RL vout 0 10k
 Q1 collector base emitter Q2N3904
 
 .model Q2N3904 NPN(Is=6.734f Bf=255.9 Vaf=74.03 Cje=4.493p Tf=301.2p)

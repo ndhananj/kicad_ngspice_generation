@@ -753,6 +753,12 @@ def _preferred_branch_point(node: GeometryNode, shape_by_ref: dict[str, PlacedSh
     ]
     if not active_terminals:
         return node.point
+    if (
+        node.role in {"sum_node", "feedback_join", "stage_output", "base_drive"}
+        and all(not _point_in_box(node.point, box) for box in boxes)
+        and all(_point_distance(node.point, terminal.point) >= 4.0 for terminal in active_terminals)
+    ):
+        return node.point
     attachment_points = [_resolve_terminal_ref(shape_by_ref, attachment) for attachment in node.attachments]
     distinct_points = {(point.x, point.y) for point in attachment_points}
     if (
@@ -1224,6 +1230,10 @@ def _path_length(path: tuple[Point, ...]) -> float:
     for start, end in zip(path, path[1:]):
         length += abs(end.x - start.x) + abs(end.y - start.y)
     return length
+
+
+def _point_distance(a: Point, b: Point) -> float:
+    return ((a.x - b.x) ** 2 + (a.y - b.y) ** 2) ** 0.5
 
 
 def _can_use_flow_layout(intent: SchematicIntent) -> bool:
