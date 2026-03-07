@@ -4,9 +4,9 @@ import math
 import uuid
 from dataclasses import dataclass, field
 
-from mixedsig2cad.compiled import CompiledSchematic
-from mixedsig2cad.geometry import GENERIC_SHAPES, JunctionPlacement, Point, TextPlacement, WirePath
+from mixedsig2cad.geometry import GENERIC_SHAPES
 from mixedsig2cad.kicad_symbols import KiCadLibPin, project_symbol_pins
+from mixedsig2cad.models import CompiledSchematic, Point, TextPlacement, WirePath
 from mixedsig2cad.symbols import KICAD_PIN_MAPS, KICAD_SYMBOLS, kicad_pin_map, kicad_symbol, terminal_defs
 
 

@@ -1,51 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
-from .compiler_impl import compile_intent_geometry
-from .geometry import (
-    BoundingBox,
-    GeometryNode,
-    JunctionPlacement,
-    NodeAnchor,
-    NodeTrunk,
-    PlacedShape,
-    PlacedTerminal,
-    Point,
-    TextPlacement,
-    WirePath,
-)
+from .compiler import compile_intent
+from .models import BoundingBox, CompiledSchematic, PlacedShape, PlacedTerminal, Point
 from .intent import SchematicIntent
 from .symbols import body_box, terminal_defs
 
-
-@dataclass(slots=True)
-class CompiledSchematic:
-    name: str
-    shapes: list[PlacedShape] = field(default_factory=list)
-    nodes: list[GeometryNode] = field(default_factory=list)
-    anchors: list[NodeAnchor] = field(default_factory=list)
-    trunks: list[NodeTrunk] = field(default_factory=list)
-    wires: list[WirePath] = field(default_factory=list)
-    labels: list[TextPlacement] = field(default_factory=list)
-    junctions: list[JunctionPlacement] = field(default_factory=list)
-
-
-def _as_compiled_schematic(geometry) -> CompiledSchematic:
-    return CompiledSchematic(
-        name=geometry.name,
-        shapes=list(geometry.shapes),
-        nodes=list(geometry.nodes),
-        anchors=list(geometry.anchors),
-        trunks=list(geometry.trunks),
-        wires=list(geometry.wires),
-        labels=list(geometry.labels),
-        junctions=list(geometry.junctions),
-    )
-
-
 def compile_schematic(intent: SchematicIntent) -> CompiledSchematic:
-    return _as_compiled_schematic(compile_intent_geometry(intent))
+    return compile_intent(intent)
 
 
 def make_terminals(shape: str, orientation: str, center: Point) -> tuple[PlacedTerminal, ...]:

@@ -4,9 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import tempfile
 
-from mixedsig2cad.compiled import CompiledSchematic
+from mixedsig2cad.models import CompiledSchematic, Point
 from mixedsig2cad.exporters.kicad import render_kicad_schematic
-from mixedsig2cad.geometry import Point
 from mixedsig2cad.importers.kicad_schematic import import_kicad_schematic
 from mixedsig2cad.importers.raster_extract import extract_geometry_from_image
 from mixedsig2cad.projections.kicad import project_geometry_to_kicad

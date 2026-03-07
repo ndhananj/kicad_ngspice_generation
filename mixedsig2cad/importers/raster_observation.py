@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from mixedsig2cad.geometry import Point
+from mixedsig2cad.models import Point
 
 
 @dataclass(frozen=True, slots=True)

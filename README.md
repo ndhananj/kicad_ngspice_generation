@@ -90,8 +90,11 @@ The supported layering is:
 - canonical compiler layer: `compile_schematic(intent) -> CompiledSchematic`
 - adapter layer: KiCad export/import, ngspice export, topology comparison, and raster extraction
 
-Lower-level geometry and projection modules still exist internally, but they are
-not the primary API surface.
+Internal code is split so most maintenance tasks only need one focused area:
+
+- `models.py`: canonical schematic dataclasses
+- `compiler/`: compile orchestration and strategy modules
+- `geometry.py`: low-level routing/validation helpers
 
 ## Example library catalog
 

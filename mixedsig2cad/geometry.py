@@ -1,125 +1,28 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
 from .intent import IntentComponent, SchematicIntent
+from .models import (
+    BoundingBox,
+    CompiledSchematic,
+    GeometryNode,
+    JunctionPlacement,
+    NodeAnchor,
+    NodeTrunk,
+    PinExitCorridor,
+    PlacedShape,
+    PlacedTerminal,
+    Point,
+    TerminalRef,
+    TerminalTemplate,
+    TextPlacement,
+    WirePath,
+)
 from .symbols import (
     SYMBOL_BODY_BOXES,
     SYMBOL_TERMINALS,
     component_symbol,
     terminal_name_for_component,
 )
-
-
-@dataclass(frozen=True, slots=True)
-class Point:
-    x: float
-    y: float
-
-
-@dataclass(frozen=True, slots=True)
-class BoundingBox:
-    left: float
-    top: float
-    right: float
-    bottom: float
-
-
-@dataclass(frozen=True, slots=True)
-class PlacedTerminal:
-    name: str
-    point: Point
-    side: str
-    preferred_connection_class: str | None = None
-    preferred_branch_offset: tuple[float, float] | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class TerminalTemplate:
-    name: str
-    offset: tuple[float, float]
-    exit_direction: str
-    preferred_connection_class: str | None = None
-    preferred_branch_offset: tuple[float, float] | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class PlacedShape:
-    ref: str
-    value: str
-    shape: str
-    orientation: str
-    center: Point
-    terminals: tuple[PlacedTerminal, ...]
-    body_box: BoundingBox
-    hidden_reference: bool = False
-
-
-@dataclass(frozen=True, slots=True)
-class TerminalRef:
-    owner_ref: str
-    terminal_name: str
-
-
-@dataclass(frozen=True, slots=True)
-class PinExitCorridor:
-    owner_ref: str
-    terminal_name: str
-    start: Point
-    end: Point
-
-
-@dataclass(frozen=True, slots=True)
-class NodeAnchor:
-    point: Point
-
-
-@dataclass(frozen=True, slots=True)
-class NodeTrunk:
-    start: Point
-    end: Point
-
-
-@dataclass(frozen=True, slots=True)
-class GeometryNode:
-    id: str
-    point: Point
-    attachments: tuple[TerminalRef, ...]
-    render_style: str = "inline"
-    label: str | None = None
-    role: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class WirePath:
-    points: tuple[Point, ...]
-    uuid_seed: str
-
-
-@dataclass(frozen=True, slots=True)
-class TextPlacement:
-    text: str
-    role: str
-    position: Point
-    owner_ref: str
-    uuid_seed: str
-
-
-@dataclass(frozen=True, slots=True)
-class JunctionPlacement:
-    point: Point
-
-
-@dataclass(slots=True)
-class SchematicGeometry:
-    name: str
-    shapes: list[PlacedShape] = field(default_factory=list)
-    nodes: list[GeometryNode] = field(default_factory=list)
-    anchors: list[NodeAnchor] = field(default_factory=list)
-    trunks: list[NodeTrunk] = field(default_factory=list)
-    wires: list[WirePath] = field(default_factory=list)
-    labels: list[TextPlacement] = field(default_factory=list)
-    junctions: list[JunctionPlacement] = field(default_factory=list)
 
 
 SHAPE_GROUP_X = {
@@ -153,7 +56,7 @@ PAGE_TOP = 30.0
 PAGE_RIGHT = 245.0
 PAGE_BOTTOM = 170.0
 PAGE_FIT_MARGIN = 8.0
-def validate_schematic_geometry(geometry: SchematicGeometry) -> None:
+def validate_schematic_geometry(geometry: CompiledSchematic) -> None:
     shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
     point_usage: dict[tuple[float, float], int] = {}
     wire_points: set[tuple[float, float]] = set()
@@ -225,7 +128,7 @@ def validate_schematic_geometry(geometry: SchematicGeometry) -> None:
                 raise AssertionError(f"node '{node.id}' expected a visible junction")
 
 
-def pack_schematic_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
+def pack_schematic_geometry(geometry: CompiledSchematic) -> CompiledSchematic:
     bounds = _geometry_bounds(geometry)
     if bounds is None:
         return geometry
@@ -244,7 +147,7 @@ def pack_schematic_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
     return _translate_geometry(geometry, dx, dy)
 
 
-def _compile_nodes_to_wires(geometry: SchematicGeometry) -> None:
+def _compile_nodes_to_wires(geometry: CompiledSchematic) -> None:
     shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
     occupied = [(shape.ref, shape.body_box) for shape in geometry.shapes]
     for node in geometry.nodes:
@@ -922,7 +825,7 @@ def _segment_key(start: Point, end: Point) -> tuple[tuple[float, float], tuple[f
     return ((start.x, start.y), (end.x, end.y))
 
 
-def _geometry_bounds(geometry: SchematicGeometry) -> BoundingBox | None:
+def _geometry_bounds(geometry: CompiledSchematic) -> BoundingBox | None:
     xs: list[float] = []
     ys: list[float] = []
     for shape in geometry.shapes:
@@ -943,7 +846,7 @@ def _geometry_bounds(geometry: SchematicGeometry) -> BoundingBox | None:
     return BoundingBox(min(xs), min(ys), max(xs), max(ys))
 
 
-def _translate_geometry(geometry: SchematicGeometry, dx: float, dy: float) -> SchematicGeometry:
+def _translate_geometry(geometry: CompiledSchematic, dx: float, dy: float) -> CompiledSchematic:
     def move_point(point: Point) -> Point:
         return Point(round(point.x + dx, 2), round(point.y + dy, 2))
 

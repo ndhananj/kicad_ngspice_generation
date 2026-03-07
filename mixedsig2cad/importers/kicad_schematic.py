@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 
 from mixedsig2cad.compiled import CompiledSchematic, make_body_box, make_terminals
-from mixedsig2cad.geometry import (
+from mixedsig2cad.models import (
     GeometryNode,
     JunctionPlacement,
     Point,
