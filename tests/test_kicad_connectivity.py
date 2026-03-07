@@ -23,11 +23,11 @@ class KiCadConnectivityTests(unittest.TestCase):
         path.write_text(mutated, encoding="utf-8")
         return path
 
-    def test_current_rc_lowpass_is_rejected_by_kicad_oracle(self) -> None:
+    def test_current_rc_lowpass_is_accepted_by_kicad_oracle(self) -> None:
         report = validate_kicad_connectivity(rc_lowpass(), GENERATED / "rc_lowpass.kicad_sch")
-        self.assertFalse(report.passed)
-        self.assertTrue(report.missing_attachments)
-        self.assertTrue(report.erc_violations)
+        self.assertTrue(report.passed)
+        self.assertFalse(report.missing_attachments)
+        self.assertFalse(report.erc_violations)
 
     def test_removed_opamp_wire_is_rejected(self) -> None:
         source = GENERATED / "opamp_inverting.kicad_sch"

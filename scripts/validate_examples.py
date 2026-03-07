@@ -19,22 +19,21 @@ from mixedsig2cad import (
     derive_topology_layout,
     extract_geometry_from_image,
     import_kicad_schematic,
-    project_geometry_to_kicad,
     roundtrip_kicad_schematic,
     validate_kicad_connectivity,
     validate_rendered_kicad_symbols,
 )
 from mixedsig2cad.geometry import PAGE_BOTTOM, PAGE_LEFT, PAGE_RIGHT, PAGE_TOP
 from mixedsig2cad.importers.raster_extract import observe_kicad_svg
-from mixedsig2cad.projections.kicad import SHAPE_TO_KICAD
+from mixedsig2cad.projections.kicad import SHAPE_TO_KICAD, project_geometry_to_kicad
 
 EXPECTED_CONNECTIVITY_PASS = {
-    "rc_lowpass": False,
-    "rc_highpass": False,
-    "rlc_bandpass": False,
-    "diode_clipper": False,
+    "rc_lowpass": True,
+    "rc_highpass": True,
+    "rlc_bandpass": True,
+    "diode_clipper": True,
     "bjt_common_emitter": False,
-    "opamp_inverting": False,
+    "opamp_inverting": True,
     "cmos_inverter": False,
     "schmitt_trigger": False,
 }
@@ -79,10 +78,11 @@ def validate_kicad(path: Path) -> None:
         )
     if path.name == "rc_lowpass.kicad_sch":
         assert text.count('(symbol (lib_id "GND")') == 2, "expected local ground symbols in rc_lowpass"
-        assert '(label "vin"' not in text and '(label "vout"' not in text, "unexpected compensating net labels in rc_lowpass"
+        assert '(label "vin"' in text and '(label "vout"' in text, "expected named signal labels in rc_lowpass"
         assert text.count("  (wire ") >= 4, "expected explicit node-driven connections in rc_lowpass"
     if path.name == "rc_highpass.kicad_sch":
         assert text.count('(symbol (lib_id "GND")') == 2, "expected local ground symbols in rc_highpass"
+        assert '(label "vin"' in text and '(label "vmid"' in text, "expected named signal labels in rc_highpass"
         assert text.count("  (wire ") >= 5, "expected explicit node-driven connections in rc_highpass"
     if path.name == "rlc_bandpass.kicad_sch":
         assert text.count("  (junction ") >= 1, "expected an explicit branch junction in rlc_bandpass"

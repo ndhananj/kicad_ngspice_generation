@@ -56,11 +56,11 @@ SYMBOL_TERMINALS: dict[tuple[str, str], tuple[SymbolTerminalDef, ...]] = {
         SymbolTerminalDef("bottom", (0.0, 0.0), "bottom", "local_supply_rise"),
     ),
     ("opamp", "right"): (
-        SymbolTerminalDef("plus", (-7.62, 2.54), "left", "branch_to_junction", (-6.0, 0.0)),
-        SymbolTerminalDef("minus", (-7.62, -2.54), "left", "feedback_loop", (-6.0, 0.0)),
+        SymbolTerminalDef("plus", (-7.62, -2.54), "left", "branch_to_junction", (-6.0, 0.0)),
+        SymbolTerminalDef("minus", (-7.62, 2.54), "left", "feedback_loop", (-6.0, 0.0)),
         SymbolTerminalDef("out", (7.62, 0.0), "right", "series_inline", (6.0, 0.0)),
-        SymbolTerminalDef("vplus", (-2.54, 7.62), "bottom", "local_supply_rise"),
-        SymbolTerminalDef("vminus", (-2.54, -7.62), "top", "local_ground_drop"),
+        SymbolTerminalDef("vplus", (-2.54, -7.62), "top", "local_supply_rise"),
+        SymbolTerminalDef("vminus", (-2.54, 7.62), "bottom", "local_ground_drop"),
     ),
     ("npn_bjt", "right"): (
         SymbolTerminalDef("collector", (3.81, -8.89), "top", "branch_to_junction", (0.0, -6.0)),
@@ -144,21 +144,21 @@ KICAD_SYMBOLS: dict[tuple[str, str], tuple[str, int]] = {
 }
 
 KICAD_PIN_MAPS: dict[tuple[str, str], dict[str, str]] = {
-    ("voltage_source", "vertical_up"): {"pos": "1", "neg": "2"},
-    ("current_source", "vertical_up"): {"pos": "1", "neg": "2"},
+    ("voltage_source", "vertical_up"): {"pos": "2", "neg": "1"},
+    ("current_source", "vertical_up"): {"pos": "2", "neg": "1"},
     ("resistor", "horizontal"): {"left": "1", "right": "2"},
-    ("resistor", "vertical"): {"top": "1", "bottom": "2"},
-    ("capacitor", "vertical"): {"top": "1", "bottom": "2"},
+    ("resistor", "vertical"): {"top": "2", "bottom": "1"},
+    ("capacitor", "vertical"): {"top": "2", "bottom": "1"},
     ("capacitor", "horizontal"): {"left": "1", "right": "2"},
     ("inductor", "horizontal"): {"left": "1", "right": "2"},
     ("diode", "horizontal"): {"left": "1", "right": "2"},
-    ("diode", "vertical"): {"top": "1", "bottom": "2"},
+    ("diode", "vertical"): {"top": "2", "bottom": "1"},
     ("ground", "down"): {"top": "1"},
     ("power", "up"): {"bottom": "1"},
     ("opamp", "right"): {"plus": "1", "minus": "2", "out": "3", "vplus": "4", "vminus": "5"},
     ("npn_bjt", "right"): {"collector": "1", "base": "2", "emitter": "3"},
-    ("pmos", "right"): {"drain": "1", "gate": "2", "source": "3", "body": "4"},
-    ("nmos", "right"): {"drain": "1", "gate": "2", "source": "3", "body": "4"},
+    ("pmos", "right"): {"drain": "3", "gate": "2", "source": "1", "body": "4"},
+    ("nmos", "right"): {"drain": "3", "gate": "2", "source": "1", "body": "4"},
 }
 
 

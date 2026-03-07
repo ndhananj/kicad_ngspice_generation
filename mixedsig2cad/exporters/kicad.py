@@ -36,6 +36,15 @@ def _text(text: str, x: float, y: float, seed: str) -> list[str]:
     ]
 
 
+def _label(text: str, x: float, y: float, seed: str) -> list[str]:
+    return [
+        f'  (label "{text}" (at {x:.2f} {y:.2f} 0)',
+        "    (effects (font (size 1.27 1.27)))",
+        f"    (uuid {deterministic_uuid(seed)})",
+        "  )",
+    ]
+
+
 def _junction(x: float, y: float) -> str:
     return f"  (junction (at {x:.2f} {y:.2f}) (diameter 1.016) (color 0 0 0 0))"
 
@@ -103,7 +112,10 @@ def render_kicad_schematic(projection: KiCadProjection) -> str:
     for text in projection.texts:
         if text.role in {"reference", "value"}:
             continue
-        lines.extend(_text(text.text, text.x, text.y, text.uuid_seed))
+        if text.role == "net_label":
+            lines.extend(_label(text.text, text.x, text.y, text.uuid_seed))
+        else:
+            lines.extend(_text(text.text, text.x, text.y, text.uuid_seed))
 
     for wire in projection.wires:
         lines.extend(_wire(wire.x1, wire.y1, wire.x2, wire.y2, wire.uuid_seed))

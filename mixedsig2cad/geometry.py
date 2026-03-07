@@ -7,6 +7,7 @@ from .symbols import (
     SYMBOL_BODY_BOXES,
     SYMBOL_TERMINALS,
     component_symbol,
+    default_orientation_for_component,
     terminal_name_for_component,
 )
 from .topology_layout import TopologyLayout, TopologyPlacement, build_topology_layout
@@ -161,17 +162,9 @@ PAGE_FIT_MARGIN = 8.0
 
 
 def build_schematic_geometry(intent: SchematicIntent) -> SchematicGeometry:
-    topology_layout = build_topology_layout(intent)
-    if topology_layout is not None:
-        return _finalize_geometry(_compile_topology_layout(intent, topology_layout))
-    for pattern in intent.patterns:
-        if pattern.kind == "rc_lowpass":
-            return _finalize_geometry(_build_rc_lowpass_geometry(intent, pattern))
-        if pattern.kind == "rc_highpass":
-            return _finalize_geometry(_build_rc_highpass_geometry(intent, pattern))
-    if _can_use_flow_layout(intent):
-        return _finalize_geometry(_build_flow_geometry(intent))
-    return _finalize_geometry(_build_fallback_geometry(intent))
+    from .compiled import compile_schematic
+
+    return compile_schematic(intent)
 
 
 def validate_schematic_geometry(geometry: SchematicGeometry) -> None:
@@ -268,6 +261,7 @@ def pack_schematic_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
 def _finalize_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
     geometry.nodes = _normalize_active_branch_nodes(geometry.nodes, geometry.shapes)
     geometry = _snap_geometry_to_grid(geometry)
+    geometry.labels.extend(_compile_node_labels(geometry))
     geometry.anchors = [
         NodeAnchor(point=node.point)
         for node in geometry.nodes
@@ -279,6 +273,23 @@ def _finalize_geometry(geometry: SchematicGeometry) -> SchematicGeometry:
     geometry = _snap_geometry_to_grid(geometry)
     packed = pack_schematic_geometry(geometry)
     return packed
+
+
+def _compile_node_labels(geometry: SchematicGeometry) -> list[TextPlacement]:
+    labels: list[TextPlacement] = []
+    for node in geometry.nodes:
+        if not node.label or node.role == "local_ground":
+            continue
+        labels.append(
+            TextPlacement(
+                text=node.label,
+                role="net_label",
+                position=Point(node.point.x, node.point.y),
+                owner_ref=node.id,
+                uuid_seed=f"{geometry.name}:{node.id}:label",
+            )
+        )
+    return labels
 
 
 def _snap_geometry_to_grid(geometry: SchematicGeometry) -> SchematicGeometry:
@@ -351,6 +362,7 @@ def _snap_geometry_to_grid(geometry: SchematicGeometry) -> SchematicGeometry:
 def _compile_topology_layout(intent: SchematicIntent, layout: TopologyLayout) -> SchematicGeometry:
     geometry = SchematicGeometry(name=layout.name)
     by_ref = {comp.ref: comp for comp in intent.components}
+    placement_by_ref = {placement.ref: placement for placement in layout.placements}
     for placement in layout.placements:
         shape = _place_topology_item(by_ref, placement)
         geometry.shapes.append(shape)
@@ -365,6 +377,7 @@ def _compile_topology_layout(intent: SchematicIntent, layout: TopologyLayout) ->
                 for attachment in connection.attachments
             ),
             render_style=connection.render_style,
+            label=_topology_connection_label(intent, by_ref, placement_by_ref, connection),
             role=connection.role,
         )
         for connection in layout.connections
@@ -409,6 +422,7 @@ def _build_rc_lowpass_geometry(intent: SchematicIntent, pattern: IntentPattern) 
                     TerminalRef(source_shape.ref, "pos"),
                     TerminalRef(resistor_shape.ref, "left"),
                 ),
+                label=pattern.nets["input"],
             ),
             GeometryNode(
                 id="vout_node",
@@ -417,6 +431,7 @@ def _build_rc_lowpass_geometry(intent: SchematicIntent, pattern: IntentPattern) 
                     TerminalRef(resistor_shape.ref, "right"),
                     TerminalRef(capacitor_shape.ref, "top"),
                 ),
+                label=pattern.nets["node"],
                 render_style="junction",
             ),
             GeometryNode(
@@ -466,6 +481,7 @@ def _build_rc_highpass_geometry(intent: SchematicIntent, pattern: IntentPattern)
                     TerminalRef(source_shape.ref, "pos"),
                     TerminalRef(capacitor_shape.ref, "left"),
                 ),
+                label=pattern.nets["input"],
             ),
             GeometryNode(
                 id="vmid_node",
@@ -474,6 +490,7 @@ def _build_rc_highpass_geometry(intent: SchematicIntent, pattern: IntentPattern)
                     TerminalRef(capacitor_shape.ref, "right"),
                     TerminalRef(resistor_shape.ref, "top"),
                 ),
+                label=pattern.nets["node"],
                 render_style="junction",
             ),
             GeometryNode(
@@ -607,6 +624,7 @@ def _build_flow_geometry(intent: SchematicIntent) -> SchematicGeometry:
                 id=f"net:{net_name}",
                 point=node_point,
                 attachments=tuple(attachments),
+                label=net_name,
                 render_style="junction" if len(attachments) >= 3 else "inline",
             )
         )
@@ -688,10 +706,46 @@ def _build_fallback_geometry(intent: SchematicIntent) -> SchematicGeometry:
                 id=f"net:{net_name}",
                 point=node_point,
                 attachments=tuple(attachments),
+                label=net_name,
                 render_style="junction" if len(attachments) >= 3 else "inline",
             )
         )
     return geometry
+
+
+def _topology_connection_label(
+    intent: SchematicIntent,
+    components_by_ref: dict[str, IntentComponent],
+    placements_by_ref: dict[str, TopologyPlacement],
+    connection,
+) -> str | None:
+    candidate_nets: set[str] | None = None
+    for attachment in connection.attachments:
+        comp = components_by_ref.get(attachment.owner_ref)
+        if comp is None:
+            continue
+        placement = placements_by_ref.get(attachment.owner_ref)
+        orientation = (
+            placement.orientation
+            if placement is not None and placement.orientation
+            else default_orientation_for_component(comp.kind, comp.value, comp.model)
+        )
+        nets_for_attachment = {
+            net_name
+            for pin_index, net_name in enumerate(comp.nodes)
+            if terminal_name_for_component(comp.kind, orientation, pin_index) == attachment.terminal_name
+        }
+        if candidate_nets is None:
+            candidate_nets = nets_for_attachment
+        else:
+            candidate_nets &= nets_for_attachment
+    if not candidate_nets:
+        return None
+    for net_name in sorted(candidate_nets):
+        role = intent.nets.get(net_name)
+        if role is not None and role.role != "ground":
+            return net_name
+    return None
 
 
 def _compile_nodes_to_wires(geometry: SchematicGeometry) -> None:

@@ -382,11 +382,11 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
             ),
             TopologyConnection(
                 id="minus_sum",
-                point=_point(162.38, 87.46),
+                point=_point(162.38, 92.54),
                 attachments=(
                     TopologyAttachment(rin.ref, "right"),
                     TopologyAttachment(opamp.ref, "minus"),
-                    TopologyAttachment(rf.ref, "left"),
+                    TopologyAttachment(rf.ref, "right"),
                 ),
                 render_style="junction",
                 role="sum_node",
@@ -394,7 +394,7 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
             TopologyConnection(
                 id="feedback_out",
                 point=_point(177.62, 90.0),
-                attachments=(TopologyAttachment(opamp.ref, "out"), TopologyAttachment(rf.ref, "right")),
+                attachments=(TopologyAttachment(opamp.ref, "out"), TopologyAttachment(rf.ref, "left")),
                 role="stage_output",
             ),
         ]

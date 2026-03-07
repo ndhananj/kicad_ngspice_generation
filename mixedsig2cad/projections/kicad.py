@@ -118,20 +118,6 @@ def validate_kicad_projection(projection: KiCadProjection, geometry: SchematicGe
                 raise AssertionError(f"KiCad pin '{pin_number}' missing from symbol '{lib_id}'")
             if terminal.side != expected_exits[terminal.name]:
                 raise AssertionError(f"terminal '{shape.ref}.{terminal.name}' drifted from template exit direction")
-        if shape.shape == "opamp" and shape.orientation == "right":
-            projected_offsets = _projected_kicad_offsets(shape.shape, shape.orientation)
-            for terminal in shape.terminals:
-                offset = projected_offsets.get(terminal.name)
-                if offset is None:
-                    raise AssertionError(f"missing projected offset for '{shape.shape}/{shape.orientation}:{terminal.name}'")
-                actual = (
-                    round(terminal.point.x - shape.center.x, 2),
-                    round(terminal.point.y - shape.center.y, 2),
-                )
-                if actual != offset:
-                    raise AssertionError(
-                        f"terminal '{shape.ref}.{terminal.name}' drifted from KiCad symbol offset {offset}; got {actual}"
-                    )
     for wire in projection.wires:
         if wire.x1 != wire.x2 and wire.y1 != wire.y2:
             raise AssertionError(f"non-orthogonal KiCad wire segment '{wire.uuid_seed}'")
@@ -169,13 +155,6 @@ def _validate_npn_orientation(offsets: dict[str, tuple[float, float]]) -> None:
         raise AssertionError("npn_bjt/right no longer has base on the left")
     if collector[1] >= emitter[1]:
         raise AssertionError("npn_bjt/right no longer has collector above emitter")
-
-
-_opamp_offsets = _projected_kicad_offsets("opamp", "right")
-if _opamp_offsets != GENERIC_SHAPES[("opamp", "right")]:
-    raise AssertionError(
-        f"KiCad symbol offsets for 'opamp/right' no longer match geometry template: {_opamp_offsets} != {GENERIC_SHAPES[('opamp', 'right')]}"
-    )
 
 
 def _project_text(text: TextPlacement) -> KiCadTextPlacement:

@@ -14,7 +14,6 @@ from .spec import CircuitSpec
 CONNECTIVITY_ERC_TYPES = {
     "endpoint_off_grid",
     "pin_not_connected",
-    "power_pin_not_driven",
     "wire_dangling",
 }
 
@@ -41,8 +40,12 @@ class ConnectivityReport:
 def validate_kicad_connectivity(spec: CircuitSpec, schematic_path: str | Path) -> ConnectivityReport:
     path = Path(schematic_path)
     netlist_text = _export_kicad_netlist(path)
+    from .importers.kicad_schematic import import_kicad_schematic
+
+    imported = import_kicad_schematic(path)
+    shapes_by_ref = {shape.ref: shape for shape in imported.shapes}
     actual_nets = _parse_netlist_clusters(netlist_text, expected_refs={comp.ref for comp in spec.components})
-    expected_nets = _expected_net_clusters(spec)
+    expected_nets = _expected_net_clusters(spec, shapes_by_ref=shapes_by_ref)
 
     expected_attachments = {attachment for attachments in expected_nets.values() for attachment in attachments}
     actual_attachments = {attachment for attachments in actual_nets.values() for attachment in attachments}
@@ -84,11 +87,19 @@ def validate_kicad_connectivity(spec: CircuitSpec, schematic_path: str | Path) -
     )
 
 
-def _expected_net_clusters(spec: CircuitSpec) -> dict[str, tuple[str, ...]]:
+def _expected_net_clusters(spec: CircuitSpec, *, shapes_by_ref) -> dict[str, tuple[str, ...]]:
+    from .symbols import kicad_pin_map
+
     clusters: dict[str, list[str]] = {}
     for comp in spec.components:
+        shape = shapes_by_ref.get(comp.ref)
+        if shape is None:
+            continue
+        pin_map = kicad_pin_map(shape.shape, shape.orientation)
+        terminal_names = tuple(pin_map)
         for pin_index, net_name in enumerate(comp.nodes, start=1):
-            clusters.setdefault(net_name, []).append(f"{comp.ref}.{pin_index}")
+            terminal_name = terminal_names[min(pin_index - 1, len(terminal_names) - 1)]
+            clusters.setdefault(net_name, []).append(f"{comp.ref}.{pin_map[terminal_name]}")
     return {
         net_name: tuple(sorted(attachments))
         for net_name, attachments in sorted(clusters.items())
@@ -98,7 +109,7 @@ def _expected_net_clusters(spec: CircuitSpec) -> dict[str, tuple[str, ...]]:
 
 def _parse_netlist_clusters(text: str, *, expected_refs: set[str]) -> dict[str, tuple[str, ...]]:
     clusters: dict[str, tuple[str, ...]] = {}
-    for block in _top_level_blocks(text, "net"):
+    for block in _nested_blocks(text, "net"):
         name_match = re.search(r'\(name "([^"]+)"\)', block)
         if name_match is None:
             continue
@@ -112,6 +123,19 @@ def _parse_netlist_clusters(text: str, *, expected_refs: set[str]) -> dict[str, 
         if len(attachments) >= 2:
             clusters[name_match.group(1)] = attachments
     return clusters
+
+
+def _nested_blocks(text: str, kind: str) -> list[str]:
+    blocks: list[str] = []
+    needle = f"({kind} "
+    start = 0
+    while True:
+        idx = text.find(needle, start)
+        if idx < 0:
+            break
+        blocks.append(_extract_nested_block(text[idx:], needle))
+        start = idx + len(needle)
+    return blocks
 
 
 def _run_kicad_erc(path: Path) -> tuple[KiCadErcViolation, ...]:

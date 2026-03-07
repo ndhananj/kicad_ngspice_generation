@@ -1,35 +1,7 @@
 """High-level mixed-signal spec to KiCad/ngspice generators."""
 
 from .compiled import CompiledSchematic, compile_schematic
-from .geometry import (
-    BoundingBox,
-    GeometryNode,
-    JunctionPlacement,
-    NodeAnchor,
-    NodeTrunk,
-    PinExitCorridor,
-    Point,
-    PlacedShape,
-    PlacedTerminal,
-    SchematicGeometry,
-    TerminalRef,
-    TerminalTemplate,
-    TextPlacement,
-    WirePath,
-    build_schematic_geometry,
-    pack_schematic_geometry,
-    validate_schematic_geometry,
-)
-from .intent import (
-    IntentComponent,
-    IntentConnection,
-    IntentGroup,
-    IntentNet,
-    IntentPattern,
-    SchematicIntent,
-    build_schematic_intent,
-)
-from .layout import build_kicad_layout
+from .intent import build_schematic_intent
 from .consistency import (
     GeometryComparison,
     RoundTripReport,
@@ -49,33 +21,8 @@ from .importers import (
     extract_geometry_from_image,
     import_kicad_schematic,
 )
-from .projections.kicad import (
-    KiCadJunctionPlacement,
-    KiCadPlacement,
-    KiCadProjection,
-    KiCadSymbolPlacement,
-    KiCadTextPlacement,
-    KiCadWireSegment,
-    project_geometry_to_kicad,
-    validate_kicad_projection,
-)
-from .projections.kicad_render_validate import (
-    RenderedPinObservation,
-    RenderedSymbolComparison,
-    RenderedSymbolObservation,
-    build_symbol_probe_geometry,
-    observe_rendered_symbol_svg,
-    validate_rendered_kicad_symbols,
-)
+from .projections.kicad_render_validate import validate_rendered_kicad_symbols
 from .spec import Analysis, CircuitSpec, Component
-from .topology_layout import (
-    TopologyAttachment,
-    TopologyConnection,
-    TopologyLayout,
-    TopologyPlacement,
-    TopologyPoint,
-    build_topology_layout,
-)
 from .exporters.kicad import export_kicad_schematic
 from .exporters.ngspice import export_ngspice_netlist
 
@@ -85,51 +32,16 @@ __all__ = [
     "CompiledSchematic",
     "Component",
     "compile_schematic",
-    "BoundingBox",
     "compare_geometries",
     "compare_topologies",
     "ConnectivityReport",
-    "IntentComponent",
-    "IntentConnection",
-    "IntentGroup",
-    "IntentNet",
-    "IntentPattern",
-    "GeometryNode",
-    "JunctionPlacement",
-    "KiCadJunctionPlacement",
     "KiCadErcViolation",
-    "KiCadPlacement",
-    "KiCadProjection",
-    "KiCadSymbolPlacement",
-    "KiCadTextPlacement",
-    "KiCadWireSegment",
     "GeometryComparison",
-    "NodeAnchor",
-    "NodeTrunk",
     "DrawingObservation",
     "ObservedJunction",
     "ObservedSymbol",
     "ObservedWire",
-    "PinExitCorridor",
-    "PlacedShape",
-    "PlacedTerminal",
-    "Point",
     "RoundTripReport",
-    "RenderedPinObservation",
-    "RenderedSymbolComparison",
-    "RenderedSymbolObservation",
-    "SchematicGeometry",
-    "SchematicIntent",
-    "TerminalRef",
-    "TerminalTemplate",
-    "TextPlacement",
-    "TopologyComparison",
-    "TopologyAttachment",
-    "TopologyConnection",
-    "TopologyLayout",
-    "TopologyPlacement",
-    "TopologyPoint",
-    "WirePath",
     "build_schematic_intent",
     "derive_topology_layout",
     "extract_geometry_from_image",

@@ -9,9 +9,28 @@ CompiledSchematic = SchematicGeometry
 
 
 def compile_schematic(intent: SchematicIntent) -> CompiledSchematic:
-    from .geometry import build_schematic_geometry
+    from .geometry import (
+        _build_fallback_geometry,
+        _build_flow_geometry,
+        _build_rc_highpass_geometry,
+        _build_rc_lowpass_geometry,
+        _can_use_flow_layout,
+        _compile_topology_layout,
+        _finalize_geometry,
+    )
+    from .topology_layout import build_topology_layout
 
-    return build_schematic_geometry(intent)
+    topology_layout = build_topology_layout(intent)
+    if topology_layout is not None:
+        return _finalize_geometry(_compile_topology_layout(intent, topology_layout))
+    for pattern in intent.patterns:
+        if pattern.kind == "rc_lowpass":
+            return _finalize_geometry(_build_rc_lowpass_geometry(intent, pattern))
+        if pattern.kind == "rc_highpass":
+            return _finalize_geometry(_build_rc_highpass_geometry(intent, pattern))
+    if _can_use_flow_layout(intent):
+        return _finalize_geometry(_build_flow_geometry(intent))
+    return _finalize_geometry(_build_fallback_geometry(intent))
 
 
 def make_terminals(shape: str, orientation: str, center: Point) -> tuple[PlacedTerminal, ...]:
