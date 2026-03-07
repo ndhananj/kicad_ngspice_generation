@@ -180,6 +180,7 @@ def _infer_svg_symbols(texts: list[tuple[str, Point]], wires: tuple[ObservedWire
                 confidence=0.85,
                 ref_text=content,
                 value_text=value_text,
+                terminal_hints=_terminal_hints(kind, orientation, center, wires),
             )
         )
         used_texts.add(idx)
@@ -306,6 +307,29 @@ def _default_orientation(shape_name: str) -> str:
         "pmos": "right",
         "nmos": "right",
     }[shape_name]
+
+
+def _terminal_hints(
+    kind: str,
+    orientation: str,
+    center: Point,
+    wires: tuple[ObservedWire, ...],
+) -> dict[str, str] | None:
+    if kind not in {"npn_bjt", "opamp", "pmos", "nmos"}:
+        return None
+    hints: dict[str, str] = {}
+    for terminal in _make_terminals(kind, orientation, center):
+        point = _nearest_wire_point(terminal.point, wires, radius=4.0) or terminal.point
+        hints[terminal.name] = _relative_side(center, point)
+    return hints
+
+
+def _relative_side(center: Point, point: Point) -> str:
+    dx = point.x - center.x
+    dy = point.y - center.y
+    if abs(dx) >= abs(dy):
+        return "right" if dx >= 0 else "left"
+    return "bottom" if dy >= 0 else "top"
 
 
 def _is_pin_number(text: str) -> bool:

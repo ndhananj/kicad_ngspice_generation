@@ -17,11 +17,13 @@ from mixedsig2cad import (
     compare_geometries,
     compare_topologies,
     derive_topology_layout,
+    extract_geometry_from_image,
     import_kicad_schematic,
     project_geometry_to_kicad,
     roundtrip_kicad_schematic,
 )
 from mixedsig2cad.geometry import PAGE_BOTTOM, PAGE_LEFT, PAGE_RIGHT, PAGE_TOP
+from mixedsig2cad.importers.raster_extract import observe_kicad_svg
 
 
 def _balanced_parentheses(text: str) -> bool:
@@ -81,6 +83,8 @@ def validate_kicad(path: Path) -> None:
         assert text.count("  (junction ") >= 4, "expected explicit stage junctions in canonical common-emitter example"
     report = roundtrip_kicad_schematic(path)
     assert report.exact_roundtrip, f"structured KiCad roundtrip failed for {path}: {report}"
+    if path.name == "bjt_common_emitter.kicad_sch":
+        _validate_common_emitter_svg_orientation(path)
 
 
 def validate_geometry() -> None:
@@ -150,6 +154,47 @@ def _kicad_cli_parse(path: Path) -> None:
             f"stdout:\n{result.stdout}\n"
             f"stderr:\n{result.stderr}"
         )
+
+
+def _export_svg(path: Path, output_dir: Path) -> Path:
+    kicad_cli = shutil.which("kicad-cli")
+    if not kicad_cli:
+        raise AssertionError("kicad-cli is required for SVG orientation validation")
+    env = dict(os.environ)
+    env["HOME"] = str(output_dir)
+    env["XDG_CONFIG_HOME"] = str(output_dir / ".config")
+    result = subprocess.run(
+        [
+            kicad_cli,
+            "sch",
+            "export",
+            "svg",
+            "--output",
+            str(output_dir),
+            str(path),
+        ],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert result.returncode == 0, (
+        f"kicad-cli SVG export failed for {path}\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    )
+    svg_path = output_dir / f"{path.stem}.svg"
+    assert svg_path.exists(), f"expected SVG output for {path}"
+    return svg_path
+
+
+def _validate_common_emitter_svg_orientation(path: Path) -> None:
+    with tempfile.TemporaryDirectory(prefix="kicad-svg-") as tmp_home:
+        svg_path = _export_svg(path, Path(tmp_home))
+        observation = observe_kicad_svg(svg_path)
+        q1 = next((symbol for symbol in observation.symbols if symbol.ref_text == "Q1"), None)
+        assert q1 is not None, "expected to observe Q1 in common-emitter SVG"
+        assert q1.terminal_hints is not None, "expected transistor terminal hints from SVG observation"
+        assert q1.terminal_hints.get("base") == "left", f"expected base-left NPN, got {q1.terminal_hints}"
+        assert q1.terminal_hints.get("collector") == "top", f"expected collector-up NPN, got {q1.terminal_hints}"
+        assert q1.terminal_hints.get("emitter") == "bottom", f"expected emitter-down NPN, got {q1.terminal_hints}"
 
 
 def validate_ngspice(path: Path) -> None:

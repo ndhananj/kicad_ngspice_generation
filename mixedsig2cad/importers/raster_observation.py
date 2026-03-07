@@ -13,6 +13,7 @@ class ObservedSymbol:
     confidence: float
     ref_text: str | None = None
     value_text: str | None = None
+    terminal_hints: dict[str, str] | None = None
 
 
 @dataclass(frozen=True, slots=True)

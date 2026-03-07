@@ -162,6 +162,8 @@ def validate_kicad_projection(projection: KiCadProjection, geometry: SchematicGe
                 )
             if terminal.side != expected_exits[terminal.name]:
                 raise AssertionError(f"terminal '{shape.ref}.{terminal.name}' drifted from template exit direction")
+        if shape.shape == "npn_bjt" and shape.orientation == "right":
+            _validate_npn_orientation(expected_offsets)
     for wire in projection.wires:
         if wire.x1 != wire.x2 and wire.y1 != wire.y2:
             raise AssertionError(f"non-orthogonal KiCad wire segment '{wire.uuid_seed}'")
@@ -224,6 +226,16 @@ def _rotate_offset(x: float, y: float, angle: int) -> tuple[float, float]:
     rx = round(x * math.cos(radians) - y * math.sin(radians), 2)
     ry = round(x * math.sin(radians) + y * math.cos(radians), 2)
     return rx, ry
+
+
+def _validate_npn_orientation(offsets: dict[str, tuple[float, float]]) -> None:
+    collector = offsets["collector"]
+    base = offsets["base"]
+    emitter = offsets["emitter"]
+    if base[0] >= collector[0] or base[0] >= emitter[0]:
+        raise AssertionError("npn_bjt/right no longer has base on the left")
+    if collector[1] >= emitter[1]:
+        raise AssertionError("npn_bjt/right no longer has collector above emitter")
 
 
 def _project_text(text: TextPlacement) -> KiCadTextPlacement:
