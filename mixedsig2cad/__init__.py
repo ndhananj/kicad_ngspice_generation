@@ -57,6 +57,14 @@ from .projections.kicad import (
     project_geometry_to_kicad,
     validate_kicad_projection,
 )
+from .projections.kicad_render_validate import (
+    RenderedPinObservation,
+    RenderedSymbolComparison,
+    RenderedSymbolObservation,
+    build_symbol_probe_geometry,
+    observe_rendered_symbol_svg,
+    validate_rendered_kicad_symbols,
+)
 from .spec import Analysis, CircuitSpec, Component
 from .topology_layout import (
     TopologyAttachment,
@@ -101,6 +109,9 @@ __all__ = [
     "PlacedTerminal",
     "Point",
     "RoundTripReport",
+    "RenderedPinObservation",
+    "RenderedSymbolComparison",
+    "RenderedSymbolObservation",
     "SchematicGeometry",
     "SchematicIntent",
     "TerminalRef",
@@ -116,6 +127,7 @@ __all__ = [
     "build_kicad_layout",
     "build_schematic_geometry",
     "build_schematic_intent",
+    "build_symbol_probe_geometry",
     "build_topology_layout",
     "derive_topology_layout",
     "extract_geometry_from_image",
@@ -126,6 +138,8 @@ __all__ = [
     "project_geometry_to_kicad",
     "roundtrip_image",
     "roundtrip_kicad_schematic",
+    "observe_rendered_symbol_svg",
     "validate_kicad_projection",
+    "validate_rendered_kicad_symbols",
     "validate_schematic_geometry",
 ]

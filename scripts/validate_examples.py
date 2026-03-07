@@ -21,9 +21,11 @@ from mixedsig2cad import (
     import_kicad_schematic,
     project_geometry_to_kicad,
     roundtrip_kicad_schematic,
+    validate_rendered_kicad_symbols,
 )
 from mixedsig2cad.geometry import PAGE_BOTTOM, PAGE_LEFT, PAGE_RIGHT, PAGE_TOP
 from mixedsig2cad.importers.raster_extract import observe_kicad_svg
+from mixedsig2cad.projections.kicad import SHAPE_TO_KICAD
 
 
 def _balanced_parentheses(text: str) -> bool:
@@ -105,6 +107,16 @@ def validate_geometry() -> None:
             topology_report = compare_topologies(derive_topology_layout(geometry), derive_topology_layout(imported))
             assert geometry_report.within_tolerance, f"geometry import mismatch for {spec.name}: {geometry_report}"
             assert topology_report.equivalent, f"topology import mismatch for {spec.name}: {topology_report}"
+
+
+def validate_rendered_symbols() -> None:
+    results = validate_rendered_kicad_symbols()
+    assert results or shutil.which("kicad-cli") is None, "expected rendered symbol validation results when kicad-cli is installed"
+    by_shape = {(result.shape, result.orientation): result for result in results}
+    for key in SHAPE_TO_KICAD:
+        if shutil.which("kicad-cli") is None:
+            break
+        assert key in by_shape, f"missing rendered validation result for symbol mapping {key}"
 
 
 def _geometry_bounds(geometry) -> tuple[float, float, float, float] | None:
@@ -218,6 +230,7 @@ def validate_ngspice(path: Path) -> None:
 
 def main() -> None:
     validate_geometry()
+    validate_rendered_symbols()
     for kicad in (ROOT / "examples" / "generated" / "kicad").glob("*.kicad_sch"):
         validate_kicad(kicad)
         _kicad_cli_parse(kicad)
