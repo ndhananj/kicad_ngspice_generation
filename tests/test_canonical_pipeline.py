@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 
-from examples.specs.catalog import opamp_inverting, rc_lowpass
+from examples.specs.catalog import cmos_inverter, opamp_inverting, rc_lowpass
 from mixedsig2cad.compiled import CompiledSchematic, compile_schematic
 from mixedsig2cad.exporters.kicad import export_kicad_schematic, render_kicad_schematic
 from mixedsig2cad import geometry
@@ -19,7 +19,7 @@ def test_compile_schematic_returns_canonical_compiled_type() -> None:
 
 
 def test_export_kicad_schematic_uses_canonical_compile_path() -> None:
-    for spec in (rc_lowpass(), opamp_inverting()):
+    for spec in (rc_lowpass(), opamp_inverting(), cmos_inverter()):
         intent = build_schematic_intent(spec)
         compiled = compile_schematic(intent)
         expected = render_kicad_schematic(project_geometry_to_kicad(compiled))

@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
 from .intent import IntentComponent, SchematicIntent
-from .symbols import default_orientation_for_component, terminal_offset_for_component
+from .symbols import (
+    component_symbol,
+    default_orientation_for_component,
+    terminal_name_for_component,
+    terminal_offset_for_component,
+)
 
 KICAD_CONNECTION_GRID = 1.27
 
@@ -48,6 +54,7 @@ def build_topology_layout(intent: SchematicIntent) -> TopologyLayout | None:
     return (
         _build_series_shunt_layout(intent)
         or _build_bjt_common_emitter_layout(intent)
+        or _build_static_cmos_layout(intent)
         or _build_opamp_inverting_layout(intent)
     )
 
@@ -323,6 +330,245 @@ def _build_bjt_common_emitter_layout(intent: SchematicIntent) -> TopologyLayout 
     return layout
 
 
+def _build_static_cmos_layout(intent: SchematicIntent) -> TopologyLayout | None:
+    components = intent.components
+    mosfets = [comp for comp in components if comp.kind == "M" and len(comp.nodes) >= 4]
+    if not mosfets:
+        return None
+    if any(comp.kind not in {"M", "V", "I", "R", "C", "L", "D"} for comp in components):
+        return None
+
+    pmos = [comp for comp in mosfets if component_symbol(comp.kind, comp.value, comp.model)[0] == "pmos"]
+    nmos = [comp for comp in mosfets if component_symbol(comp.kind, comp.value, comp.model)[0] == "nmos"]
+    if not pmos or not nmos:
+        return None
+
+    supply_net = _common_rail_net(intent, pmos, role="supply")
+    ground_net = _common_rail_net(intent, nmos, role="ground")
+    if supply_net is None or ground_net is None:
+        return None
+
+    output_net = _static_cmos_output_net(intent, pmos, nmos, supply_net, ground_net)
+    if output_net is None:
+        return None
+
+    gate_nets = sorted(
+        {
+            comp.nodes[1]
+            for comp in mosfets
+            if comp.nodes[1] not in {supply_net, ground_net, output_net}
+            and intent.nets[comp.nodes[1]].role not in {"ground", "supply"}
+        },
+        key=lambda net: (intent.nets[net].role != "signal_in", net),
+    )
+    if not gate_nets:
+        return None
+
+    p_paths = _enumerate_cmos_paths(pmos, output_net, supply_net)
+    n_paths = _enumerate_cmos_paths(nmos, output_net, ground_net)
+    if not p_paths or not n_paths:
+        return None
+
+    supply_sources = [
+        comp for comp in components if comp.kind in {"V", "I"} and len(comp.nodes) == 2 and comp.nodes[0] == supply_net and comp.nodes[1] == ground_net
+    ]
+    input_sources = [
+        comp for comp in components if comp.kind in {"V", "I"} and len(comp.nodes) == 2 and comp.nodes[0] in gate_nets and comp.nodes[1] == ground_net
+    ]
+    output_shunts = [
+        comp
+        for comp in components
+        if comp.kind in {"R", "C", "L", "D"} and len(comp.nodes) == 2 and set(comp.nodes) == {output_net, ground_net}
+    ]
+
+    recognized = {comp.ref for comp in mosfets + supply_sources + input_sources + output_shunts}
+    if any(comp.ref not in recognized for comp in components):
+        return None
+
+    layout = TopologyLayout(name=intent.name)
+    branch_spacing = 20.32
+    branch_count = max(len(p_paths), len(n_paths))
+    branch_xs = [_point(160.0 + (idx - (branch_count - 1) / 2.0) * branch_spacing, 0.0).x for idx in range(branch_count)]
+    output_point = _point(branch_xs[-1] + 20.32, 113.03)
+    gate_xs = {
+        net: _point(110.0 - idx * 12.70, 0.0).x
+        for idx, net in enumerate(gate_nets)
+    }
+
+    placement_by_ref: dict[str, TopologyPlacement] = {}
+    p_path_levels = _device_levels_by_path(p_paths)
+    n_path_levels = _device_levels_by_path(n_paths)
+
+    for branch_idx, _path in enumerate(p_paths):
+        for ref, level in p_path_levels[branch_idx].items():
+            placement_by_ref[ref] = TopologyPlacement(
+                ref=ref,
+                center=_point(branch_xs[branch_idx], output_point.y - 24.13 - level * 17.78),
+                orientation="right",
+            )
+    for branch_idx, _path in enumerate(n_paths):
+        for ref, level in n_path_levels[branch_idx].items():
+            placement_by_ref[ref] = TopologyPlacement(
+                ref=ref,
+                center=_point(branch_xs[branch_idx], output_point.y + 24.13 + level * 17.78),
+                orientation="right",
+            )
+
+    gate_source_y = {
+        net: _average_y(
+            terminal_point(comp, TopologyLayout(name=intent.name, placements=list(placement_by_ref.values())), "gate").y
+            for comp in mosfets
+            if comp.nodes[1] == net
+        )
+        for net in gate_nets
+    }
+
+    for idx, source in enumerate(sorted(supply_sources, key=lambda comp: comp.ref), start=1):
+        center = _point(62.23, 68.58 + (idx - 1) * 22.86)
+        placement_by_ref[source.ref] = TopologyPlacement(ref=source.ref, center=center, orientation="vertical_up")
+        gnd_ref = f"#PWR{idx:04d}"
+        gnd_center = _point(center.x, center.y + 19.05)
+        layout.placements.append(TopologyPlacement(ref=gnd_ref, center=gnd_center, shape="ground", value="GND", orientation="down"))
+        layout.connections.append(
+            TopologyConnection(
+                id=f"{gnd_ref}:ground",
+                point=gnd_center,
+                attachments=(TopologyAttachment(source.ref, "neg"), TopologyAttachment(gnd_ref, "top")),
+                role="local_ground",
+            )
+        )
+
+    next_power_idx = len(supply_sources) + 1
+    for source in sorted(input_sources, key=lambda comp: (gate_nets.index(comp.nodes[0]), comp.ref)):
+        gate_net = source.nodes[0]
+        center = _point(gate_xs[gate_net] - 26.67, gate_source_y[gate_net] + 10.16)
+        placement_by_ref[source.ref] = TopologyPlacement(ref=source.ref, center=center, orientation="vertical_up")
+        gnd_ref = f"#PWR{next_power_idx:04d}"
+        next_power_idx += 1
+        gnd_center = _point(center.x, center.y + 19.05)
+        layout.placements.append(TopologyPlacement(ref=gnd_ref, center=gnd_center, shape="ground", value="GND", orientation="down"))
+        layout.connections.append(
+            TopologyConnection(
+                id=f"{gnd_ref}:ground",
+                point=gnd_center,
+                attachments=(TopologyAttachment(source.ref, "neg"), TopologyAttachment(gnd_ref, "top")),
+                role="local_ground",
+            )
+        )
+
+    shunt_spacing = 19.05
+    for idx, comp in enumerate(sorted(output_shunts, key=lambda item: item.ref), start=1):
+        center = _point(output_point.x + 22.86 + (idx - 1) * shunt_spacing, output_point.y + 12.70)
+        placement_by_ref[comp.ref] = TopologyPlacement(ref=comp.ref, center=center, orientation=_shunt_orientation(comp))
+        gnd_ref = f"#PWR{next_power_idx:04d}"
+        next_power_idx += 1
+        gnd_center = _ground_center_for_shunt(comp, center, _shunt_orientation(comp))
+        layout.placements.append(TopologyPlacement(ref=gnd_ref, center=gnd_center, shape="ground", value="GND", orientation="down"))
+        layout.connections.append(
+            TopologyConnection(
+                id=f"{gnd_ref}:ground",
+                point=gnd_center,
+                attachments=(TopologyAttachment(comp.ref, _ground_terminal_name(comp)), TopologyAttachment(gnd_ref, "top")),
+                role="local_ground",
+            )
+        )
+
+    layout.placements.extend(sorted(placement_by_ref.values(), key=lambda item: item.ref))
+
+    components_by_ref = {comp.ref: comp for comp in components}
+    connections_by_net: dict[str, list[TopologyAttachment]] = defaultdict(list)
+    for comp in components:
+        orientation = placement_by_ref.get(comp.ref, TopologyPlacement(ref=comp.ref, center=_point(0.0, 0.0), orientation=_default_orientation(comp))).orientation or _default_orientation(comp)
+        for pin_index, net_name in enumerate(comp.nodes):
+            if net_name == ground_net and comp.kind in {"V", "I", "R", "C", "L", "D"}:
+                continue
+            terminal_name = terminal_name_for_component(comp.kind, orientation, pin_index)
+            connections_by_net[net_name].append(TopologyAttachment(comp.ref, terminal_name))
+
+    for gate_net in gate_nets:
+        attachments = tuple(connections_by_net[gate_net])
+        point = _point(gate_xs[gate_net], gate_source_y[gate_net])
+        layout.connections.append(
+            TopologyConnection(
+                id=f"gate:{gate_net}",
+                point=point,
+                attachments=attachments,
+                render_style="junction" if len(attachments) >= 3 else "inline",
+                role="gate_bus",
+            )
+        )
+
+    supply_attachments = tuple(connections_by_net[supply_net])
+    if supply_attachments:
+        supply_points = [_attachment_point(components_by_ref, placement_by_ref, item) for item in supply_attachments]
+        transistor_supply_points = [point for attachment, point in zip(supply_attachments, supply_points) if attachment.owner_ref in {comp.ref for comp in mosfets}]
+        primary_supply_points = transistor_supply_points or supply_points
+        supply_point = _point(_average_x(point.x for point in primary_supply_points), _average_y(point.y for point in primary_supply_points))
+        layout.connections.append(
+            TopologyConnection(
+                id=f"net:{supply_net}",
+                point=supply_point,
+                attachments=supply_attachments,
+                render_style="junction" if len(supply_attachments) >= 3 else "inline",
+                role="local_supply",
+            )
+        )
+
+    output_attachments = list(connections_by_net[output_net])
+    layout.connections.append(
+        TopologyConnection(
+            id=f"net:{output_net}",
+            point=output_point,
+            attachments=tuple(output_attachments),
+            render_style="junction" if len(output_attachments) >= 3 else "inline",
+            role="stage_output",
+        )
+    )
+
+    internal_nets = sorted(
+        net_name
+        for net_name, attachments in connections_by_net.items()
+        if net_name not in {supply_net, ground_net, output_net, *gate_nets}
+        and len(attachments) >= 2
+    )
+    for net_name in internal_nets:
+        attachments = tuple(connections_by_net[net_name])
+        attachment_points = [_attachment_point(components_by_ref, placement_by_ref, item) for item in attachments]
+        point = _point(_average_x(item.x for item in attachment_points), _average_y(item.y for item in attachment_points))
+        layout.connections.append(
+            TopologyConnection(
+                id=f"net:{net_name}",
+                point=point,
+                attachments=attachments,
+                render_style="junction" if len(attachments) >= 3 else "inline",
+                role="transistor_stack",
+            )
+        )
+
+    ground_attachments = [
+        TopologyAttachment(comp.ref, terminal_name_for_component(comp.kind, placement_by_ref[comp.ref].orientation or _default_orientation(comp), pin_index))
+        for comp in mosfets
+        for pin_index, net_name in enumerate(comp.nodes)
+        if net_name == ground_net
+    ]
+    if ground_attachments:
+        ground_points = [_attachment_point(components_by_ref, placement_by_ref, item) for item in ground_attachments]
+        ground_node_point = _point(_average_x(point.x for point in ground_points), _average_y(point.y for point in ground_points))
+        gnd_ref = f"#PWR{next_power_idx:04d}"
+        ground_center = _point(ground_node_point.x, max(point.y for point in ground_points) + 12.70)
+        layout.placements.append(TopologyPlacement(ref=gnd_ref, center=ground_center, shape="ground", value="GND", orientation="down"))
+        layout.connections.append(
+            TopologyConnection(
+                id=f"{gnd_ref}:ground",
+                point=ground_node_point,
+                attachments=tuple(ground_attachments) + (TopologyAttachment(gnd_ref, "top"),),
+                render_style="junction" if len(ground_attachments) >= 2 else "inline",
+                role="local_ground",
+            )
+        )
+    return layout
+
+
 def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | None:
     opamps = [comp for comp in intent.components if comp.kind == "X" and len(comp.nodes) >= 3]
     if len(opamps) != 1:
@@ -438,6 +684,93 @@ def _find_capacitor(capacitors: list[IntentComponent], net_a: str, net_b: str) -
         if set(capacitor.nodes) == nets:
             return capacitor
     return None
+
+
+def _common_rail_net(intent: SchematicIntent, devices: list[IntentComponent], *, role: str) -> str | None:
+    counter: Counter[str] = Counter()
+    for comp in devices:
+        for net_name in comp.nodes[2:4]:
+            if intent.nets[net_name].role == role:
+                counter[net_name] += 1
+    if len(counter) != 1:
+        return None
+    return next(iter(counter))
+
+
+def _static_cmos_output_net(
+    intent: SchematicIntent,
+    pmos: list[IntentComponent],
+    nmos: list[IntentComponent],
+    supply_net: str,
+    ground_net: str,
+) -> str | None:
+    p_conduction = {net for comp in pmos for net in (comp.nodes[0], comp.nodes[2]) if net != supply_net}
+    n_conduction = {net for comp in nmos for net in (comp.nodes[0], comp.nodes[2]) if net != ground_net}
+    candidates = sorted(
+        p_conduction & n_conduction,
+        key=lambda net: (
+            intent.nets[net].role != "signal_out",
+            -intent.nets[net].degree,
+            net,
+        ),
+    )
+    return candidates[0] if candidates else None
+
+
+def _enumerate_cmos_paths(devices: list[IntentComponent], start_net: str, end_net: str) -> list[list[IntentComponent]] | None:
+    by_net: dict[str, list[IntentComponent]] = defaultdict(list)
+    for comp in devices:
+        by_net[comp.nodes[0]].append(comp)
+        by_net[comp.nodes[2]].append(comp)
+
+    paths: list[list[IntentComponent]] = []
+
+    def walk(net_name: str, path: list[IntentComponent], used: set[str]) -> None:
+        if net_name == end_net:
+            paths.append(path.copy())
+            return
+        for comp in sorted(by_net.get(net_name, []), key=lambda item: item.ref):
+            if comp.ref in used:
+                continue
+            next_net = comp.nodes[2] if comp.nodes[0] == net_name else comp.nodes[0]
+            used.add(comp.ref)
+            path.append(comp)
+            walk(next_net, path, used)
+            path.pop()
+            used.remove(comp.ref)
+
+    walk(start_net, [], set())
+    if not paths:
+        return None
+
+    device_counts = Counter(comp.ref for path in paths for comp in path)
+    if any(count != 1 for count in device_counts.values()) or set(device_counts) != {comp.ref for comp in devices}:
+        return None
+    return sorted(paths, key=lambda path: tuple((comp.nodes[1], comp.ref) for comp in path))
+
+
+def _device_levels_by_path(paths: list[list[IntentComponent]]) -> list[dict[str, int]]:
+    return [{comp.ref: idx for idx, comp in enumerate(path)} for path in paths]
+
+
+def _attachment_point(
+    components_by_ref: dict[str, IntentComponent],
+    placements_by_ref: dict[str, TopologyPlacement],
+    attachment: TopologyAttachment,
+) -> TopologyPoint:
+    comp = components_by_ref[attachment.owner_ref]
+    layout = TopologyLayout(name="", placements=list(placements_by_ref.values()))
+    return terminal_point(comp, layout, attachment.terminal_name)
+
+
+def _average_x(values) -> float:
+    values = list(values)
+    return sum(values) / len(values) if values else 0.0
+
+
+def _average_y(values) -> float:
+    values = list(values)
+    return sum(values) / len(values) if values else 0.0
 
 
 def _series_orientation(comp: IntentComponent) -> str:
