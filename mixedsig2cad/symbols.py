@@ -69,16 +69,16 @@ SYMBOL_TERMINALS: dict[tuple[str, str], tuple[SymbolTerminalDef, ...]] = {
         SymbolTerminalDef("substrate", (-2.54, 8.89), "bottom", "local_ground_drop", (0.0, 6.0)),
     ),
     ("pmos", "right"): (
-        SymbolTerminalDef("drain", (2.54, -5.08), "top", "branch_to_junction", (0.0, -6.0)),
-        SymbolTerminalDef("gate", (-5.08, 0.0), "left", "branch_to_junction", (-6.0, 0.0)),
-        SymbolTerminalDef("source", (2.54, 5.08), "bottom", "local_supply_rise"),
-        SymbolTerminalDef("body", (5.08, 5.08), "right", "local_supply_rise"),
+        SymbolTerminalDef("drain", (2.54, 5.08), "bottom", "branch_to_junction", (0.0, 6.0)),
+        SymbolTerminalDef("gate", (-5.08, 0.0), "left", "branch_to_junction", (-10.16, 0.0)),
+        SymbolTerminalDef("source", (2.54, -5.08), "top", "local_supply_rise"),
+        SymbolTerminalDef("body", (5.08, -5.08), "right", "local_supply_rise"),
     ),
     ("nmos", "right"): (
-        SymbolTerminalDef("drain", (2.54, 5.08), "bottom", "branch_to_junction", (0.0, 6.0)),
-        SymbolTerminalDef("gate", (-5.08, 0.0), "left", "branch_to_junction", (-6.0, 0.0)),
-        SymbolTerminalDef("source", (2.54, -5.08), "top", "local_ground_drop"),
-        SymbolTerminalDef("body", (5.08, -5.08), "right", "local_ground_drop"),
+        SymbolTerminalDef("drain", (2.54, -5.08), "top", "branch_to_junction", (0.0, -6.0)),
+        SymbolTerminalDef("gate", (-5.08, 0.0), "left", "branch_to_junction", (-10.16, 0.0)),
+        SymbolTerminalDef("source", (2.54, 5.08), "bottom", "local_ground_drop"),
+        SymbolTerminalDef("body", (5.08, 5.08), "right", "local_ground_drop"),
     ),
 }
 
@@ -158,8 +158,8 @@ KICAD_PIN_MAPS: dict[tuple[str, str], dict[str, str]] = {
     ("power", "up"): {"bottom": "1"},
     ("opamp", "right"): {"plus": "1", "minus": "2", "out": "3", "vplus": "4", "vminus": "5"},
     ("npn_bjt", "right"): {"collector": "1", "base": "2", "emitter": "3", "substrate": "4"},
-    ("pmos", "right"): {"drain": "3", "gate": "2", "source": "1", "body": "4"},
-    ("nmos", "right"): {"drain": "3", "gate": "2", "source": "1", "body": "4"},
+    ("pmos", "right"): {"drain": "1", "gate": "2", "source": "3", "body": "4"},
+    ("nmos", "right"): {"drain": "1", "gate": "2", "source": "3", "body": "4"},
 }
 
 

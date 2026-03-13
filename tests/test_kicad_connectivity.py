@@ -5,8 +5,8 @@ import unittest
 from pathlib import Path
 import re
 
-from examples.specs.catalog import opamp_inverting, rc_lowpass, schmitt_trigger
-from mixedsig2cad.kicad_connectivity import validate_kicad_connectivity
+from examples.specs.catalog import cmos_inverter, opamp_inverting, rc_lowpass, schmitt_trigger
+from mixedsig2cad.kicad_connectivity import _export_kicad_netlist, validate_kicad_connectivity
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +66,23 @@ class KiCadConnectivityTests(unittest.TestCase):
         text = source.read_text(encoding="utf-8")
         self.assertIn('(wire (pts (xy 157.48 109.22) (xy 157.48 121.92))', text)
         self.assertIn('(junction (at 157.48 121.92)', text)
+
+    def test_generated_cmos_inverter_uses_cmos_pin_roles(self) -> None:
+        source = GENERATED / "cmos_inverter.kicad_sch"
+        report = validate_kicad_connectivity(cmos_inverter(), source)
+        self.assertTrue(report.passed)
+        netlist = _export_kicad_netlist(source)
+        self.assertIn('(name "/vdd")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "MP1"\) \(pin "3"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "MP1"\) \(pin "4"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "MP1"\) \(pin "2"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "MN1"\) \(pin "2"\).*')
+        self.assertIn('(name "/vout")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "MP1"\) \(pin "1"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "MN1"\) \(pin "1"\).*')
+        self.assertIn('(name "GND")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "MN1"\) \(pin "3"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "MN1"\) \(pin "4"\).*')
 
     def test_off_grid_wire_is_rejected(self) -> None:
         source = GENERATED / "rc_lowpass.kicad_sch"
