@@ -61,6 +61,12 @@ class KiCadConnectivityTests(unittest.TestCase):
         self.assertFalse(report.passed)
         self.assertTrue(report.missing_nets or report.erc_violations)
 
+    def test_generated_bjt_common_emitter_contains_substrate_ground_drop(self) -> None:
+        source = GENERATED / "bjt_common_emitter.kicad_sch"
+        text = source.read_text(encoding="utf-8")
+        self.assertIn('(wire (pts (xy 157.48 109.22) (xy 157.48 121.92))', text)
+        self.assertIn('(junction (at 157.48 121.92)', text)
+
     def test_off_grid_wire_is_rejected(self) -> None:
         source = GENERATED / "rc_lowpass.kicad_sch"
         mutated = self._mutate(

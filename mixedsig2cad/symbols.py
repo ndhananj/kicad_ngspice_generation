@@ -66,6 +66,7 @@ SYMBOL_TERMINALS: dict[tuple[str, str], tuple[SymbolTerminalDef, ...]] = {
         SymbolTerminalDef("collector", (3.81, -8.89), "top", "branch_to_junction", (0.0, -6.0)),
         SymbolTerminalDef("base", (-7.62, 0.0), "left", "branch_to_junction", (-6.0, 0.0)),
         SymbolTerminalDef("emitter", (3.81, 8.89), "bottom", "local_ground_drop", (0.0, 6.0)),
+        SymbolTerminalDef("substrate", (-2.54, 8.89), "bottom", "local_ground_drop", (0.0, 6.0)),
     ),
     ("pmos", "right"): (
         SymbolTerminalDef("drain", (2.54, -5.08), "top", "branch_to_junction", (0.0, -6.0)),
@@ -120,7 +121,7 @@ COMPONENT_TERMINAL_ORDERS: dict[tuple[str, str], tuple[str, ...]] = {
     ("L", "horizontal"): ("left", "right"),
     ("D", "horizontal"): ("left", "right"),
     ("D", "vertical"): ("top", "bottom"),
-    ("Q", "right"): ("collector", "base", "emitter"),
+    ("Q", "right"): ("collector", "base", "emitter", "substrate"),
     ("X", "right"): ("plus", "minus", "out", "vplus", "vminus"),
     ("M", "right"): ("drain", "gate", "source", "body"),
 }
@@ -156,7 +157,7 @@ KICAD_PIN_MAPS: dict[tuple[str, str], dict[str, str]] = {
     ("ground", "down"): {"top": "1"},
     ("power", "up"): {"bottom": "1"},
     ("opamp", "right"): {"plus": "1", "minus": "2", "out": "3", "vplus": "4", "vminus": "5"},
-    ("npn_bjt", "right"): {"collector": "1", "base": "2", "emitter": "3"},
+    ("npn_bjt", "right"): {"collector": "1", "base": "2", "emitter": "3", "substrate": "4"},
     ("pmos", "right"): {"drain": "3", "gate": "2", "source": "1", "body": "4"},
     ("nmos", "right"): {"drain": "3", "gate": "2", "source": "1", "body": "4"},
 }

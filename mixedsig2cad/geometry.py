@@ -198,6 +198,8 @@ def _normalize_active_branch_nodes(nodes: list[GeometryNode], shapes: list[Place
 def _preferred_branch_point(node: GeometryNode, shape_by_ref: dict[str, PlacedShape]) -> Point:
     if node.role in {"collector_node", "emitter_node"}:
         return node.point
+    if node.role in {"local_ground", "local_supply"}:
+        return node.point
     boxes = [shape.body_box for shape in shape_by_ref.values()]
     active_terminals = [
         _resolve_terminal(shape_by_ref, attachment)

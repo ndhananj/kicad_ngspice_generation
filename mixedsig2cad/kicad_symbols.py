@@ -7,6 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 
 DEFAULT_KICAD_SYMBOL_DIR = Path("/usr/share/kicad/symbols")
+ASSET_SYMBOL_DIR = Path(__file__).resolve().parent / "assets"
 
 PROJECT_LIB_SYMBOLS: tuple[tuple[str, str], ...] = (
     ("pspice.kicad_sym", "VSOURCE"),
@@ -15,7 +16,7 @@ PROJECT_LIB_SYMBOLS: tuple[tuple[str, str], ...] = (
     ("pspice.kicad_sym", "CAP"),
     ("pspice.kicad_sym", "INDUCTOR"),
     ("pspice.kicad_sym", "DIODE"),
-    ("pspice.kicad_sym", "QNPN"),
+    ("examples.kicad_sym", "QNPN"),
     ("pspice.kicad_sym", "MNMOS"),
     ("pspice.kicad_sym", "MPMOS"),
     ("pspice.kicad_sym", "OPAMP"),
@@ -88,7 +89,10 @@ def extract_project_symbol_block_from_dir(symbol_dir: Path, symbol_name: str) ->
     src_file = PROJECT_LIB_SOURCES.get(symbol_name)
     if src_file is None:
         raise RuntimeError(f"symbol '{symbol_name}' is not configured in PROJECT_LIB_SYMBOLS")
-    return extract_symbol_block(symbol_dir / src_file, symbol_name)
+    candidate = symbol_dir / src_file
+    if not candidate.exists():
+        candidate = ASSET_SYMBOL_DIR / src_file
+    return extract_symbol_block(candidate, symbol_name)
 
 
 @dataclass(frozen=True, slots=True)

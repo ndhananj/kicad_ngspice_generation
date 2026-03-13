@@ -27,5 +27,7 @@ def test_component_symbol_rules_drive_terminal_metadata() -> None:
 
     assert terminal_name_for_component("Q", "right", 0) == "collector"
     assert terminal_name_for_component("Q", "right", 1) == "base"
+    assert terminal_name_for_component("Q", "right", 3) == "substrate"
     assert terminal_offset_for_component("R", "horizontal", "left") == (-6.35, 0.0)
+    assert terminal_offset_for_component("Q", "right", "substrate") == (-2.54, 8.89)
     assert body_box("opamp", "right") == (-6.0, -6.0, 6.0, 6.0)

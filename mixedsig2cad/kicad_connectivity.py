@@ -100,6 +100,8 @@ def _expected_net_clusters(spec: CircuitSpec, *, shapes_by_ref) -> dict[str, tup
         for pin_index, net_name in enumerate(comp.nodes, start=1):
             terminal_name = terminal_names[min(pin_index - 1, len(terminal_names) - 1)]
             clusters.setdefault(net_name, []).append(f"{comp.ref}.{pin_map[terminal_name]}")
+        if comp.kind == "Q" and shape.shape == "npn_bjt" and "substrate" in pin_map:
+            clusters.setdefault("0", []).append(f"{comp.ref}.{pin_map['substrate']}")
     return {
         net_name: tuple(sorted(attachments))
         for net_name, attachments in sorted(clusters.items())

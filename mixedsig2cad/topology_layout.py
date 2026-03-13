@@ -224,6 +224,7 @@ def _build_bjt_common_emitter_layout(intent: SchematicIntent) -> TopologyLayout 
     base_node = _point(126.0, 100.0)
     collector_node = _point(163.81, 91.11)
     emitter_node = _point(163.81, 108.89)
+    substrate_x = q_center.x - 2.54
     output_node = _point(200.0, 91.11)
 
     layout.placements.extend(
@@ -257,7 +258,7 @@ def _build_bjt_common_emitter_layout(intent: SchematicIntent) -> TopologyLayout 
             ),
             TopologyConnection(
                 id="bottom_rail",
-                point=_point(200.0, bottom_rail_y),
+                point=_point(substrate_x, bottom_rail_y),
                 attachments=(
                     TopologyAttachment(signal.ref, "neg"),
                     TopologyAttachment(r2.ref, "bottom"),
@@ -265,6 +266,7 @@ def _build_bjt_common_emitter_layout(intent: SchematicIntent) -> TopologyLayout 
                     TopologyAttachment(ce.ref, "bottom"),
                     TopologyAttachment(rl.ref, "bottom"),
                     TopologyAttachment(supply.ref, "neg"),
+                    TopologyAttachment(transistor.ref, "substrate"),
                 ),
                 render_style="junction",
                 role="local_ground",

@@ -96,6 +96,9 @@ def validate_kicad(path: Path) -> None:
         assert text.count('(symbol (lib_id "VSOURCE")') == 2, "expected signal and supply sources in canonical common-emitter example"
         assert text.count('(symbol (lib_id "QNPN")') == 1, "expected one NPN transistor in canonical common-emitter example"
         assert text.count("  (junction ") >= 4, "expected explicit stage junctions in canonical common-emitter example"
+        assert '(wire (pts (xy 157.48 109.22) (xy 157.48 121.92))' in text, (
+            "expected a straight substrate drop from Q1 to the negative rail in the common-emitter example"
+        )
     report = roundtrip_kicad_schematic(path)
     assert report.exact_roundtrip, f"structured KiCad roundtrip failed for {path}: {report}"
     if path.name == "bjt_common_emitter.kicad_sch":

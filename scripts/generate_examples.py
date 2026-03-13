@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 
 from examples.specs.catalog import all_examples
 from mixedsig2cad import export_kicad_schematic, export_ngspice_netlist
-from mixedsig2cad.kicad_symbols import PROJECT_LIB_SYMBOLS, extract_symbol_block, kicad_symbol_dir
+from mixedsig2cad.kicad_symbols import PROJECT_LIB_SYMBOLS, extract_project_symbol_block
 
 KICAD_DIR = ROOT / "examples" / "generated" / "kicad"
 NGSPICE_DIR = ROOT / "examples" / "generated" / "ngspice"
@@ -126,8 +126,8 @@ def _project_symbol_library_file() -> str:
         "  (version 20231120)",
         '  (generator "mixedsig2cad")',
     ]
-    for src_file, symbol_name in PROJECT_LIB_SYMBOLS:
-        block = extract_symbol_block(kicad_symbol_dir() / src_file, symbol_name)
+    for _, symbol_name in PROJECT_LIB_SYMBOLS:
+        block = extract_project_symbol_block(symbol_name)
         for row in block.splitlines():
             lines.append(f"  {row}")
     lines.append(")")
