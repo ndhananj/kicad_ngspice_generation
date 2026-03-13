@@ -515,6 +515,12 @@ def _build_static_cmos_layout(intent: SchematicIntent) -> TopologyLayout | None:
         )
 
     output_attachments = list(connections_by_net[output_net])
+    output_point = _preferred_cmos_connection_point(
+        components_by_ref,
+        placement_by_ref,
+        tuple(output_attachments),
+        fallback=output_point,
+    )
     layout.connections.append(
         TopologyConnection(
             id=f"net:{output_net}",
@@ -534,7 +540,12 @@ def _build_static_cmos_layout(intent: SchematicIntent) -> TopologyLayout | None:
     for net_name in internal_nets:
         attachments = tuple(connections_by_net[net_name])
         attachment_points = [_attachment_point(components_by_ref, placement_by_ref, item) for item in attachments]
-        point = _point(_average_x(item.x for item in attachment_points), _average_y(item.y for item in attachment_points))
+        point = _preferred_cmos_connection_point(
+            components_by_ref,
+            placement_by_ref,
+            attachments,
+            fallback=_point(_average_x(item.x for item in attachment_points), _average_y(item.y for item in attachment_points)),
+        )
         layout.connections.append(
             TopologyConnection(
                 id=f"net:{net_name}",
@@ -761,6 +772,27 @@ def _attachment_point(
     comp = components_by_ref[attachment.owner_ref]
     layout = TopologyLayout(name="", placements=list(placements_by_ref.values()))
     return terminal_point(comp, layout, attachment.terminal_name)
+
+
+def _preferred_cmos_connection_point(
+    components_by_ref: dict[str, IntentComponent],
+    placements_by_ref: dict[str, TopologyPlacement],
+    attachments: tuple[TopologyAttachment, ...],
+    *,
+    fallback: TopologyPoint,
+) -> TopologyPoint:
+    attachment_points = [_attachment_point(components_by_ref, placements_by_ref, attachment) for attachment in attachments]
+    if len(attachment_points) < 2:
+        return fallback
+    x_counts = Counter(point.x for point in attachment_points)
+    y_counts = Counter(point.y for point in attachment_points)
+    shared_xs = [value for value, count in x_counts.items() if count >= 2]
+    if shared_xs:
+        return _point(shared_xs[0], fallback.y)
+    shared_ys = [value for value, count in y_counts.items() if count >= 2]
+    if shared_ys:
+        return _point(fallback.x, shared_ys[0])
+    return fallback
 
 
 def _average_x(values) -> float:

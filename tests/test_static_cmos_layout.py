@@ -25,6 +25,11 @@ def test_cmos_inverter_uses_static_cmos_topology() -> None:
     compiled = compile_schematic(intent)
     shapes = {shape.ref: shape for shape in compiled.shapes}
     assert shapes["MP1"].center.y < shapes["MN1"].center.y
+    output_node = next(node for node in compiled.nodes if node.id == "net:vout")
+    assert (output_node.point.x, output_node.point.y) == (162.56, 113.03)
+    output_wires = [wire for wire in compiled.wires if wire.uuid_seed.startswith("cmos_inverter:net:vout")]
+    assert len(output_wires) == 1
+    assert [(point.x, point.y) for point in output_wires[0].points] == [(162.56, 83.82), (162.56, 142.24)]
 
 
 def test_static_cmos_layout_handles_multi_transistor_nand() -> None:
@@ -53,3 +58,10 @@ def test_static_cmos_layout_handles_multi_transistor_nand() -> None:
     assert {item.owner_ref for item in connections["gate:va"].attachments} == {"VA", "MP1", "MN1"}
     assert {item.owner_ref for item in connections["gate:vb"].attachments} == {"VB", "MP2", "MN2"}
     assert {item.owner_ref for item in connections["net:nmid"].attachments} == {"MN1", "MN2"}
+
+    compiled = compile_schematic(intent)
+    stack_node = next(node for node in compiled.nodes if node.id == "net:nmid")
+    assert stack_node.point.x == 152.40
+    stack_wires = [wire for wire in compiled.wires if wire.uuid_seed.startswith("cmos_nand:net:nmid")]
+    assert len(stack_wires) == 1
+    assert [(point.x, point.y) for point in stack_wires[0].points] == [(152.40, 125.17), (152.40, 153.11)]

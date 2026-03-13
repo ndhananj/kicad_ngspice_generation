@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections import Counter
+
 from .intent import IntentComponent, SchematicIntent
 from .models import (
     BoundingBox,
@@ -60,6 +62,7 @@ def validate_schematic_geometry(geometry: CompiledSchematic) -> None:
     shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
     point_usage: dict[tuple[float, float], int] = {}
     wire_points: set[tuple[float, float]] = set()
+    segments: list[tuple[Point, Point, str]] = []
     for shape in geometry.shapes:
         _assert_on_kicad_grid(shape.center, context=f"shape center '{shape.ref}'")
         for terminal in shape.terminals:
@@ -78,6 +81,7 @@ def validate_schematic_geometry(geometry: CompiledSchematic) -> None:
         for start, end in zip(wire.points, wire.points[1:]):
             if _segment_hits_shape_body(shape_by_ref, wire.uuid_seed, start, end):
                 raise AssertionError(f"wire '{wire.uuid_seed}' crosses a component body")
+            segments.append((start, end, wire.uuid_seed))
 
     bounds = _geometry_bounds(geometry)
     if bounds is not None:
@@ -87,12 +91,16 @@ def validate_schematic_geometry(geometry: CompiledSchematic) -> None:
             )
 
     junction_points = {(junction.point.x, junction.point.y) for junction in geometry.junctions}
+    node_points = {(node.point.x, node.point.y) for node in geometry.nodes}
     for junction_point in junction_points:
         _assert_on_kicad_grid(Point(*junction_point), context=f"junction {junction_point}")
-        if junction_point not in {(node.point.x, node.point.y) for node in geometry.nodes}:
+        if junction_point not in node_points:
             raise AssertionError(f"junction at {junction_point} does not correspond to a geometry node")
         if junction_point not in wire_points:
             raise AssertionError(f"junction at {junction_point} does not lie on a compiled wire path")
+
+    _assert_no_ambiguous_wire_overlaps(segments)
+    _assert_no_undeclared_wire_intersections(segments, node_points=node_points, junction_points=junction_points)
 
     for anchor in geometry.anchors:
         _assert_on_kicad_grid(anchor.point, context="node anchor")
@@ -167,6 +175,16 @@ def _compile_nodes_to_wires(geometry: CompiledSchematic) -> None:
                 WirePath(points=path_points, uuid_seed=f"{geometry.name}:{node.id}:{start_ref.owner_ref}:{end_ref.owner_ref}")
             )
             continue
+        shared_wires = _compile_shared_node_wires(
+            geometry.name,
+            node,
+            shape_by_ref,
+            occupied,
+            attachment_terminals,
+        )
+        if shared_wires is not None:
+            geometry.wires.extend(shared_wires)
+            continue
         for idx, attachment in enumerate(node.attachments, start=1):
             point = _resolve_terminal_ref(shape_by_ref, attachment)
             if point.x == node.point.x and point.y == node.point.y:
@@ -201,20 +219,24 @@ def _preferred_branch_point(node: GeometryNode, shape_by_ref: dict[str, PlacedSh
     if node.role in {"local_ground", "local_supply"}:
         return node.point
     boxes = [shape.body_box for shape in shape_by_ref.values()]
+    all_terminals = [_resolve_terminal(shape_by_ref, attachment) for attachment in node.attachments]
     active_terminals = [
         _resolve_terminal(shape_by_ref, attachment)
         for attachment in node.attachments
         if shape_by_ref[attachment.owner_ref].shape in {"opamp", "npn_bjt", "pmos", "nmos"}
     ]
+    attachment_points = [_resolve_terminal_ref(shape_by_ref, attachment) for attachment in node.attachments]
     if not active_terminals:
         return node.point
+    shared_point = _shared_node_preferred_point(node, all_terminals, boxes)
+    if shared_point is not None and all(not _point_in_box(shared_point, box) for box in boxes):
+        return shared_point
     if (
         node.role in {"sum_node", "feedback_join", "stage_output", "base_drive"}
         and all(not _point_in_box(node.point, box) for box in boxes)
         and all(_point_distance(node.point, terminal.point) >= 4.0 for terminal in active_terminals)
     ):
         return node.point
-    attachment_points = [_resolve_terminal_ref(shape_by_ref, attachment) for attachment in node.attachments]
     distinct_points = {(point.x, point.y) for point in attachment_points}
     if (
         node.role not in {"sum_node", "feedback_join", "stage_output", "base_drive"}
@@ -231,8 +253,55 @@ def _preferred_branch_point(node: GeometryNode, shape_by_ref: dict[str, PlacedSh
     return node.point
 
 
+def _shared_node_preferred_point(node: GeometryNode, terminals: list[PlacedTerminal], boxes: list[BoundingBox]) -> Point | None:
+    if node.role not in {"stage_output", "transistor_stack", "gate_bus"}:
+        return None
+    attachment_points = _shared_node_attachment_points(node, terminals, boxes)
+    pseudo_terminals = tuple(
+        PlacedTerminal(name=str(idx), point=point, side="")
+        for idx, point in enumerate(attachment_points, start=1)
+    )
+    axis = _shared_attachment_axis(list(pseudo_terminals))
+    if axis is None:
+        return None
+    orientation, axis_value = axis
+    off_axis_points = [
+        point
+        for point in attachment_points
+        if (point.x if orientation == "vertical" else point.y) != axis_value
+    ]
+    if orientation == "vertical":
+        if off_axis_points:
+            return Point(round(axis_value, 2), round(_average_coordinate(point.y for point in off_axis_points), 2))
+        return Point(round(axis_value, 2), round(_average_coordinate(point.y for point in attachment_points), 2))
+    if off_axis_points:
+        return Point(round(_average_coordinate(point.x for point in off_axis_points), 2), round(axis_value, 2))
+    return Point(round(_average_coordinate(point.x for point in attachment_points), 2), round(axis_value, 2))
+
+
+def _average_coordinate(values) -> float:
+    values = list(values)
+    return sum(values) / len(values) if values else 0.0
+
+
+def _shared_node_attachment_points(
+    node: GeometryNode,
+    terminals: list[PlacedTerminal],
+    boxes: list[BoundingBox],
+) -> list[Point]:
+    points: list[Point] = []
+    for terminal in terminals:
+        if node.role == "gate_bus" and terminal.preferred_branch_offset is not None:
+            branch_point = _branch_point_from_terminal(terminal, boxes)
+            if branch_point is not None:
+                points.append(branch_point)
+                continue
+        points.append(terminal.point)
+    return points
+
+
 def _should_route_via_node(node: GeometryNode, terminals: list[PlacedTerminal]) -> bool:
-    if node.role in {"sum_node", "feedback_join", "stage_output", "base_drive"}:
+    if node.role in {"sum_node", "feedback_join", "stage_output", "base_drive", "transistor_stack"}:
         return True
     if node.render_style == "junction" or len(terminals) >= 3:
         return True
@@ -243,11 +312,150 @@ def _should_route_via_node(node: GeometryNode, terminals: list[PlacedTerminal]) 
     return len(distinct_points) == 1
 
 
+def _compile_shared_node_wires(
+    geometry_name: str,
+    node: GeometryNode,
+    shape_by_ref: dict[str, PlacedShape],
+    occupied: list[tuple[str, BoundingBox]],
+    terminals: list[PlacedTerminal],
+) -> list[WirePath] | None:
+    if node.role not in {"stage_output", "transistor_stack", "gate_bus"}:
+        return None
+    occupied_boxes = [box for _, box in occupied]
+    resolved_points = _shared_node_attachment_points(node, terminals, occupied_boxes)
+    axis = _shared_attachment_axis(
+        [PlacedTerminal(name=terminal.name, point=point, side=terminal.side) for terminal, point in zip(terminals, resolved_points)]
+    )
+    if axis is None:
+        return None
+    orientation, axis_value = axis
+    points_by_attachment = {
+        attachment: (terminal.point, resolved_point)
+        for attachment, terminal, resolved_point in zip(node.attachments, terminals, resolved_points)
+    }
+    axis_points = [
+        _project_point_to_axis(point, orientation, axis_value)
+        for _terminal_point, point in points_by_attachment.values()
+    ]
+    node_axis_point = _project_point_to_axis(node.point, orientation, axis_value)
+    axis_points.append(node_axis_point)
+    spine = _build_axis_spine(axis_points, orientation)
+    wires: list[WirePath] = []
+    if len(spine) >= 2:
+        wires.append(WirePath(points=spine, uuid_seed=f"{geometry_name}:{node.id}:spine"))
+    if node_axis_point != node.point:
+        node_path = _best_path_between_points(node_axis_point, node.point, occupied_boxes)
+        wires.append(WirePath(points=node_path, uuid_seed=f"{geometry_name}:{node.id}:node"))
+    for idx, attachment in enumerate(node.attachments, start=1):
+        terminal_point, point = points_by_attachment[attachment]
+        branch_target = _project_point_to_axis(point, orientation, axis_value)
+        if terminal_point == branch_target:
+            continue
+        path_points = _route_attachment_to_point(shape_by_ref, occupied, attachment, branch_target)
+        wires.append(WirePath(points=path_points, uuid_seed=f"{geometry_name}:{node.id}:{attachment.owner_ref}:{idx}"))
+    deduped = [_dedupe_wire_path(wire) for wire in wires]
+    return [wire for wire in deduped if len(wire.points) >= 2]
+
+
 def _resolve_terminal_ref(shape_by_ref: dict[str, PlacedShape], terminal_ref: TerminalRef) -> Point:
     shape = shape_by_ref.get(terminal_ref.owner_ref)
     if shape is None:
         raise AssertionError(f"unknown shape '{terminal_ref.owner_ref}' in geometry node")
     return _terminal_point(shape, terminal_ref.terminal_name)
+
+
+def _shared_attachment_axis(terminals: list[PlacedTerminal]) -> tuple[str, float] | None:
+    if len(terminals) < 2:
+        return None
+    x_counts = Counter(terminal.point.x for terminal in terminals)
+    y_counts = Counter(terminal.point.y for terminal in terminals)
+    candidates: list[tuple[int, float, str]] = []
+    for x, count in x_counts.items():
+        if count >= 2:
+            candidates.append((count, _axis_span(terminals, "vertical", x), f"vertical:{x:.2f}"))
+    for y, count in y_counts.items():
+        if count >= 2:
+            candidates.append((count, _axis_span(terminals, "horizontal", y), f"horizontal:{y:.2f}"))
+    if not candidates:
+        return None
+    count, _span, encoded = max(candidates, key=lambda item: (item[0], item[1]))
+    orientation, value = encoded.split(":", 1)
+    return orientation, float(value)
+
+
+def _axis_span(terminals: list[PlacedTerminal], orientation: str, axis_value: float) -> float:
+    relevant = [
+        terminal.point.y if orientation == "vertical" else terminal.point.x
+        for terminal in terminals
+        if (terminal.point.x if orientation == "vertical" else terminal.point.y) == axis_value
+    ]
+    if len(relevant) < 2:
+        return 0.0
+    return max(relevant) - min(relevant)
+
+
+def _project_point_to_axis(point: Point, orientation: str, axis_value: float) -> Point:
+    if orientation == "vertical":
+        return Point(round(axis_value, 2), point.y)
+    return Point(point.x, round(axis_value, 2))
+
+
+def _build_axis_spine(points: list[Point], orientation: str) -> tuple[Point, ...]:
+    if orientation == "vertical":
+        x = points[0].x
+        ys = sorted({round(point.y, 2) for point in points})
+        return (Point(x, ys[0]), Point(x, ys[-1])) if len(ys) >= 2 else ()
+    y = points[0].y
+    xs = sorted({round(point.x, 2) for point in points})
+    return (Point(xs[0], y), Point(xs[-1], y)) if len(xs) >= 2 else ()
+
+
+def _route_attachment_to_point(
+    shape_by_ref: dict[str, PlacedShape],
+    occupied: list[tuple[str, BoundingBox]],
+    attachment: TerminalRef,
+    target: Point,
+) -> tuple[Point, ...]:
+    terminal = _resolve_terminal(shape_by_ref, attachment)
+    boxes = [box for _, box in occupied]
+    return _best_path(
+        terminal,
+        shape_by_ref[attachment.owner_ref].body_box,
+        target,
+        None,
+        boxes,
+    )
+
+
+def _best_path_between_points(start: Point, end: Point, boxes: list[BoundingBox]) -> tuple[Point, ...]:
+    if start == end:
+        return (start,)
+    candidates = [
+        (start, end),
+        (start, Point(end.x, start.y), end),
+        (start, Point(start.x, end.y), end),
+    ]
+    valid_paths = [
+        path
+        for path in (_normalize_path(candidate) for candidate in candidates)
+        if _point_path_is_clear(path, boxes)
+    ]
+    if not valid_paths:
+        return _normalize_path((start, end))
+    valid_paths.sort(key=lambda path: (_bend_count(path), _path_length(path)))
+    return valid_paths[0]
+
+
+def _point_path_is_clear(path: tuple[Point, ...], boxes: list[BoundingBox]) -> bool:
+    for start, end in zip(path, path[1:]):
+        for box in boxes:
+            if _segment_intersects_box(start, end, box):
+                return False
+    return True
+
+
+def _dedupe_wire_path(wire: WirePath) -> WirePath:
+    return WirePath(points=_normalize_path(wire.points), uuid_seed=wire.uuid_seed)
 
 
 def _choose_node_layout(
@@ -644,6 +852,92 @@ def _segment_intersects_box(start: Point, end: Point, box: BoundingBox) -> bool:
         seg_right = max(start.x, end.x)
         return not (seg_right <= box.left or seg_left >= box.right)
     return True
+
+
+def _assert_no_ambiguous_wire_overlaps(segments: list[tuple[Point, Point, str]]) -> None:
+    for idx, (start, end, seed) in enumerate(segments):
+        for other_start, other_end, other_seed in segments[idx + 1:]:
+            overlap = _overlapping_segment(start, end, other_start, other_end)
+            if overlap is None:
+                continue
+            raise AssertionError(
+                f"wire segments '{seed}' and '{other_seed}' overlap from "
+                f"{(overlap[0].x, overlap[0].y)} to {(overlap[1].x, overlap[1].y)}"
+            )
+
+
+def _assert_no_undeclared_wire_intersections(
+    segments: list[tuple[Point, Point, str]],
+    *,
+    node_points: set[tuple[float, float]],
+    junction_points: set[tuple[float, float]],
+) -> None:
+    declared_points = node_points | junction_points
+    for idx, (start, end, seed) in enumerate(segments):
+        for other_start, other_end, other_seed in segments[idx + 1:]:
+            intersection = _orthogonal_intersection(start, end, other_start, other_end)
+            if intersection is None:
+                continue
+            if intersection in declared_points:
+                continue
+            if intersection in {
+                (start.x, start.y),
+                (end.x, end.y),
+                (other_start.x, other_start.y),
+                (other_end.x, other_end.y),
+            }:
+                continue
+            raise AssertionError(
+                f"wire segments '{seed}' and '{other_seed}' intersect at {intersection} without a declared node"
+            )
+
+
+def _overlapping_segment(first_start: Point, first_end: Point, second_start: Point, second_end: Point) -> tuple[Point, Point] | None:
+    if first_start.x == first_end.x == second_start.x == second_end.x:
+        x = first_start.x
+        first_top, first_bottom = sorted((first_start.y, first_end.y))
+        second_top, second_bottom = sorted((second_start.y, second_end.y))
+        top = max(first_top, second_top)
+        bottom = min(first_bottom, second_bottom)
+        if bottom <= top:
+            return None
+        return Point(x, top), Point(x, bottom)
+    if first_start.y == first_end.y == second_start.y == second_end.y:
+        y = first_start.y
+        first_left, first_right = sorted((first_start.x, first_end.x))
+        second_left, second_right = sorted((second_start.x, second_end.x))
+        left = max(first_left, second_left)
+        right = min(first_right, second_right)
+        if right <= left:
+            return None
+        return Point(left, y), Point(right, y)
+    return None
+
+
+def _orthogonal_intersection(
+    first_start: Point,
+    first_end: Point,
+    second_start: Point,
+    second_end: Point,
+) -> tuple[float, float] | None:
+    if first_start.x == first_end.x and second_start.y == second_end.y:
+        x = first_start.x
+        y = second_start.y
+        if _value_in_range(x, second_start.x, second_end.x) and _value_in_range(y, first_start.y, first_end.y):
+            return round(x, 2), round(y, 2)
+        return None
+    if first_start.y == first_end.y and second_start.x == second_end.x:
+        x = second_start.x
+        y = first_start.y
+        if _value_in_range(x, first_start.x, first_end.x) and _value_in_range(y, second_start.y, second_end.y):
+            return round(x, 2), round(y, 2)
+        return None
+    return None
+
+
+def _value_in_range(value: float, first: float, second: float) -> bool:
+    low, high = sorted((first, second))
+    return low <= value <= high
 
 
 def _bend_count(path: tuple[Point, ...]) -> int:
