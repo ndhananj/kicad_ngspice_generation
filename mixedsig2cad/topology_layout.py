@@ -604,6 +604,10 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
             TopologyPlacement(ref=rf.ref, center=_point(162.38, 76.20), orientation="vertical"),
             TopologyPlacement(ref=plus_bias.ref, center=_point(162.38, 104.54), orientation="vertical"),
             TopologyPlacement(ref="#PWR0001", center=_point(162.38, 118.0), shape="ground", value="GND", orientation="down"),
+            TopologyPlacement(ref="#PWR0005", center=_point(80.0, 49.84), shape="power", value="VCC", orientation="up"),
+            TopologyPlacement(ref="#PWR0006", center=_point(167.46, 80.16), shape="power", value="VCC", orientation="up"),
+            TopologyPlacement(ref="#PWR0007", center=_point(80.0, 90.16), shape="power", value="VEE", orientation="up"),
+            TopologyPlacement(ref="#PWR0008", center=_point(167.46, 100.48), shape="power", value="VEE", orientation="up"),
         ]
     )
     sources = [comp for comp in intent.components if comp.kind == "V"]
@@ -671,8 +675,16 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
             TopologyConnection(
                 id="supply_plus",
                 point=_point(167.46, 82.38),
-                attachments=(TopologyAttachment(opamp.ref, "vplus"), TopologyAttachment(supply_plus_source.ref, "pos")),
-                role="labeled_supply",
+                attachments=(TopologyAttachment(opamp.ref, "vplus"), TopologyAttachment("#PWR0006", "bottom")),
+                role="local_supply",
+            )
+        )
+        layout.connections.append(
+            TopologyConnection(
+                id="supply_plus_source",
+                point=_point(80.0, 52.38),
+                attachments=(TopologyAttachment(supply_plus_source.ref, "pos"), TopologyAttachment("#PWR0005", "bottom")),
+                role="local_supply",
             )
         )
     if supply_minus_source is not None:
@@ -680,8 +692,16 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
             TopologyConnection(
                 id="supply_minus",
                 point=_point(167.46, 97.62),
-                attachments=(TopologyAttachment(opamp.ref, "vminus"), TopologyAttachment(supply_minus_source.ref, "pos")),
-                role="labeled_supply",
+                attachments=(TopologyAttachment(opamp.ref, "vminus"), TopologyAttachment("#PWR0008", "bottom")),
+                role="local_supply",
+            )
+        )
+        layout.connections.append(
+            TopologyConnection(
+                id="supply_minus_source",
+                point=_point(80.0, 92.70),
+                attachments=(TopologyAttachment(supply_minus_source.ref, "pos"), TopologyAttachment("#PWR0007", "bottom")),
+                role="local_supply",
             )
         )
     if plus_net == "0" or set(plus_bias.nodes) != {plus_net, "0"}:

@@ -1361,6 +1361,7 @@ def _translate_geometry(geometry: CompiledSchematic, dx: float, dy: float) -> Co
             position=move_point(text.position),
             owner_ref=text.owner_ref,
             uuid_seed=text.uuid_seed,
+            font_size=text.font_size,
         )
         for text in geometry.labels
     ]

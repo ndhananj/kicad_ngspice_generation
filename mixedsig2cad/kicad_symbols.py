@@ -22,6 +22,7 @@ PROJECT_LIB_SYMBOLS: tuple[tuple[str, str], ...] = (
     ("examples.kicad_sym", "OPAMP"),
     ("power.kicad_sym", "GND"),
     ("power.kicad_sym", "VCC"),
+    ("power.kicad_sym", "VEE"),
 )
 
 PROJECT_LIB_SOURCES = {symbol_name: src_file for src_file, symbol_name in PROJECT_LIB_SYMBOLS}

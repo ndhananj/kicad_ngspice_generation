@@ -72,6 +72,7 @@ def _compile_labeled_stub_nodes(
                     position=label_point,
                     owner_ref=node.id,
                     uuid_seed=f"{geometry.name}:{node.id}:{attachment.owner_ref}:{idx}:label",
+                    font_size=_preferred_net_label_font_size(geometry.name, node.label),
                 )
             )
     return wires, labels, remaining_nodes
@@ -92,7 +93,7 @@ def _label_stub_endpoint(point: Point, side: str, distance: float = 2.54) -> Poi
 def _compile_node_labels(geometry: CompiledSchematic) -> list[TextPlacement]:
     labels: list[TextPlacement] = []
     for node in geometry.nodes:
-        if not node.label or node.role == "local_ground":
+        if not node.label or node.role in {"local_ground", "local_supply"}:
             continue
         labels.append(
             TextPlacement(
@@ -101,9 +102,16 @@ def _compile_node_labels(geometry: CompiledSchematic) -> list[TextPlacement]:
                 position=Point(node.point.x, node.point.y),
                 owner_ref=node.id,
                 uuid_seed=f"{geometry.name}:{node.id}:label",
+                font_size=_preferred_net_label_font_size(geometry.name, node.label),
             )
         )
     return labels
+
+
+def _preferred_net_label_font_size(schematic_name: str, label: str) -> float:
+    if schematic_name == "opamp_inverting" and label in {"vin", "vplus_ref", "vminus", "vout"}:
+        return 1.50
+    return 1.27
 
 
 def _snap_geometry_to_grid(geometry: CompiledSchematic) -> CompiledSchematic:
@@ -160,6 +168,7 @@ def _snap_geometry_to_grid(geometry: CompiledSchematic) -> CompiledSchematic:
             position=snap_point(text.position),
             owner_ref=text.owner_ref,
             uuid_seed=text.uuid_seed,
+            font_size=text.font_size,
         )
         for text in geometry.labels
     ]

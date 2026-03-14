@@ -236,7 +236,9 @@ def kicad_pin_map(shape: str, orientation: str) -> dict[str, str]:
 
 
 def inverse_kicad_symbol_map() -> dict[tuple[str, int], tuple[str, str]]:
-    return {value: key for key, value in KICAD_SYMBOLS.items()}
+    inverse = {value: key for key, value in KICAD_SYMBOLS.items()}
+    inverse[("VEE", 0)] = ("power", "up")
+    return inverse
 
 
 def _rotate_offset(x: float, y: float, angle: int) -> tuple[float, float]:

@@ -27,19 +27,19 @@ def _wire(x1: float, y1: float, x2: float, y2: float, seed: str) -> list[str]:
     ]
 
 
-def _text(text: str, x: float, y: float, seed: str) -> list[str]:
+def _text(text: str, x: float, y: float, seed: str, *, font_size: float = 1.27) -> list[str]:
     return [
         f'  (text "{text}" (at {x:.2f} {y:.2f} 0)',
-        "    (effects (font (size 1.27 1.27)))",
+        f"    (effects (font (size {font_size:.2f} {font_size:.2f})))",
         f"    (uuid {deterministic_uuid(seed)})",
         "  )",
     ]
 
 
-def _label(text: str, x: float, y: float, seed: str) -> list[str]:
+def _label(text: str, x: float, y: float, seed: str, *, font_size: float = 1.27) -> list[str]:
     return [
         f'  (label "{text}" (at {x:.2f} {y:.2f} 0)',
-        "    (effects (font (size 1.27 1.27)))",
+        f"    (effects (font (size {font_size:.2f} {font_size:.2f})))",
         f"    (uuid {deterministic_uuid(seed)})",
         "  )",
     ]
@@ -113,9 +113,9 @@ def render_kicad_schematic(projection: KiCadProjection) -> str:
         if text.role in {"reference", "value"}:
             continue
         if text.role == "net_label":
-            lines.extend(_label(text.text, text.x, text.y, text.uuid_seed))
+            lines.extend(_label(text.text, text.x, text.y, text.uuid_seed, font_size=text.font_size))
         else:
-            lines.extend(_text(text.text, text.x, text.y, text.uuid_seed))
+            lines.extend(_text(text.text, text.x, text.y, text.uuid_seed, font_size=text.font_size))
 
     for wire in projection.wires:
         lines.extend(_wire(wire.x1, wire.y1, wire.x2, wire.y2, wire.uuid_seed))

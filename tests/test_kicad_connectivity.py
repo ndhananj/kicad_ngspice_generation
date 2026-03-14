@@ -34,8 +34,8 @@ class KiCadConnectivityTests(unittest.TestCase):
         mutated = self._mutate(
             source,
             lambda text: re.sub(
-                r'  \(label "vout" \(at 177\.80 69\.85 0\)\n'
-                r'    \(effects \(font \(size 1\.27 1\.27\)\)\)\n'
+                r'  \(label "vout" \(at [-0-9.]+ 69\.85 0\)\n'
+                r'    \(effects \(font \(size [-0-9.]+ [-0-9.]+\)\)\)\n'
                 r'    \(uuid [^)]+\)\n'
                 r'  \)\n',
                 '',
@@ -98,18 +98,28 @@ class KiCadConnectivityTests(unittest.TestCase):
         self.assertRegex(netlist, r'\(node \(ref "R3"\) \(pin "1"\).*')
         self.assertIn('(name "GND")', netlist)
         self.assertRegex(netlist, r'\(node \(ref "R3"\) \(pin "2"\).*')
-        self.assertIn('(name "/vcc")', netlist)
+        self.assertIn('(name "VCC")', netlist)
         self.assertRegex(netlist, r'\(node \(ref "XU1"\) \(pin "4"\).*')
-        self.assertIn('(name "/vee")', netlist)
+        self.assertIn('(name "VEE")', netlist)
         self.assertRegex(netlist, r'\(node \(ref "XU1"\) \(pin "5"\).*')
 
-    def test_generated_opamp_inverting_uses_supply_labels_instead_of_long_rail_wires(self) -> None:
+    def test_generated_opamp_inverting_uses_power_symbols_instead_of_supply_labels(self) -> None:
         source = GENERATED / "opamp_inverting.kicad_sch"
         text = source.read_text(encoding="utf-8")
-        self.assertEqual(text.count('(label "vcc"'), 2)
-        self.assertEqual(text.count('(label "vee"'), 2)
+        self.assertEqual(text.count('(symbol (lib_id "VCC")'), 2)
+        self.assertEqual(text.count('(symbol (lib_id "VEE")'), 2)
+        self.assertNotIn('(label "vcc"', text)
+        self.assertNotIn('(label "vee"', text)
         self.assertNotIn('(wire (pts (xy 167.64 78.74)', text)
         self.assertNotIn('(wire (pts (xy 167.64 110.49)', text)
+
+    def test_generated_opamp_inverting_uses_larger_readable_signal_labels(self) -> None:
+        source = GENERATED / "opamp_inverting.kicad_sch"
+        text = source.read_text(encoding="utf-8")
+        self.assertIn('(label "vin" (at 123.19 82.55 0)\n    (effects (font (size 1.50 1.50)))', text)
+        self.assertIn('(label "vplus_ref" (at 162.56 97.79 0)\n    (effects (font (size 1.50 1.50)))', text)
+        self.assertIn('(label "vminus" (at 162.56 82.55 0)\n    (effects (font (size 1.50 1.50)))', text)
+        self.assertIn('(label "vout" (at 177.80 69.85 0)\n    (effects (font (size 1.50 1.50)))', text)
 
     def test_generated_opamp_inverting_uses_compact_feedback_loop(self) -> None:
         source = GENERATED / "opamp_inverting.kicad_sch"

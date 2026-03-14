@@ -37,6 +37,7 @@ class KiCadTextPlacement:
     x: float
     y: float
     uuid_seed: str
+    font_size: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,8 +67,11 @@ def project_geometry_to_kicad(geometry: CompiledSchematic) -> KiCadProjection:
     projection = KiCadProjection(name=geometry.name)
     for shape in geometry.shapes:
         lib_id, angle = kicad_symbol(shape.shape, shape.orientation)
-        if shape.shape == "power" and shape.value.upper() in {"VCC", "VDD"}:
-            lib_id = "VCC"
+        if shape.shape == "power":
+            if shape.value.upper() in {"VCC", "VDD"}:
+                lib_id = "VCC"
+            elif shape.value.upper() == "VEE":
+                lib_id = "VEE"
         projection.symbols.append(
             KiCadSymbolPlacement(
                 uuid=deterministic_uuid(f"sym:{geometry.name}:{shape.ref}"),
@@ -165,6 +169,7 @@ def _project_text(text: TextPlacement) -> KiCadTextPlacement:
         x=text.position.x,
         y=text.position.y,
         uuid_seed=text.uuid_seed,
+        font_size=text.font_size,
     )
 
 

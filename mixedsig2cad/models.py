@@ -105,6 +105,7 @@ class TextPlacement:
     position: Point
     owner_ref: str
     uuid_seed: str
+    font_size: float = 1.27
 
 
 @dataclass(frozen=True, slots=True)
