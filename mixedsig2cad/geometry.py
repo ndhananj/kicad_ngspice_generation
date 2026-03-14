@@ -658,15 +658,15 @@ def _place_ground(ref: str, center: Point) -> PlacedShape:
     )
 
 
-def _place_power(ref: str, value: str, center: Point) -> PlacedShape:
+def _place_power(ref: str, value: str, center: Point, orientation: str = "up") -> PlacedShape:
     return PlacedShape(
         ref=ref,
         value=value,
         shape="power",
-        orientation="up",
+        orientation=orientation,
         center=center,
-        terminals=_make_terminals("power", "up", center),
-        body_box=_body_box("power", "up", center),
+        terminals=_make_terminals("power", orientation, center),
+        body_box=_body_box("power", orientation, center),
         hidden_reference=True,
     )
 
@@ -1409,7 +1409,10 @@ def _place_support_symbol_for_terminal(
     *,
     preferred: str,
 ) -> Point:
-    prototype = body_box(symbol_kind, "down" if symbol_kind == "ground" else "up")
+    prototype_orientation = "down" if preferred == "down" else "up"
+    if symbol_kind == "ground":
+        prototype_orientation = "down"
+    prototype = body_box(symbol_kind, prototype_orientation)
     primary_offset = 12.0 if preferred == "down" else -12.0
     lateral_step = 12.0
     if terminal.side in {"left", "right"}:

@@ -43,7 +43,12 @@ def _place_topology_item(by_ref: dict[str, IntentComponent], placement: Topology
     if placement.shape == "ground":
         return _place_ground(placement.ref, Point(placement.center.x, placement.center.y))
     if placement.shape == "power":
-        return _place_power(placement.ref, placement.value or "VCC", Point(placement.center.x, placement.center.y))
+        return _place_power(
+            placement.ref,
+            placement.value or "VCC",
+            Point(placement.center.x, placement.center.y),
+            placement.orientation or "up",
+        )
     raise AssertionError(f"unknown topology placement '{placement.ref}'")
 
 

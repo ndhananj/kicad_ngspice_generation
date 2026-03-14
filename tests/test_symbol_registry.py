@@ -34,6 +34,8 @@ def test_component_symbol_rules_drive_terminal_metadata() -> None:
     assert terminal_offset_for_component("Q", "right", "substrate") == (-2.54, 8.89)
     assert terminal_offset_for_component("X", "right", "plus") == (-7.62, 2.54)
     assert body_box("opamp", "right") == (-5.08, -5.08, 5.08, 5.08)
+    assert body_box("power", "up") == (-0.76, -2.54, 0.76, 0.0)
+    assert body_box("power", "down") == (-0.76, 0.0, 0.76, 2.54)
 
 
 def test_terminal_offsets_match_embedded_kicad_pins_for_every_symbol_variant() -> None:

@@ -67,11 +67,6 @@ def project_geometry_to_kicad(geometry: CompiledSchematic) -> KiCadProjection:
     projection = KiCadProjection(name=geometry.name)
     for shape in geometry.shapes:
         lib_id, angle = kicad_symbol(shape.shape, shape.orientation)
-        if shape.shape == "power":
-            if shape.value.upper() in {"VCC", "VDD"}:
-                lib_id = "VCC"
-            elif shape.value.upper() == "VEE":
-                lib_id = "VEE"
         projection.symbols.append(
             KiCadSymbolPlacement(
                 uuid=deterministic_uuid(f"sym:{geometry.name}:{shape.ref}"),

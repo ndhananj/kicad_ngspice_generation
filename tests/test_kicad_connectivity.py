@@ -106,12 +106,16 @@ class KiCadConnectivityTests(unittest.TestCase):
     def test_generated_opamp_inverting_uses_power_symbols_instead_of_supply_labels(self) -> None:
         source = GENERATED / "opamp_inverting.kicad_sch"
         text = source.read_text(encoding="utf-8")
-        self.assertEqual(text.count('(symbol (lib_id "VCC")'), 2)
-        self.assertEqual(text.count('(symbol (lib_id "VEE")'), 2)
+        self.assertEqual(text.count('(symbol (lib_id "VCC")'), 4)
+        self.assertEqual(text.count('(symbol (lib_id "VEE")'), 0)
         self.assertNotIn('(label "vcc"', text)
         self.assertNotIn('(label "vee"', text)
         self.assertNotIn('(wire (pts (xy 167.64 78.74)', text)
         self.assertNotIn('(wire (pts (xy 167.64 110.49)', text)
+        self.assertIn('(symbol (lib_id "VCC") (at 80.01 90.17 0)', text)
+        self.assertIn('(property "Value" "VEE" (at 80.01 93.98 0)', text)
+        self.assertIn('(symbol (lib_id "VCC") (at 167.64 100.33 180)', text)
+        self.assertIn('(property "Value" "VEE" (at 167.64 104.14 0)', text)
 
     def test_generated_opamp_inverting_uses_larger_readable_signal_labels(self) -> None:
         source = GENERATED / "opamp_inverting.kicad_sch"

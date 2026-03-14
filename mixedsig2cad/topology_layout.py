@@ -607,7 +607,7 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
             TopologyPlacement(ref="#PWR0005", center=_point(80.0, 49.84), shape="power", value="VCC", orientation="up"),
             TopologyPlacement(ref="#PWR0006", center=_point(167.46, 80.16), shape="power", value="VCC", orientation="up"),
             TopologyPlacement(ref="#PWR0007", center=_point(80.0, 90.16), shape="power", value="VEE", orientation="up"),
-            TopologyPlacement(ref="#PWR0008", center=_point(167.46, 100.48), shape="power", value="VEE", orientation="up"),
+            TopologyPlacement(ref="#PWR0008", center=_point(167.46, 100.48), shape="power", value="VEE", orientation="down"),
         ]
     )
     sources = [comp for comp in intent.components if comp.kind == "V"]
@@ -692,7 +692,7 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
             TopologyConnection(
                 id="supply_minus",
                 point=_point(167.46, 97.62),
-                attachments=(TopologyAttachment(opamp.ref, "vminus"), TopologyAttachment("#PWR0008", "bottom")),
+                attachments=(TopologyAttachment(opamp.ref, "vminus"), TopologyAttachment("#PWR0008", "top")),
                 role="local_supply",
             )
         )

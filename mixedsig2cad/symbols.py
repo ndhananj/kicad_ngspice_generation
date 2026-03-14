@@ -58,6 +58,9 @@ SYMBOL_TERMINAL_METADATA: dict[tuple[str, str], tuple[SymbolTerminalDef, ...]] =
     ("power", "up"): (
         SymbolTerminalDef("bottom", "bottom", "local_supply_rise"),
     ),
+    ("power", "down"): (
+        SymbolTerminalDef("top", "top", "local_supply_rise"),
+    ),
     ("opamp", "right"): (
         SymbolTerminalDef("plus", "left", "branch_to_junction", (-6.0, 0.0)),
         SymbolTerminalDef("minus", "left", "feedback_loop", (-6.0, 0.0)),
@@ -123,6 +126,7 @@ KICAD_SYMBOLS: dict[tuple[str, str], tuple[str, int]] = {
     ("diode", "vertical"): ("DIODE", 90),
     ("ground", "down"): ("GND", 0),
     ("power", "up"): ("VCC", 0),
+    ("power", "down"): ("VCC", 180),
     ("opamp", "right"): ("OPAMP", 0),
     ("npn_bjt", "right"): ("QNPN", 0),
     ("pmos", "right"): ("MPMOS", 0),
@@ -141,6 +145,7 @@ KICAD_PIN_MAPS: dict[tuple[str, str], dict[str, str]] = {
     ("diode", "vertical"): {"top": "2", "bottom": "1"},
     ("ground", "down"): {"top": "1"},
     ("power", "up"): {"bottom": "1"},
+    ("power", "down"): {"top": "1"},
     ("opamp", "right"): {"plus": "1", "minus": "2", "out": "3", "vplus": "4", "vminus": "5"},
     ("npn_bjt", "right"): {"collector": "1", "base": "2", "emitter": "3", "substrate": "4"},
     ("pmos", "right"): {"drain": "1", "gate": "2", "source": "3", "body": "4"},
@@ -238,6 +243,7 @@ def kicad_pin_map(shape: str, orientation: str) -> dict[str, str]:
 def inverse_kicad_symbol_map() -> dict[tuple[str, int], tuple[str, str]]:
     inverse = {value: key for key, value in KICAD_SYMBOLS.items()}
     inverse[("VEE", 0)] = ("power", "up")
+    inverse[("VEE", 180)] = ("power", "down")
     return inverse
 
 
