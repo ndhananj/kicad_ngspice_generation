@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from mixedsig2cad.geometry import validate_schematic_geometry
-from mixedsig2cad.models import CompiledSchematic, Point, WirePath
+from mixedsig2cad.geometry import _path_is_clear, _simplify_path, validate_schematic_geometry
+from mixedsig2cad.models import BoundingBox, CompiledSchematic, PinExitCorridor, Point, WirePath
 
 
 def test_overlapping_wire_segments_are_rejected() -> None:
@@ -29,4 +29,46 @@ def test_undeclared_wire_intersections_are_rejected() -> None:
     )
 
     with pytest.raises(AssertionError, match="intersect"):
+        validate_schematic_geometry(geometry)
+
+
+def test_exit_corridor_remains_legal_after_path_simplification() -> None:
+    start_box = BoundingBox(161.83, 151.94, 165.83, 155.94)
+    node_box = BoundingBox(157.02, 133.16, 165.52, 141.16)
+    raw_path = (
+        Point(163.83, 154.94),
+        Point(163.83, 146.86),
+        Point(163.83, 142.24),
+    )
+    corridor = PinExitCorridor(
+        owner_ref="#PWR0003",
+        terminal_name="top",
+        start=Point(163.83, 154.94),
+        end=Point(163.83, 146.86),
+    )
+    assert _path_is_clear(raw_path, [start_box, node_box], corridor, None, start_box=start_box, end_box=None)
+
+    simplified = _simplify_path(raw_path)
+    assert simplified == (Point(163.83, 154.94), Point(163.83, 142.24))
+    assert _path_is_clear(simplified, [start_box, node_box], corridor, None, start_box=start_box, end_box=None)
+
+
+def test_local_support_wire_with_extra_bends_is_rejected() -> None:
+    geometry = CompiledSchematic(
+        name="support_kink",
+        wires=[
+            WirePath(
+                points=(
+                    Point(163.83, 154.94),
+                    Point(163.83, 147.32),
+                    Point(171.45, 147.32),
+                    Point(171.45, 142.24),
+                    Point(163.83, 142.24),
+                ),
+                uuid_seed="support_kink:#PWR0003:ground:#PWR0003:3",
+            )
+        ],
+    )
+
+    with pytest.raises(AssertionError, match="unnecessary bends"):
         validate_schematic_geometry(geometry)

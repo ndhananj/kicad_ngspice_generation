@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from examples.specs.catalog import cmos_inverter
 from mixedsig2cad.compiled import compile_schematic
+from mixedsig2cad.exporters.kicad import export_kicad_schematic
+from mixedsig2cad.geometry import validate_schematic_geometry
 from mixedsig2cad.intent import build_schematic_intent
 from mixedsig2cad.spec import CircuitSpec
 from mixedsig2cad.topology_layout import build_topology_layout
@@ -42,6 +44,7 @@ def test_cmos_inverter_uses_static_cmos_topology() -> None:
     assert output_terms["MN1"] == "drain"
 
     compiled = compile_schematic(intent)
+    validate_schematic_geometry(compiled)
     shapes = {shape.ref: shape for shape in compiled.shapes}
     assert shapes["MP1"].center.y < shapes["MN1"].center.y
     output_node = next(node for node in compiled.nodes if node.id == "net:vout")
@@ -56,6 +59,17 @@ def test_cmos_inverter_uses_static_cmos_topology() -> None:
         if terminal.owner_ref in {"MP1", "MN1"}
     }
     assert output_attachment_terms == {"MP1": "drain", "MN1": "drain"}
+
+    ground_wires = {
+        wire.uuid_seed: [(point.x, point.y) for point in wire.points]
+        for wire in compiled.wires
+        if wire.uuid_seed.startswith("cmos_inverter:#PWR0003:ground")
+    }
+    assert ground_wires["cmos_inverter:#PWR0003:ground:#PWR0003:3"] == [(163.83, 154.94), (163.83, 142.24)]
+
+    schematic = export_kicad_schematic(cmos_inverter())
+    assert "(wire (pts (xy 163.83 154.94) (xy 163.83 142.24))" in schematic
+    assert "(wire (pts (xy 171.45 147.32) (xy 171.45 142.24))" not in schematic
 
 
 def test_static_cmos_layout_handles_multi_transistor_nand() -> None:
@@ -92,4 +106,4 @@ def test_static_cmos_layout_handles_multi_transistor_nand() -> None:
     assert stack_node.point.x == 152.40
     stack_wires = [wire for wire in compiled.wires if wire.uuid_seed.startswith("cmos_nand:net:nmid")]
     assert len(stack_wires) == 1
-    assert [(point.x, point.y) for point in stack_wires[0].points] == [(152.40, 130.52), (152.40, 138.14)]
+    assert [(point.x, point.y) for point in stack_wires[0].points] == [(152.40, 130.81), (152.40, 138.43)]

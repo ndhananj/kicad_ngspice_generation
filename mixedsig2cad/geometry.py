@@ -218,6 +218,8 @@ def _preferred_branch_point(node: GeometryNode, shape_by_ref: dict[str, PlacedSh
         return node.point
     if node.role in {"local_ground", "local_supply"}:
         return node.point
+    if node.role == "gate_bus":
+        return node.point
     boxes = [shape.body_box for shape in shape_by_ref.values()]
     all_terminals = [_resolve_terminal(shape_by_ref, attachment) for attachment in node.attachments]
     active_terminals = [
@@ -254,7 +256,7 @@ def _preferred_branch_point(node: GeometryNode, shape_by_ref: dict[str, PlacedSh
 
 
 def _shared_node_preferred_point(node: GeometryNode, terminals: list[PlacedTerminal], boxes: list[BoundingBox]) -> Point | None:
-    if node.role not in {"stage_output", "transistor_stack", "gate_bus"}:
+    if node.role not in {"stage_output", "transistor_stack"}:
         return None
     attachment_points = _shared_node_attachment_points(node, terminals, boxes)
     pseudo_terminals = tuple(
@@ -319,7 +321,7 @@ def _compile_shared_node_wires(
     occupied: list[tuple[str, BoundingBox]],
     terminals: list[PlacedTerminal],
 ) -> list[WirePath] | None:
-    if node.role not in {"stage_output", "transistor_stack", "gate_bus"}:
+    if node.role not in {"stage_output", "transistor_stack"}:
         return None
     occupied_boxes = [box for _, box in occupied]
     resolved_points = _shared_node_attachment_points(node, terminals, occupied_boxes)
@@ -436,12 +438,12 @@ def _best_path_between_points(start: Point, end: Point, boxes: list[BoundingBox]
         (start, Point(start.x, end.y), end),
     ]
     valid_paths = [
-        path
-        for path in (_normalize_path(candidate) for candidate in candidates)
+        _simplify_path(path)
+        for path in (_sanitize_raw_path(candidate) for candidate in candidates)
         if _point_path_is_clear(path, boxes)
     ]
     if not valid_paths:
-        return _normalize_path((start, end))
+        return _simplify_path((start, end))
     valid_paths.sort(key=lambda path: (_bend_count(path), _path_length(path)))
     return valid_paths[0]
 
@@ -455,7 +457,7 @@ def _point_path_is_clear(path: tuple[Point, ...], boxes: list[BoundingBox]) -> b
 
 
 def _dedupe_wire_path(wire: WirePath) -> WirePath:
-    return WirePath(points=_normalize_path(wire.points), uuid_seed=wire.uuid_seed)
+    return WirePath(points=_simplify_path(wire.points), uuid_seed=wire.uuid_seed)
 
 
 def _choose_node_layout(
@@ -715,11 +717,11 @@ def _route_local_support_connection(
     end_box: BoundingBox,
 ) -> tuple[Point, ...]:
     if (start.point.x == end.point.x or start.point.y == end.point.y) and not _segment_intersects_box(start.point, end.point, end_box):
-        return _normalize_path((start.point, end.point))
+        return _simplify_path((start.point, end.point))
     start_exit = _terminal_exit_point(start.point, start.side, start_box)
     end_exit = _terminal_exit_point(end.point, end.side, end_box)
     if start_exit.x == end_exit.x or start_exit.y == end_exit.y:
-        return _normalize_path((start.point, start_exit, end_exit, end.point))
+        return _simplify_path((start.point, start_exit, end_exit, end.point))
     if start.side in {"top", "bottom"} and end.side in {"top", "bottom"}:
         elbow = Point(start_exit.x, end_exit.y)
     elif start.side in {"left", "right"} and end.side in {"left", "right"}:
@@ -728,7 +730,7 @@ def _route_local_support_connection(
         elbow = Point(start_exit.x, end_exit.y)
     else:
         elbow = Point(end_exit.x, start_exit.y)
-    return _normalize_path((start.point, start_exit, elbow, end_exit, end.point))
+    return _simplify_path((start.point, start_exit, elbow, end_exit, end.point))
 
 
 def _best_path(
@@ -770,12 +772,19 @@ def _best_path(
         candidates.append((start.point, start_exit, Point(start_exit.x, y), Point(end_exit.x, y), end_exit, end_point))
 
     valid_paths = [
-        path
-        for path in (_normalize_path(candidate) for candidate in candidates)
-        if _path_is_clear(path, boxes, start_corridor, end_corridor)
+        _simplify_path(path)
+        for path in (_sanitize_raw_path(candidate) for candidate in candidates)
+        if _path_is_clear(
+            path,
+            boxes,
+            start_corridor,
+            end_corridor,
+            start_box=start_box,
+            end_box=end_box,
+        )
     ]
     if not valid_paths:
-        return _normalize_path((start.point, start_exit, end_exit, end_point))
+        return _simplify_path((start.point, start_exit, end_exit, end_point))
     valid_paths.sort(key=lambda path: (_bend_count(path), _path_length(path)))
     return valid_paths[0]
 
@@ -792,12 +801,17 @@ def _terminal_exit_point(point: Point, side: str, box: BoundingBox | None) -> Po
     return Point(point.x, round(box.bottom + ROUTING_CLEARANCE, 2))
 
 
-def _normalize_path(path: tuple[Point, ...]) -> tuple[Point, ...]:
+def _sanitize_raw_path(path: tuple[Point, ...]) -> tuple[Point, ...]:
     normalized: list[Point] = []
     for point in path:
         if normalized and normalized[-1].x == point.x and normalized[-1].y == point.y:
             continue
         normalized.append(point)
+    return tuple(normalized)
+
+
+def _simplify_path(path: tuple[Point, ...]) -> tuple[Point, ...]:
+    normalized = list(_sanitize_raw_path(path))
     compressed: list[Point] = []
     for point in normalized:
         if len(compressed) >= 2:
@@ -815,25 +829,43 @@ def _path_is_clear(
     boxes: list[BoundingBox],
     start_corridor: PinExitCorridor,
     end_corridor: PinExitCorridor | None,
+    *,
+    start_box: BoundingBox,
+    end_box: BoundingBox | None,
 ) -> bool:
-    corridor_segments = {
-        ((start_corridor.start.x, start_corridor.start.y), (start_corridor.end.x, start_corridor.end.y)),
-        ((start_corridor.end.x, start_corridor.end.y), (start_corridor.start.x, start_corridor.start.y)),
-    }
-    if end_corridor is not None:
-        corridor_segments.update(
-            {
-                ((end_corridor.start.x, end_corridor.start.y), (end_corridor.end.x, end_corridor.end.y)),
-                ((end_corridor.end.x, end_corridor.end.y), (end_corridor.start.x, end_corridor.start.y)),
-            }
-        )
     for start, end in zip(path, path[1:]):
-        if ((start.x, start.y), (end.x, end.y)) in corridor_segments:
-            continue
         for box in boxes:
+            if box == start_box and _segment_uses_exit_corridor(start, end, start_corridor):
+                continue
+            if end_corridor is not None and end_box is not None and box == end_box and _segment_uses_exit_corridor(start, end, end_corridor):
+                continue
             if _segment_intersects_box(start, end, box):
                 return False
     return True
+
+
+def _segment_uses_exit_corridor(start: Point, end: Point, corridor: PinExitCorridor) -> bool:
+    if corridor.start.x == corridor.end.x:
+        if start.x != end.x or start.x != corridor.start.x:
+            return False
+        seg_top, seg_bottom = sorted((start.y, end.y))
+        corridor_top, corridor_bottom = sorted((corridor.start.y, corridor.end.y))
+        if seg_top > corridor_top or seg_bottom < corridor_bottom:
+            return False
+        start_dist = abs(start.y - corridor.start.y)
+        end_dist = abs(end.y - corridor.start.y)
+        return start_dist == 0 or end_dist == 0
+    if corridor.start.y == corridor.end.y:
+        if start.y != end.y or start.y != corridor.start.y:
+            return False
+        seg_left, seg_right = sorted((start.x, end.x))
+        corridor_left, corridor_right = sorted((corridor.start.x, corridor.end.x))
+        if seg_left > corridor_left or seg_right < corridor_right:
+            return False
+        start_dist = abs(start.x - corridor.start.x)
+        end_dist = abs(end.x - corridor.start.x)
+        return start_dist == 0 or end_dist == 0
+    return False
 
 
 def _segment_intersects_box(start: Point, end: Point, box: BoundingBox) -> bool:

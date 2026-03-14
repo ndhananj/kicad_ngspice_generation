@@ -564,7 +564,7 @@ def _build_static_cmos_layout(intent: SchematicIntent) -> TopologyLayout | None:
     ]
     if ground_attachments:
         ground_points = [_attachment_point(components_by_ref, placement_by_ref, item) for item in ground_attachments]
-        ground_node_point = _point(_average_x(point.x for point in ground_points), _average_y(point.y for point in ground_points))
+        ground_node_point = _point(_average_x(point.x for point in ground_points), max(point.y for point in ground_points))
         gnd_ref = f"#PWR{next_power_idx:04d}"
         ground_center = _point(ground_node_point.x, max(point.y for point in ground_points) + 12.70)
         layout.placements.append(TopologyPlacement(ref=gnd_ref, center=ground_center, shape="ground", value="GND", orientation="down"))

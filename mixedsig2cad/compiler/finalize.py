@@ -35,7 +35,9 @@ def finalize_compiled_schematic(geometry: CompiledSchematic) -> CompiledSchemati
     geometry.trunks = []
     _compile_nodes_to_wires(geometry)
     geometry = _snap_geometry_to_grid(geometry)
-    return pack_schematic_geometry(geometry)
+    geometry = pack_schematic_geometry(geometry)
+    geometry = _snap_geometry_to_grid(geometry)
+    return geometry
 
 
 def _compile_node_labels(geometry: CompiledSchematic) -> list[TextPlacement]:
