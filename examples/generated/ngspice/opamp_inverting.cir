@@ -4,7 +4,8 @@ VEE vee 0 DC -12
 VIN vin 0 SIN(0 0.5 500)
 RIN vin vminus 10k
 RF vout vminus 100k
-XU1 0 vminus vout vcc vee OPAMP
+R3 vplus_ref 0 10k
+XU1 vplus_ref vminus vout vcc vee OPAMP
 
 .subckt OPAMP 1 2 6 4 5
 EGAIN 6 0 1 2 1e5

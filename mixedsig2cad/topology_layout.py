@@ -591,17 +591,19 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
     resistors = [comp for comp in intent.components if comp.kind == "R" and len(comp.nodes) == 2]
     rin = next((comp for comp in resistors if minus_net in comp.nodes and any(intent.nets[node].role == "signal_in" for node in comp.nodes)), None)
     rf = next((comp for comp in resistors if minus_net in comp.nodes and out_net in comp.nodes), None)
+    plus_bias = next((comp for comp in resistors if plus_net in comp.nodes and "0" in comp.nodes), None)
     vin = next((comp for comp in intent.components if comp.kind == "V" and comp.nodes[0] in {net for net in opamp.nodes} | {node for comp in resistors for node in comp.nodes}), None)
-    if rin is None or rf is None:
+    if rin is None or rf is None or plus_bias is None:
         return None
 
     layout = TopologyLayout(name=intent.name)
     layout.placements.extend(
         [
             TopologyPlacement(ref=opamp.ref, center=_point(170.0, 90.0), orientation="right"),
-            TopologyPlacement(ref=rin.ref, center=_point(130.03, 87.46), orientation="horizontal"),
+            TopologyPlacement(ref=rin.ref, center=_point(130.03, 82.38), orientation="horizontal"),
             TopologyPlacement(ref=rf.ref, center=_point(170.0, 68.0), orientation="horizontal"),
-            TopologyPlacement(ref="#PWR0001", center=_point(162.38, 104.54), shape="ground", value="GND", orientation="down"),
+            TopologyPlacement(ref=plus_bias.ref, center=_point(162.38, 104.54), orientation="vertical"),
+            TopologyPlacement(ref="#PWR0001", center=_point(162.38, 118.0), shape="ground", value="GND", orientation="down"),
         ]
     )
     sources = [comp for comp in intent.components if comp.kind == "V"]
@@ -626,7 +628,7 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
         layout.connections.append(
             TopologyConnection(
                 id="vin_node",
-                point=_point(123.68, 87.46),
+                point=_point(123.68, 82.38),
                 attachments=(TopologyAttachment(vin_source.ref, "pos"), TopologyAttachment(rin.ref, "left")),
                 role="series_inline",
             )
@@ -634,14 +636,20 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
     layout.connections.extend(
         [
             TopologyConnection(
+                id="plus_reference",
+                point=_point(162.38, 97.62),
+                attachments=(TopologyAttachment(opamp.ref, "plus"), TopologyAttachment(plus_bias.ref, "top")),
+                role="branch_to_junction",
+            ),
+            TopologyConnection(
                 id="plus_ground",
-                point=_point(162.38, 104.54),
-                attachments=(TopologyAttachment(opamp.ref, "plus"), TopologyAttachment("#PWR0001", "top")),
+                point=_point(162.38, 111.14),
+                attachments=(TopologyAttachment(plus_bias.ref, "bottom"), TopologyAttachment("#PWR0001", "top")),
                 role="local_ground",
             ),
             TopologyConnection(
                 id="minus_sum",
-                point=_point(162.38, 92.54),
+                point=_point(162.38, 87.46),
                 attachments=(
                     TopologyAttachment(rin.ref, "right"),
                     TopologyAttachment(opamp.ref, "minus"),
@@ -676,7 +684,7 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
                 role="local_supply",
             )
         )
-    if plus_net != "0":
+    if plus_net == "0" or set(plus_bias.nodes) != {plus_net, "0"}:
         return None
     return layout
 

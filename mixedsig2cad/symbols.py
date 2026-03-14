@@ -56,11 +56,11 @@ SYMBOL_TERMINALS: dict[tuple[str, str], tuple[SymbolTerminalDef, ...]] = {
         SymbolTerminalDef("bottom", (0.0, 0.0), "bottom", "local_supply_rise"),
     ),
     ("opamp", "right"): (
-        SymbolTerminalDef("plus", (-7.62, -2.54), "left", "branch_to_junction", (-6.0, 0.0)),
-        SymbolTerminalDef("minus", (-7.62, 2.54), "left", "feedback_loop", (-6.0, 0.0)),
+        SymbolTerminalDef("plus", (-7.62, 2.54), "left", "branch_to_junction", (-6.0, 0.0)),
+        SymbolTerminalDef("minus", (-7.62, -2.54), "left", "feedback_loop", (-6.0, 0.0)),
         SymbolTerminalDef("out", (7.62, 0.0), "right", "series_inline", (6.0, 0.0)),
         SymbolTerminalDef("vplus", (-2.54, -7.62), "top", "local_supply_rise"),
-        SymbolTerminalDef("vminus", (-2.54, 7.62), "bottom", "local_ground_drop"),
+        SymbolTerminalDef("vminus", (-2.54, 7.62), "bottom", "local_supply_rise"),
     ),
     ("npn_bjt", "right"): (
         SymbolTerminalDef("collector", (3.81, -8.89), "top", "branch_to_junction", (0.0, -6.0)),

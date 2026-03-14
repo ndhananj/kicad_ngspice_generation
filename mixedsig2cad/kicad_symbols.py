@@ -19,7 +19,7 @@ PROJECT_LIB_SYMBOLS: tuple[tuple[str, str], ...] = (
     ("examples.kicad_sym", "QNPN"),
     ("pspice.kicad_sym", "MNMOS"),
     ("pspice.kicad_sym", "MPMOS"),
-    ("pspice.kicad_sym", "OPAMP"),
+    ("examples.kicad_sym", "OPAMP"),
     ("power.kicad_sym", "GND"),
     ("power.kicad_sym", "VCC"),
 )

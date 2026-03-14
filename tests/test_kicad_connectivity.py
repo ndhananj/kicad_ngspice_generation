@@ -84,6 +84,25 @@ class KiCadConnectivityTests(unittest.TestCase):
         self.assertRegex(netlist, r'\(node \(ref "MN1"\) \(pin "3"\).*')
         self.assertRegex(netlist, r'\(node \(ref "MN1"\) \(pin "4"\).*')
 
+    def test_generated_opamp_inverting_uses_textbook_pin_roles(self) -> None:
+        source = GENERATED / "opamp_inverting.kicad_sch"
+        report = validate_kicad_connectivity(opamp_inverting(), source)
+        self.assertTrue(report.passed)
+        netlist = _export_kicad_netlist(source)
+        self.assertIn('(name "/vminus")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "XU1"\) \(pin "2"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "RIN"\) \(pin "2"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "RF"\) \(pin "2"\).*')
+        self.assertIn('(name "/vplus_ref")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "XU1"\) \(pin "1"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "R3"\) \(pin "1"\).*')
+        self.assertIn('(name "GND")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "R3"\) \(pin "2"\).*')
+        self.assertIn('(name "/vcc")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "XU1"\) \(pin "4"\).*')
+        self.assertIn('(name "/vee")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "XU1"\) \(pin "5"\).*')
+
     def test_off_grid_wire_is_rejected(self) -> None:
         source = GENERATED / "rc_lowpass.kicad_sch"
         mutated = self._mutate(
