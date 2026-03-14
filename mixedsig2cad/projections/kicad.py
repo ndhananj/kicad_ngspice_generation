@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import math
 import uuid
 from dataclasses import dataclass, field
 
-from mixedsig2cad.geometry import GENERIC_SHAPES
-from mixedsig2cad.kicad_symbols import KiCadLibPin, project_symbol_pins
+from mixedsig2cad.kicad_symbols import KiCadLibPin, project_symbol_body_bounds, project_symbol_pins
 from mixedsig2cad.models import CompiledSchematic, Point, TextPlacement, WirePath
-from mixedsig2cad.symbols import KICAD_PIN_MAPS, KICAD_SYMBOLS, kicad_pin_map, kicad_symbol, terminal_defs
+from mixedsig2cad.symbols import kicad_pin_map, kicad_symbol, symbol_geometry, terminal_defs
 
 
 def deterministic_uuid(seed: str) -> str:
@@ -103,9 +101,11 @@ def validate_kicad_projection(projection: KiCadProjection, geometry: CompiledSch
             raise AssertionError(f"missing projected symbol for '{shape.ref}'")
         if symbol.placement.x != shape.center.x or symbol.placement.y != shape.center.y:
             raise AssertionError(f"symbol '{shape.ref}' placement drifted from geometry center")
-        expected_exits = {template.name: template.exit_direction for template in terminal_defs(shape.shape, shape.orientation)}
+        geometry_def = symbol_geometry(shape.shape, shape.orientation)
+        expected_exits = {template.name: template.exit_direction for template in geometry_def.terminals}
+        expected_offsets = {template.name: template.offset for template in geometry_def.terminals}
         pin_map = kicad_pin_map(shape.shape, shape.orientation)
-        lib_id, _ = kicad_symbol(shape.shape, shape.orientation)
+        lib_id, angle = kicad_symbol(shape.shape, shape.orientation)
         lib_pins = _embedded_kicad_symbols()[lib_id]
         for terminal in shape.terminals:
             pin_number = pin_map.get(terminal.name)
@@ -115,6 +115,25 @@ def validate_kicad_projection(projection: KiCadProjection, geometry: CompiledSch
                 raise AssertionError(f"KiCad pin '{pin_number}' missing from symbol '{lib_id}'")
             if terminal.side != expected_exits[terminal.name]:
                 raise AssertionError(f"terminal '{shape.ref}.{terminal.name}' drifted from template exit direction")
+            expected_point = Point(
+                round(shape.center.x + expected_offsets[terminal.name][0], 2),
+                round(shape.center.y + expected_offsets[terminal.name][1], 2),
+            )
+            if terminal.point != expected_point:
+                raise AssertionError(
+                    f"terminal '{shape.ref}.{terminal.name}' drifted from canonical KiCad pin position: "
+                    f"{terminal.point} != {expected_point}"
+                )
+        projected_body = project_symbol_body_bounds(lib_id, angle)
+        expected_body = (
+            round(shape.center.x + projected_body.left, 2),
+            round(shape.center.y + projected_body.top, 2),
+            round(shape.center.x + projected_body.right, 2),
+            round(shape.center.y + projected_body.bottom, 2),
+        )
+        actual_body = (shape.body_box.left, shape.body_box.top, shape.body_box.right, shape.body_box.bottom)
+        if actual_body != expected_body:
+            raise AssertionError(f"symbol '{shape.ref}' body box drifted from canonical KiCad geometry")
     for wire in projection.wires:
         if wire.x1 != wire.x2 and wire.y1 != wire.y2:
             raise AssertionError(f"non-orthogonal KiCad wire segment '{wire.uuid_seed}'")
@@ -125,23 +144,7 @@ def _embedded_kicad_symbols() -> dict[str, dict[str, KiCadLibPin]]:
 
 
 def _projected_kicad_offsets(shape_name: str, orientation: str) -> dict[str, tuple[float, float]]:
-    lib_id, angle = kicad_symbol(shape_name, orientation)
-    pin_map = kicad_pin_map(shape_name, orientation)
-    lib_pins = _embedded_kicad_symbols()[lib_id]
-    offsets: dict[str, tuple[float, float]] = {}
-    for terminal_name, pin_number in pin_map.items():
-        pin = lib_pins.get(pin_number)
-        if pin is None:
-            raise AssertionError(f"KiCad pin '{pin_number}' missing from symbol '{lib_id}'")
-        offsets[terminal_name] = _rotate_offset(pin.x, pin.y, angle)
-    return offsets
-
-
-def _rotate_offset(x: float, y: float, angle: int) -> tuple[float, float]:
-    radians = math.radians(angle)
-    rx = round(x * math.cos(radians) - y * math.sin(radians), 2)
-    ry = round(x * math.sin(radians) + y * math.cos(radians), 2)
-    return rx, ry
+    return {terminal.name: terminal.offset for terminal in terminal_defs(shape_name, orientation)}
 
 
 def _validate_npn_orientation(offsets: dict[str, tuple[float, float]]) -> None:

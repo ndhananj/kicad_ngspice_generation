@@ -101,3 +101,99 @@ class KiCadLibPin:
     name: str
     x: float
     y: float
+
+
+@dataclass(frozen=True, slots=True)
+class KiCadSymbolBounds:
+    left: float
+    top: float
+    right: float
+    bottom: float
+
+
+def project_symbol_body_bounds(shape_name: str, angle: int, symbol_dir: str | None = None) -> KiCadSymbolBounds:
+    bounds = _project_symbol_body_bounds(symbol_dir)[shape_name]
+    points = (
+        _rotate_point(bounds.left, bounds.top, angle),
+        _rotate_point(bounds.left, bounds.bottom, angle),
+        _rotate_point(bounds.right, bounds.top, angle),
+        _rotate_point(bounds.right, bounds.bottom, angle),
+    )
+    xs = [point[0] for point in points]
+    ys = [point[1] for point in points]
+    return KiCadSymbolBounds(
+        left=round(min(xs), 2),
+        top=round(min(ys), 2),
+        right=round(max(xs), 2),
+        bottom=round(max(ys), 2),
+    )
+
+
+@lru_cache(maxsize=8)
+def _project_symbol_body_bounds(symbol_dir: str | None = None) -> dict[str, KiCadSymbolBounds]:
+    resolved_dir = Path(symbol_dir) if symbol_dir is not None else kicad_symbol_dir()
+    return {
+        symbol_name: _extract_symbol_bounds(extract_project_symbol_block_from_dir(resolved_dir, symbol_name))
+        for symbol_name in PROJECT_LIB_SOURCES
+    }
+
+
+def _extract_symbol_bounds(block: str) -> KiCadSymbolBounds:
+    xs: list[float] = []
+    ys: list[float] = []
+
+    for start_x, start_y, end_x, end_y in re.findall(
+        r"\(rectangle\s+\(start\s+([-0-9.]+)\s+([-0-9.]+)\)\s+\(end\s+([-0-9.]+)\s+([-0-9.]+)\)",
+        block,
+    ):
+        xs.extend([float(start_x), float(end_x)])
+        ys.extend([float(start_y), float(end_y)])
+
+    for center_x, center_y, radius in re.findall(
+        r"\(circle\s+\(center\s+([-0-9.]+)\s+([-0-9.]+)\)\s+\(radius\s+([-0-9.]+)\)",
+        block,
+    ):
+        cx = float(center_x)
+        cy = float(center_y)
+        r = float(radius)
+        xs.extend([cx - r, cx + r])
+        ys.extend([cy - r, cy + r])
+
+    pts = re.findall(r"\(xy\s+([-0-9.]+)\s+([-0-9.]+)\)", block)
+    xs.extend(float(x) for x, _ in pts)
+    ys.extend(float(y) for _, y in pts)
+
+    for start_x, start_y, mid_x, mid_y, end_x, end_y in re.findall(
+        r"\(arc\s+\(start\s+([-0-9.]+)\s+([-0-9.]+)\)\s+\(mid\s+([-0-9.]+)\s+([-0-9.]+)\)\s+\(end\s+([-0-9.]+)\s+([-0-9.]+)\)",
+        block,
+    ):
+        xs.extend([float(start_x), float(mid_x), float(end_x)])
+        ys.extend([float(start_y), float(mid_y), float(end_y)])
+
+    if not xs or not ys:
+        for at_x, at_y in re.findall(r"\(pin\s+\w+\s+\w+\s+\(at\s+([-0-9.]+)\s+([-0-9.]+)\s+[-0-9.]+\)", block):
+            xs.append(float(at_x))
+            ys.append(float(at_y))
+
+    if not xs or not ys:
+        raise RuntimeError("failed to derive symbol art bounds from KiCad symbol block")
+
+    return KiCadSymbolBounds(
+        left=round(min(xs), 2),
+        top=round(min(ys), 2),
+        right=round(max(xs), 2),
+        bottom=round(max(ys), 2),
+    )
+
+
+def _rotate_point(x: float, y: float, angle: int) -> tuple[float, float]:
+    normalized = angle % 360
+    if normalized == 0:
+        return round(x, 2), round(-y, 2)
+    if normalized == 90:
+        return round(-y, 2), round(-x, 2)
+    if normalized == 180:
+        return round(-x, 2), round(y, 2)
+    if normalized == 270:
+        return round(y, 2), round(x, 2)
+    raise ValueError(f"unsupported KiCad symbol rotation angle: {angle}")

@@ -1,103 +1,88 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
+
+from .kicad_symbols import project_symbol_body_bounds, project_symbol_pins
+from .models import SymbolGeometry, TerminalTemplate
 
 
 @dataclass(frozen=True, slots=True)
 class SymbolTerminalDef:
     name: str
-    offset: tuple[float, float]
     exit_direction: str
     preferred_connection_class: str | None = None
     preferred_branch_offset: tuple[float, float] | None = None
 
 
-SYMBOL_TERMINALS: dict[tuple[str, str], tuple[SymbolTerminalDef, ...]] = {
+SYMBOL_TERMINAL_METADATA: dict[tuple[str, str], tuple[SymbolTerminalDef, ...]] = {
     ("voltage_source", "vertical_up"): (
-        SymbolTerminalDef("pos", (0.0, -7.62), "top"),
-        SymbolTerminalDef("neg", (0.0, 7.62), "bottom", "local_ground_drop"),
+        SymbolTerminalDef("pos", "top"),
+        SymbolTerminalDef("neg", "bottom", "local_ground_drop"),
     ),
     ("current_source", "vertical_up"): (
-        SymbolTerminalDef("pos", (0.0, -10.16), "top"),
-        SymbolTerminalDef("neg", (0.0, 10.16), "bottom", "local_ground_drop"),
+        SymbolTerminalDef("pos", "top"),
+        SymbolTerminalDef("neg", "bottom", "local_ground_drop"),
     ),
     ("resistor", "horizontal"): (
-        SymbolTerminalDef("left", (-6.35, 0.0), "left", "series_inline"),
-        SymbolTerminalDef("right", (6.35, 0.0), "right", "series_inline"),
+        SymbolTerminalDef("left", "left", "series_inline"),
+        SymbolTerminalDef("right", "right", "series_inline"),
     ),
     ("resistor", "vertical"): (
-        SymbolTerminalDef("top", (0.0, -6.35), "top", "branch_to_junction"),
-        SymbolTerminalDef("bottom", (0.0, 6.35), "bottom", "local_ground_drop"),
+        SymbolTerminalDef("top", "top", "branch_to_junction"),
+        SymbolTerminalDef("bottom", "bottom", "local_ground_drop"),
     ),
     ("capacitor", "vertical"): (
-        SymbolTerminalDef("top", (0.0, -6.35), "top", "branch_to_junction"),
-        SymbolTerminalDef("bottom", (0.0, 6.35), "bottom", "local_ground_drop"),
+        SymbolTerminalDef("top", "top", "branch_to_junction"),
+        SymbolTerminalDef("bottom", "bottom", "local_ground_drop"),
     ),
     ("capacitor", "horizontal"): (
-        SymbolTerminalDef("left", (-6.35, 0.0), "left", "series_inline"),
-        SymbolTerminalDef("right", (6.35, 0.0), "right", "series_inline"),
+        SymbolTerminalDef("left", "left", "series_inline"),
+        SymbolTerminalDef("right", "right", "series_inline"),
     ),
     ("inductor", "horizontal"): (
-        SymbolTerminalDef("left", (-6.35, 0.0), "left", "series_inline"),
-        SymbolTerminalDef("right", (6.35, 0.0), "right", "series_inline"),
+        SymbolTerminalDef("left", "left", "series_inline"),
+        SymbolTerminalDef("right", "right", "series_inline"),
     ),
     ("diode", "horizontal"): (
-        SymbolTerminalDef("left", (-5.08, 0.0), "left", "series_inline"),
-        SymbolTerminalDef("right", (5.08, 0.0), "right", "branch_to_junction"),
+        SymbolTerminalDef("left", "left", "series_inline"),
+        SymbolTerminalDef("right", "right", "branch_to_junction"),
     ),
     ("diode", "vertical"): (
-        SymbolTerminalDef("top", (0.0, -5.08), "top", "branch_to_junction"),
-        SymbolTerminalDef("bottom", (0.0, 5.08), "bottom", "local_ground_drop"),
+        SymbolTerminalDef("top", "top", "branch_to_junction"),
+        SymbolTerminalDef("bottom", "bottom", "local_ground_drop"),
     ),
     ("ground", "down"): (
-        SymbolTerminalDef("top", (0.0, 0.0), "top", "local_ground_drop"),
+        SymbolTerminalDef("top", "top", "local_ground_drop"),
     ),
     ("power", "up"): (
-        SymbolTerminalDef("bottom", (0.0, 0.0), "bottom", "local_supply_rise"),
+        SymbolTerminalDef("bottom", "bottom", "local_supply_rise"),
     ),
     ("opamp", "right"): (
-        SymbolTerminalDef("plus", (-7.62, 2.54), "left", "branch_to_junction", (-6.0, 0.0)),
-        SymbolTerminalDef("minus", (-7.62, -2.54), "left", "feedback_loop", (-6.0, 0.0)),
-        SymbolTerminalDef("out", (7.62, 0.0), "right", "series_inline", (6.0, 0.0)),
-        SymbolTerminalDef("vplus", (-2.54, -7.62), "top", "local_supply_rise"),
-        SymbolTerminalDef("vminus", (-2.54, 7.62), "bottom", "local_supply_rise"),
+        SymbolTerminalDef("plus", "left", "branch_to_junction", (-6.0, 0.0)),
+        SymbolTerminalDef("minus", "left", "feedback_loop", (-6.0, 0.0)),
+        SymbolTerminalDef("out", "right", "series_inline", (6.0, 0.0)),
+        SymbolTerminalDef("vplus", "top", "local_supply_rise"),
+        SymbolTerminalDef("vminus", "bottom", "local_supply_rise"),
     ),
     ("npn_bjt", "right"): (
-        SymbolTerminalDef("collector", (3.81, -8.89), "top", "branch_to_junction", (0.0, -6.0)),
-        SymbolTerminalDef("base", (-7.62, 0.0), "left", "branch_to_junction", (-6.0, 0.0)),
-        SymbolTerminalDef("emitter", (3.81, 8.89), "bottom", "local_ground_drop", (0.0, 6.0)),
-        SymbolTerminalDef("substrate", (-2.54, 8.89), "bottom", "local_ground_drop", (0.0, 6.0)),
+        SymbolTerminalDef("collector", "top", "branch_to_junction", (0.0, -6.0)),
+        SymbolTerminalDef("base", "left", "branch_to_junction", (-6.0, 0.0)),
+        SymbolTerminalDef("emitter", "bottom", "local_ground_drop", (0.0, 6.0)),
+        SymbolTerminalDef("substrate", "bottom", "local_ground_drop", (0.0, 6.0)),
     ),
     ("pmos", "right"): (
-        SymbolTerminalDef("drain", (2.54, 5.08), "bottom", "branch_to_junction", (0.0, 6.0)),
-        SymbolTerminalDef("gate", (-5.08, 0.0), "left", "branch_to_junction", (-10.16, 0.0)),
-        SymbolTerminalDef("source", (2.54, -5.08), "top", "local_supply_rise"),
-        SymbolTerminalDef("body", (5.08, -5.08), "right", "local_supply_rise"),
+        SymbolTerminalDef("drain", "bottom", "branch_to_junction", (0.0, 6.0)),
+        SymbolTerminalDef("gate", "left", "branch_to_junction", (-10.16, 0.0)),
+        SymbolTerminalDef("source", "top", "local_supply_rise"),
+        SymbolTerminalDef("body", "right", "local_supply_rise"),
     ),
     ("nmos", "right"): (
-        SymbolTerminalDef("drain", (2.54, -5.08), "top", "branch_to_junction", (0.0, -6.0)),
-        SymbolTerminalDef("gate", (-5.08, 0.0), "left", "branch_to_junction", (-10.16, 0.0)),
-        SymbolTerminalDef("source", (2.54, 5.08), "bottom", "local_ground_drop"),
-        SymbolTerminalDef("body", (5.08, 5.08), "right", "local_ground_drop"),
+        SymbolTerminalDef("drain", "top", "branch_to_junction", (0.0, -6.0)),
+        SymbolTerminalDef("gate", "left", "branch_to_junction", (-10.16, 0.0)),
+        SymbolTerminalDef("source", "bottom", "local_ground_drop"),
+        SymbolTerminalDef("body", "right", "local_ground_drop"),
     ),
-}
-
-SYMBOL_BODY_BOXES: dict[tuple[str, str], tuple[float, float, float, float]] = {
-    ("voltage_source", "vertical_up"): (-5.5, -5.5, 5.5, 5.5),
-    ("current_source", "vertical_up"): (-5.5, -5.5, 5.5, 5.5),
-    ("resistor", "horizontal"): (-4.5, -2.0, 4.5, 2.0),
-    ("resistor", "vertical"): (-2.0, -4.5, 2.0, 4.5),
-    ("capacitor", "vertical"): (-4.0, -2.0, 4.0, 2.0),
-    ("capacitor", "horizontal"): (-2.0, -4.0, 2.0, 4.0),
-    ("inductor", "horizontal"): (-5.2, -2.0, 5.2, 2.0),
-    ("diode", "horizontal"): (-3.5, -3.0, 3.5, 3.0),
-    ("diode", "vertical"): (-3.0, -3.5, 3.0, 3.5),
-    ("ground", "down"): (-2.0, -3.0, 2.0, 1.0),
-    ("power", "up"): (-2.0, -1.0, 2.0, 3.0),
-    ("opamp", "right"): (-6.0, -6.0, 6.0, 6.0),
-    ("npn_bjt", "right"): (-3.0, -5.0, 4.5, 5.0),
-    ("pmos", "right"): (-3.0, -4.0, 5.5, 4.0),
-    ("nmos", "right"): (-3.0, -4.0, 5.5, 4.0),
 }
 
 COMPONENT_SYMBOL_KINDS: dict[str, tuple[str, str]] = {
@@ -175,18 +160,45 @@ def default_orientation_for_component(kind: str, value: str = "", model: str | N
 
 
 def default_orientation_for_shape(shape: str) -> str:
-    for symbol_shape, orientation in SYMBOL_TERMINALS:
+    for symbol_shape, orientation in SYMBOL_TERMINAL_METADATA:
         if symbol_shape == shape:
             return orientation
     raise KeyError(shape)
 
 
-def terminal_defs(shape: str, orientation: str) -> tuple[SymbolTerminalDef, ...]:
-    return SYMBOL_TERMINALS[(shape, orientation)]
+@lru_cache(maxsize=64)
+def symbol_geometry(shape: str, orientation: str) -> SymbolGeometry:
+    metadata = SYMBOL_TERMINAL_METADATA[(shape, orientation)]
+    lib_id, angle = kicad_symbol(shape, orientation)
+    pin_map = kicad_pin_map(shape, orientation)
+    lib_pins = project_symbol_pins()[lib_id]
+    body = project_symbol_body_bounds(lib_id, angle)
+    terminals = tuple(
+        TerminalTemplate(
+            name=terminal.name,
+            offset=_rotate_offset(lib_pins[pin_map[terminal.name]].x, lib_pins[pin_map[terminal.name]].y, angle),
+            exit_direction=terminal.exit_direction,
+            preferred_connection_class=terminal.preferred_connection_class,
+            preferred_branch_offset=terminal.preferred_branch_offset,
+        )
+        for terminal in metadata
+    )
+    return SymbolGeometry(
+        shape=shape,
+        orientation=orientation,
+        lib_id=lib_id,
+        angle=angle,
+        terminals=terminals,
+        body_box=(body.left, body.top, body.right, body.bottom),
+    )
+
+
+def terminal_defs(shape: str, orientation: str) -> tuple[TerminalTemplate, ...]:
+    return symbol_geometry(shape, orientation).terminals
 
 
 def body_box(shape: str, orientation: str) -> tuple[float, float, float, float]:
-    return SYMBOL_BODY_BOXES[(shape, orientation)]
+    return symbol_geometry(shape, orientation).body_box
 
 
 def terminal_offset_for_component(
@@ -225,3 +237,16 @@ def kicad_pin_map(shape: str, orientation: str) -> dict[str, str]:
 
 def inverse_kicad_symbol_map() -> dict[tuple[str, int], tuple[str, str]]:
     return {value: key for key, value in KICAD_SYMBOLS.items()}
+
+
+def _rotate_offset(x: float, y: float, angle: int) -> tuple[float, float]:
+    normalized = angle % 360
+    if normalized == 0:
+        return round(x, 2), round(-y, 2)
+    if normalized == 90:
+        return round(-y, 2), round(-x, 2)
+    if normalized == 180:
+        return round(-x, 2), round(y, 2)
+    if normalized == 270:
+        return round(y, 2), round(x, 2)
+    raise ValueError(f"unsupported KiCad symbol rotation angle: {angle}")

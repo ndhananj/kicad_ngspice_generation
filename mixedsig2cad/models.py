@@ -36,6 +36,16 @@ class TerminalTemplate:
 
 
 @dataclass(frozen=True, slots=True)
+class SymbolGeometry:
+    shape: str
+    orientation: str
+    lib_id: str
+    angle: int
+    terminals: tuple[TerminalTemplate, ...]
+    body_box: tuple[float, float, float, float]
+
+
+@dataclass(frozen=True, slots=True)
 class PlacedShape:
     ref: str
     value: str

@@ -20,9 +20,10 @@ from .models import (
     WirePath,
 )
 from .symbols import (
-    SYMBOL_BODY_BOXES,
-    SYMBOL_TERMINALS,
+    KICAD_SYMBOLS,
+    body_box,
     component_symbol,
+    terminal_defs,
     terminal_name_for_component,
 )
 
@@ -47,8 +48,8 @@ SHAPE_GROUP_STEP_Y = {
 
 
 GENERIC_SHAPES: dict[tuple[str, str], dict[str, tuple[float, float]]] = {
-    key: {terminal.name: terminal.offset for terminal in terminals}
-    for key, terminals in SYMBOL_TERMINALS.items()
+    key: {terminal.name: terminal.offset for terminal in terminal_defs(*key)}
+    for key in KICAD_SYMBOLS
 }
 
 ROUTING_CLEARANCE = 5.08
@@ -159,6 +160,7 @@ def _compile_nodes_to_wires(geometry: CompiledSchematic) -> None:
     shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
     occupied = [(shape.ref, shape.body_box) for shape in geometry.shapes]
     for node in geometry.nodes:
+        existing_segments = _wire_segments(geometry.wires)
         attachment_terminals = [_resolve_terminal(shape_by_ref, attachment) for attachment in node.attachments]
         attachment_points = [terminal.point for terminal in attachment_terminals]
         distinct_points = {(point.x, point.y) for point in attachment_points}
@@ -170,7 +172,13 @@ def _compile_nodes_to_wires(geometry: CompiledSchematic) -> None:
                 continue
         if len(node.attachments) == 2 and not route_via_node:
             start_ref, end_ref = node.attachments
-            path_points = _route_connection(shape_by_ref, occupied, start_ref, end_ref)
+            path_points = _route_connection(
+                shape_by_ref,
+                occupied,
+                start_ref,
+                end_ref,
+                existing_segments=existing_segments,
+            )
             geometry.wires.append(
                 WirePath(points=path_points, uuid_seed=f"{geometry.name}:{node.id}:{start_ref.owner_ref}:{end_ref.owner_ref}")
             )
@@ -181,6 +189,7 @@ def _compile_nodes_to_wires(geometry: CompiledSchematic) -> None:
             shape_by_ref,
             occupied,
             attachment_terminals,
+            existing_segments=existing_segments,
         )
         if shared_wires is not None:
             geometry.wires.extend(shared_wires)
@@ -189,7 +198,13 @@ def _compile_nodes_to_wires(geometry: CompiledSchematic) -> None:
             point = _resolve_terminal_ref(shape_by_ref, attachment)
             if point.x == node.point.x and point.y == node.point.y:
                 continue
-            path_points = _route_attachment_to_node(shape_by_ref, occupied, attachment, node.point)
+            path_points = _route_attachment_to_node(
+                shape_by_ref,
+                occupied,
+                attachment,
+                node.point,
+                existing_segments=existing_segments,
+            )
             geometry.wires.append(
                 WirePath(points=path_points, uuid_seed=f"{geometry.name}:{node.id}:{attachment.owner_ref}:{idx}")
             )
@@ -320,8 +335,10 @@ def _compile_shared_node_wires(
     shape_by_ref: dict[str, PlacedShape],
     occupied: list[tuple[str, BoundingBox]],
     terminals: list[PlacedTerminal],
+    *,
+    existing_segments: list[tuple[Point, Point, str]] | None = None,
 ) -> list[WirePath] | None:
-    if node.role not in {"stage_output", "transistor_stack"}:
+    if node.role not in {"stage_output", "transistor_stack", "gate_bus"}:
         return None
     occupied_boxes = [box for _, box in occupied]
     resolved_points = _shared_node_attachment_points(node, terminals, occupied_boxes)
@@ -346,14 +363,25 @@ def _compile_shared_node_wires(
     if len(spine) >= 2:
         wires.append(WirePath(points=spine, uuid_seed=f"{geometry_name}:{node.id}:spine"))
     if node_axis_point != node.point:
-        node_path = _best_path_between_points(node_axis_point, node.point, occupied_boxes)
+        node_path = _best_path_between_points(
+            node_axis_point,
+            node.point,
+            occupied_boxes,
+            existing_segments=existing_segments,
+        )
         wires.append(WirePath(points=node_path, uuid_seed=f"{geometry_name}:{node.id}:node"))
     for idx, attachment in enumerate(node.attachments, start=1):
         terminal_point, point = points_by_attachment[attachment]
         branch_target = _project_point_to_axis(point, orientation, axis_value)
         if terminal_point == branch_target:
             continue
-        path_points = _route_attachment_to_point(shape_by_ref, occupied, attachment, branch_target)
+        path_points = _route_attachment_to_point(
+            shape_by_ref,
+            occupied,
+            attachment,
+            branch_target,
+            existing_segments=existing_segments,
+        )
         wires.append(WirePath(points=path_points, uuid_seed=f"{geometry_name}:{node.id}:{attachment.owner_ref}:{idx}"))
     deduped = [_dedupe_wire_path(wire) for wire in wires]
     return [wire for wire in deduped if len(wire.points) >= 2]
@@ -417,6 +445,8 @@ def _route_attachment_to_point(
     occupied: list[tuple[str, BoundingBox]],
     attachment: TerminalRef,
     target: Point,
+    *,
+    existing_segments: list[tuple[Point, Point, str]] | None = None,
 ) -> tuple[Point, ...]:
     terminal = _resolve_terminal(shape_by_ref, attachment)
     boxes = [box for _, box in occupied]
@@ -426,10 +456,17 @@ def _route_attachment_to_point(
         target,
         None,
         boxes,
+        existing_segments=existing_segments,
     )
 
 
-def _best_path_between_points(start: Point, end: Point, boxes: list[BoundingBox]) -> tuple[Point, ...]:
+def _best_path_between_points(
+    start: Point,
+    end: Point,
+    boxes: list[BoundingBox],
+    *,
+    existing_segments: list[tuple[Point, Point, str]] | None = None,
+) -> tuple[Point, ...]:
     if start == end:
         return (start,)
     candidates = [
@@ -440,7 +477,7 @@ def _best_path_between_points(start: Point, end: Point, boxes: list[BoundingBox]
     valid_paths = [
         _simplify_path(path)
         for path in (_sanitize_raw_path(candidate) for candidate in candidates)
-        if _point_path_is_clear(path, boxes)
+        if _point_path_is_clear(path, boxes, existing_segments=existing_segments)
     ]
     if not valid_paths:
         return _simplify_path((start, end))
@@ -448,12 +485,60 @@ def _best_path_between_points(start: Point, end: Point, boxes: list[BoundingBox]
     return valid_paths[0]
 
 
-def _point_path_is_clear(path: tuple[Point, ...], boxes: list[BoundingBox]) -> bool:
+def _point_path_is_clear(
+    path: tuple[Point, ...],
+    boxes: list[BoundingBox],
+    *,
+    existing_segments: list[tuple[Point, Point, str]] | None = None,
+) -> bool:
     for start, end in zip(path, path[1:]):
         for box in boxes:
             if _segment_intersects_box(start, end, box):
                 return False
+    if existing_segments and _path_hits_existing_segments(path, existing_segments):
+        return False
     return True
+
+
+def _wire_segments(wires: list[WirePath]) -> list[tuple[Point, Point, str]]:
+    return [
+        (start, end, wire.uuid_seed)
+        for wire in wires
+        for start, end in zip(wire.points, wire.points[1:])
+    ]
+
+
+def _path_hits_existing_segments(
+    path: tuple[Point, ...],
+    existing_segments: list[tuple[Point, Point, str]],
+) -> bool:
+    for start, end in zip(path, path[1:]):
+        for other_start, other_end, _seed in existing_segments:
+            overlap = _overlapping_segment(start, end, other_start, other_end)
+            if overlap is not None and not _shared_endpoint_only(start, end, other_start, other_end, overlap):
+                return True
+            intersection = _orthogonal_intersection(start, end, other_start, other_end)
+            if intersection is None:
+                continue
+            if intersection in {
+                (start.x, start.y),
+                (end.x, end.y),
+                (other_start.x, other_start.y),
+                (other_end.x, other_end.y),
+            }:
+                continue
+            return True
+    return False
+
+
+def _shared_endpoint_only(
+    start: Point,
+    end: Point,
+    other_start: Point,
+    other_end: Point,
+    overlap: tuple[Point, Point],
+) -> bool:
+    return overlap[0] == overlap[1] and overlap[0] in {start, end, other_start, other_end}
 
 
 def _dedupe_wire_path(wire: WirePath) -> WirePath:
@@ -587,7 +672,7 @@ def _place_power(ref: str, value: str, center: Point) -> PlacedShape:
 
 
 def _make_terminals(shape: str, orientation: str, center: Point) -> tuple[PlacedTerminal, ...]:
-    templates = SYMBOL_TERMINALS[(shape, orientation)]
+    templates = terminal_defs(shape, orientation)
     return tuple(
         PlacedTerminal(
             name=template.name,
@@ -601,7 +686,7 @@ def _make_terminals(shape: str, orientation: str, center: Point) -> tuple[Placed
 
 
 def _body_box(shape: str, orientation: str, center: Point) -> BoundingBox:
-    left, top, right, bottom = SYMBOL_BODY_BOXES[(shape, orientation)]
+    left, top, right, bottom = body_box(shape, orientation)
     return BoundingBox(
         left=round(center.x + left, 2),
         top=round(center.y + top, 2),
@@ -648,6 +733,8 @@ def _route_connection(
     occupied: list[tuple[str, BoundingBox]],
     start_ref: TerminalRef,
     end_ref: TerminalRef,
+    *,
+    existing_segments: list[tuple[Point, Point, str]] | None = None,
 ) -> tuple[Point, ...]:
     start_shape = shape_by_ref[start_ref.owner_ref]
     end_shape = shape_by_ref[end_ref.owner_ref]
@@ -656,7 +743,13 @@ def _route_connection(
     connection_class = _classify_connection(start_shape, start, end_shape, end)
     if connection_class in {"local_ground_drop", "local_supply_rise"}:
         return _route_local_support_connection(start, start_shape.body_box, end, end_shape.body_box)
-    return _route_between_terminals(shape_by_ref, occupied, start_ref, end_ref)
+    return _route_between_terminals(
+        shape_by_ref,
+        occupied,
+        start_ref,
+        end_ref,
+        existing_segments=existing_segments,
+    )
 
 
 def _route_between_terminals(
@@ -664,6 +757,8 @@ def _route_between_terminals(
     occupied: list[tuple[str, BoundingBox]],
     start_ref: TerminalRef,
     end_ref: TerminalRef,
+    *,
+    existing_segments: list[tuple[Point, Point, str]] | None = None,
 ) -> tuple[Point, ...]:
     start = _resolve_terminal(shape_by_ref, start_ref)
     end = _resolve_terminal(shape_by_ref, end_ref)
@@ -674,6 +769,7 @@ def _route_between_terminals(
         end,
         shape_by_ref[end_ref.owner_ref].body_box,
         boxes,
+        existing_segments=existing_segments,
     )
 
 
@@ -682,6 +778,8 @@ def _route_attachment_to_node(
     occupied: list[tuple[str, BoundingBox]],
     attachment: TerminalRef,
     node_point: Point,
+    *,
+    existing_segments: list[tuple[Point, Point, str]] | None = None,
 ) -> tuple[Point, ...]:
     terminal = _resolve_terminal(shape_by_ref, attachment)
     boxes = [box for _, box in occupied]
@@ -691,6 +789,7 @@ def _route_attachment_to_node(
         node_point,
         None,
         boxes,
+        existing_segments=existing_segments,
     )
 
 
@@ -739,6 +838,8 @@ def _best_path(
     end: Point | PlacedTerminal,
     end_box: BoundingBox | None,
     boxes: list[BoundingBox],
+    *,
+    existing_segments: list[tuple[Point, Point, str]] | None = None,
 ) -> tuple[Point, ...]:
     candidates: list[tuple[Point, ...]] = []
     start_exit = _terminal_exit_point(start.point, start.side, start_box)
@@ -770,6 +871,19 @@ def _best_path(
         candidates.append((start.point, start_exit, Point(x, start_exit.y), Point(x, end_exit.y), end_exit, end_point))
     for y in y_candidates:
         candidates.append((start.point, start_exit, Point(start_exit.x, y), Point(end_exit.x, y), end_exit, end_point))
+    for x in x_candidates:
+        for y in y_candidates:
+            candidates.append(
+                (
+                    start.point,
+                    start_exit,
+                    Point(x, start_exit.y),
+                    Point(x, y),
+                    Point(end_exit.x, y),
+                    end_exit,
+                    end_point,
+                )
+            )
 
     valid_paths = [
         _simplify_path(path)
@@ -781,6 +895,7 @@ def _best_path(
             end_corridor,
             start_box=start_box,
             end_box=end_box,
+            existing_segments=existing_segments,
         )
     ]
     if not valid_paths:
@@ -832,6 +947,7 @@ def _path_is_clear(
     *,
     start_box: BoundingBox,
     end_box: BoundingBox | None,
+    existing_segments: list[tuple[Point, Point, str]] | None = None,
 ) -> bool:
     for start, end in zip(path, path[1:]):
         for box in boxes:
@@ -841,6 +957,8 @@ def _path_is_clear(
                 continue
             if _segment_intersects_box(start, end, box):
                 return False
+    if existing_segments and _path_hits_existing_segments(path, existing_segments):
+        return False
     return True
 
 
@@ -891,6 +1009,8 @@ def _assert_no_ambiguous_wire_overlaps(segments: list[tuple[Point, Point, str]])
         for other_start, other_end, other_seed in segments[idx + 1:]:
             overlap = _overlapping_segment(start, end, other_start, other_end)
             if overlap is None:
+                continue
+            if _wire_logical_node_key(seed) == _wire_logical_node_key(other_seed):
                 continue
             raise AssertionError(
                 f"wire segments '{seed}' and '{other_seed}' overlap from "
@@ -970,6 +1090,15 @@ def _orthogonal_intersection(
 def _value_in_range(value: float, first: float, second: float) -> bool:
     low, high = sorted((first, second))
     return low <= value <= high
+
+
+def _wire_logical_node_key(seed: str) -> str:
+    parts = seed.split(":")
+    if parts[-1] in {"spine", "node"}:
+        return ":".join(parts[:-1])
+    if len(parts) >= 3:
+        return ":".join(parts[:-2])
+    return seed
 
 
 def _bend_count(path: tuple[Point, ...]) -> int:
@@ -1279,7 +1408,7 @@ def _place_support_symbol_for_terminal(
     *,
     preferred: str,
 ) -> Point:
-    prototype = SYMBOL_BODY_BOXES[(symbol_kind, "down" if symbol_kind == "ground" else "up")]
+    prototype = body_box(symbol_kind, "down" if symbol_kind == "ground" else "up")
     primary_offset = 12.0 if preferred == "down" else -12.0
     lateral_step = 12.0
     if terminal.side in {"left", "right"}:

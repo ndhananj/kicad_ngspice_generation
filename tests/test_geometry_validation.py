@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import pytest
 
+from mixedsig2cad.compiled import place_shape
 from mixedsig2cad.geometry import _path_is_clear, _simplify_path, validate_schematic_geometry
 from mixedsig2cad.models import BoundingBox, CompiledSchematic, PinExitCorridor, Point, WirePath
+from mixedsig2cad.projections.kicad import project_geometry_to_kicad, validate_kicad_projection
 
 
 def test_overlapping_wire_segments_are_rejected() -> None:
@@ -72,3 +74,34 @@ def test_local_support_wire_with_extra_bends_is_rejected() -> None:
 
     with pytest.raises(AssertionError, match="unnecessary bends"):
         validate_schematic_geometry(geometry)
+
+
+def test_kicad_projection_rejects_terminal_drift_from_canonical_symbol_geometry() -> None:
+    geometry = CompiledSchematic(
+        name="terminal_drift",
+        shapes=[place_shape(ref="XU1", value="OPAMP", shape="opamp", orientation="right", center=Point(100.0, 100.0))],
+    )
+    projection = project_geometry_to_kicad(geometry)
+    shape = geometry.shapes[0]
+    geometry.shapes[0] = type(shape)(
+        ref=shape.ref,
+        value=shape.value,
+        shape=shape.shape,
+        orientation=shape.orientation,
+        center=shape.center,
+        terminals=(
+            type(shape.terminals[0])(
+                name=shape.terminals[0].name,
+                point=Point(shape.terminals[0].point.x, shape.terminals[0].point.y + 1.27),
+                side=shape.terminals[0].side,
+                preferred_connection_class=shape.terminals[0].preferred_connection_class,
+                preferred_branch_offset=shape.terminals[0].preferred_branch_offset,
+            ),
+            *shape.terminals[1:],
+        ),
+        body_box=shape.body_box,
+        hidden_reference=shape.hidden_reference,
+    )
+
+    with pytest.raises(AssertionError, match="canonical KiCad pin position"):
+        validate_kicad_projection(projection, geometry)

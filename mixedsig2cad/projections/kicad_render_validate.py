@@ -125,7 +125,7 @@ def observe_rendered_symbol_svg(path: str | Path, shape: str, orientation: str) 
     )
 
 
-def validate_rendered_kicad_symbols(*, strict_pin_labels: bool = False) -> list[RenderedSymbolComparison]:
+def validate_rendered_kicad_symbols(*, strict_pin_labels: bool = True) -> list[RenderedSymbolComparison]:
     kicad_cli = shutil.which("kicad-cli")
     if not kicad_cli:
         return []
@@ -168,7 +168,6 @@ def _compare_rendered_symbol(
             continue
         expected_pin_name_terminals[pin.name] = terminal_name
     hard_failures: list[str] = []
-    diagnostics: list[str] = []
     for terminal_name, expected_side in expected_terminal_sides.items():
         observed_side = observation.terminal_sides.get(terminal_name)
         if observed_side is None:
@@ -182,8 +181,7 @@ def _compare_rendered_symbol(
         if observed_terminal is None:
             continue
         if observed_terminal != expected_terminal:
-            target = hard_failures if strict_pin_labels else diagnostics
-            target.append(
+            hard_failures.append(
                 f"pin name {pin_name} rendered nearest terminal {observed_terminal}, expected {expected_terminal}"
             )
     return RenderedSymbolComparison(
@@ -196,7 +194,7 @@ def _compare_rendered_symbol(
         expected_pin_name_terminals=expected_pin_name_terminals,
         rendered_pin_name_terminals=observation.pin_name_terminals,
         passed=not hard_failures,
-        notes=tuple(hard_failures + [f"diagnostic: {note}" for note in diagnostics]),
+        notes=tuple(hard_failures),
     )
 
 
