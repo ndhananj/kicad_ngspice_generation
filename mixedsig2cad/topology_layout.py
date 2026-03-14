@@ -601,7 +601,7 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
         [
             TopologyPlacement(ref=opamp.ref, center=_point(170.0, 90.0), orientation="right"),
             TopologyPlacement(ref=rin.ref, center=_point(130.03, 82.38), orientation="horizontal"),
-            TopologyPlacement(ref=rf.ref, center=_point(170.0, 68.0), orientation="horizontal"),
+            TopologyPlacement(ref=rf.ref, center=_point(162.38, 76.20), orientation="vertical"),
             TopologyPlacement(ref=plus_bias.ref, center=_point(162.38, 104.54), orientation="vertical"),
             TopologyPlacement(ref="#PWR0001", center=_point(162.38, 118.0), shape="ground", value="GND", orientation="down"),
         ]
@@ -649,19 +649,20 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
             ),
             TopologyConnection(
                 id="minus_sum",
-                point=_point(162.38, 87.46),
+                point=_point(162.38, 82.38),
                 attachments=(
                     TopologyAttachment(rin.ref, "right"),
                     TopologyAttachment(opamp.ref, "minus"),
-                    TopologyAttachment(rf.ref, "right"),
+                    TopologyAttachment(rf.ref, "bottom"),
                 ),
                 render_style="junction",
                 role="sum_node",
             ),
             TopologyConnection(
                 id="feedback_out",
-                point=_point(177.62, 90.0),
-                attachments=(TopologyAttachment(opamp.ref, "out"), TopologyAttachment(rf.ref, "left")),
+                point=_point(177.80, 69.85),
+                attachments=(TopologyAttachment(opamp.ref, "out"), TopologyAttachment(rf.ref, "top")),
+                role="stage_output",
             ),
         ]
     )

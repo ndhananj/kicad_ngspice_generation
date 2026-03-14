@@ -34,7 +34,7 @@ class KiCadConnectivityTests(unittest.TestCase):
         mutated = self._mutate(
             source,
             lambda text: re.sub(
-                r'  \(label "vout" \(at 177\.80 90\.17 0\)\n'
+                r'  \(label "vout" \(at 177\.80 69\.85 0\)\n'
                 r'    \(effects \(font \(size 1\.27 1\.27\)\)\)\n'
                 r'    \(uuid [^)]+\)\n'
                 r'  \)\n',
@@ -110,6 +110,15 @@ class KiCadConnectivityTests(unittest.TestCase):
         self.assertEqual(text.count('(label "vee"'), 2)
         self.assertNotIn('(wire (pts (xy 167.64 78.74)', text)
         self.assertNotIn('(wire (pts (xy 167.64 110.49)', text)
+
+    def test_generated_opamp_inverting_uses_compact_feedback_loop(self) -> None:
+        source = GENERATED / "opamp_inverting.kicad_sch"
+        text = source.read_text(encoding="utf-8")
+        self.assertIn('(wire (pts (xy 177.80 90.17) (xy 177.80 69.85))', text)
+        self.assertIn('(wire (pts (xy 162.56 69.85) (xy 177.80 69.85))', text)
+        self.assertIn('(wire (pts (xy 162.56 87.63) (xy 162.56 82.55))', text)
+        self.assertNotIn('(wire (pts (xy 179.07 48.26) (xy 156.21 48.26))', text)
+        self.assertNotIn('(wire (pts (xy 156.21 48.26) (xy 156.21 87.63))', text)
 
     def test_off_grid_wire_is_rejected(self) -> None:
         source = GENERATED / "rc_lowpass.kicad_sch"
