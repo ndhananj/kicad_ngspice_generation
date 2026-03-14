@@ -486,10 +486,11 @@ def _build_static_cmos_layout(intent: SchematicIntent) -> TopologyLayout | None:
             terminal_name = terminal_name_for_component(comp.kind, orientation, pin_index)
             connections_by_net[net_name].append(TopologyAttachment(comp.ref, terminal_name))
 
+    gate_connections: list[TopologyConnection] = []
     for gate_net in gate_nets:
         attachments = tuple(connections_by_net[gate_net])
         point = _point(gate_xs[gate_net], gate_source_y[gate_net])
-        layout.connections.append(
+        gate_connections.append(
             TopologyConnection(
                 id=f"gate:{gate_net}",
                 point=point,
@@ -556,6 +557,7 @@ def _build_static_cmos_layout(intent: SchematicIntent) -> TopologyLayout | None:
                 role="transistor_stack",
             )
         )
+    layout.connections.extend(gate_connections)
 
     ground_attachments = [
         TopologyAttachment(comp.ref, terminal_name_for_component(comp.kind, placement_by_ref[comp.ref].orientation or _default_orientation(comp), pin_index))

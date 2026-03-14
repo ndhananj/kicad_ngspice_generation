@@ -9,6 +9,14 @@ from mixedsig2cad.spec import CircuitSpec
 from mixedsig2cad.topology_layout import build_topology_layout
 
 
+def _wire_points(compiled, prefix: str) -> dict[str, list[tuple[float, float]]]:
+    return {
+        wire.uuid_seed: [(point.x, point.y) for point in wire.points]
+        for wire in compiled.wires
+        if wire.uuid_seed.startswith(prefix)
+    }
+
+
 def test_cmos_inverter_uses_static_cmos_topology() -> None:
     intent = build_schematic_intent(cmos_inverter())
     layout = build_topology_layout(intent)
@@ -47,6 +55,10 @@ def test_cmos_inverter_uses_static_cmos_topology() -> None:
     validate_schematic_geometry(compiled)
     shapes = {shape.ref: shape for shape in compiled.shapes}
     assert shapes["MP1"].center.y < shapes["MN1"].center.y
+    gate_node = next(node for node in compiled.nodes if node.id == "gate:vin")
+    assert gate_node.role == "gate_bus"
+    assert gate_node.render_style == "junction"
+    assert (gate_node.point.x, gate_node.point.y) == (110.49, 113.03)
     output_node = next(node for node in compiled.nodes if node.id == "net:vout")
     assert (output_node.point.x, output_node.point.y) == (162.56, 113.03)
     output_wires = [wire for wire in compiled.wires if wire.uuid_seed.startswith("cmos_inverter:net:vout")]
@@ -60,14 +72,22 @@ def test_cmos_inverter_uses_static_cmos_topology() -> None:
     }
     assert output_attachment_terms == {"MP1": "drain", "MN1": "drain"}
 
-    ground_wires = {
-        wire.uuid_seed: [(point.x, point.y) for point in wire.points]
-        for wire in compiled.wires
-        if wire.uuid_seed.startswith("cmos_inverter:#PWR0003:ground")
-    }
+    gate_wires = _wire_points(compiled, "cmos_inverter:gate:vin")
+    assert "cmos_inverter:gate:vin:spine" not in gate_wires
+    assert "cmos_inverter:gate:vin:node" not in gate_wires
+    assert gate_wires["cmos_inverter:gate:vin:VIN:1"] == [(83.82, 115.57), (83.82, 113.03), (110.49, 113.03)]
+    assert gate_wires["cmos_inverter:gate:vin:MP1:2"] == [(154.94, 88.90), (110.49, 88.90), (110.49, 113.03)]
+    assert gate_wires["cmos_inverter:gate:vin:MN1:3"] == [(154.94, 137.16), (110.49, 137.16), (110.49, 113.03)]
+
+    ground_wires = _wire_points(compiled, "cmos_inverter:#PWR0003:ground")
     assert ground_wires["cmos_inverter:#PWR0003:ground:#PWR0003:3"] == [(163.83, 154.94), (163.83, 142.24)]
 
     schematic = export_kicad_schematic(cmos_inverter())
+    assert '(junction (at 110.49 113.03)' in schematic
+    assert "(wire (pts (xy 83.82 113.03) (xy 110.49 113.03))" in schematic
+    assert "(wire (pts (xy 110.49 88.90) (xy 110.49 113.03))" in schematic
+    assert "(wire (pts (xy 110.49 137.16) (xy 110.49 113.03))" in schematic
+    assert "(wire (pts (xy 144.78 88.90) (xy 144.78 137.16))" not in schematic
     assert "(wire (pts (xy 163.83 154.94) (xy 163.83 142.24))" in schematic
     assert "(wire (pts (xy 171.45 147.32) (xy 171.45 142.24))" not in schematic
 
@@ -106,4 +126,11 @@ def test_static_cmos_layout_handles_multi_transistor_nand() -> None:
     assert stack_node.point.x == 152.40
     stack_wires = [wire for wire in compiled.wires if wire.uuid_seed.startswith("cmos_nand:net:nmid")]
     assert len(stack_wires) == 1
-    assert [(point.x, point.y) for point in stack_wires[0].points] == [(152.40, 130.81), (152.40, 138.43)]
+    assert [(point.x, point.y) for point in stack_wires[0].points] == [(152.40, 129.54), (152.40, 137.16)]
+
+    va_wires = _wire_points(compiled, "cmos_nand:gate:va")
+    vb_wires = _wire_points(compiled, "cmos_nand:gate:vb")
+    assert "cmos_nand:gate:va:spine" not in va_wires
+    assert "cmos_nand:gate:vb:spine" not in vb_wires
+    assert "cmos_nand:gate:va:node" not in va_wires
+    assert "cmos_nand:gate:vb:node" not in vb_wires

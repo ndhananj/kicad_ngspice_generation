@@ -93,7 +93,9 @@ def _label_stub_endpoint(point: Point, side: str, distance: float = 2.54) -> Poi
 def _compile_node_labels(geometry: CompiledSchematic) -> list[TextPlacement]:
     labels: list[TextPlacement] = []
     for node in geometry.nodes:
-        if not node.label or node.role in {"local_ground", "local_supply"}:
+        if not node.label or node.role == "local_ground":
+            continue
+        if node.role == "local_supply" and node.label.lower() in {"vcc", "vee", "vss", "gnd"}:
             continue
         labels.append(
             TextPlacement(

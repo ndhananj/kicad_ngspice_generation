@@ -35,7 +35,7 @@ EXPECTED_CONNECTIVITY_PASS = {
     "diode_clipper": True,
     "bjt_common_emitter": False,
     "opamp_inverting": True,
-    "cmos_inverter": False,
+    "cmos_inverter": True,
     "schmitt_trigger": True,
 }
 
@@ -98,6 +98,24 @@ def validate_kicad(path: Path) -> None:
         assert text.count("  (junction ") >= 4, "expected explicit stage junctions in canonical common-emitter example"
         assert '(wire (pts (xy 157.48 109.22) (xy 157.48 121.92))' in text, (
             "expected a straight substrate drop from Q1 to the negative rail in the common-emitter example"
+        )
+    if path.name == "cmos_inverter.kicad_sch":
+        assert '(label "vin"' in text and '(label "vout"' in text, "expected named VIN and VOUT labels in cmos_inverter"
+        assert '(junction (at 110.49 113.03)' in text, "expected explicit VIN junction in cmos_inverter"
+        assert '(wire (pts (xy 83.82 113.03) (xy 110.49 113.03))' in text, (
+            "expected direct VIN source branch into the inverter input node"
+        )
+        assert '(wire (pts (xy 110.49 88.90) (xy 110.49 113.03))' in text, (
+            "expected direct PMOS gate branch from the VIN node"
+        )
+        assert '(wire (pts (xy 110.49 137.16) (xy 110.49 113.03))' in text, (
+            "expected direct NMOS gate branch from the VIN node"
+        )
+        assert '(wire (pts (xy 144.78 88.90) (xy 144.78 137.16))' not in text, (
+            "unexpected shared gate-bus trunk remains in cmos_inverter"
+        )
+        assert '(wire (pts (xy 144.78 113.03) (xy 110.49 113.03))' not in text, (
+            "unexpected shared gate-bus branch remains in cmos_inverter"
         )
     if path.name == "schmitt_trigger.kicad_sch":
         assert text.count('(symbol (lib_id "VSOURCE")') == 3, "expected VCC, VIN, and VREF sources in schmitt_trigger"

@@ -205,6 +205,17 @@ def _compile_nodes_to_wires(geometry: CompiledSchematic) -> None:
                 node.point,
                 existing_segments=existing_segments,
             )
+            if node.role == "gate_bus" and (
+                _path_crosses_shape_body(shape_by_ref, attachment.owner_ref, path_points)
+                or (existing_segments and _path_hits_existing_segments(path_points, existing_segments))
+            ):
+                path_points = _route_gate_bus_attachment_to_node(
+                    shape_by_ref,
+                    occupied,
+                    attachment,
+                    node.point,
+                    existing_segments=existing_segments,
+                )
             geometry.wires.append(
                 WirePath(points=path_points, uuid_seed=f"{geometry.name}:{node.id}:{attachment.owner_ref}:{idx}")
             )
@@ -320,6 +331,8 @@ def _shared_node_attachment_points(
 def _should_route_via_node(node: GeometryNode, terminals: list[PlacedTerminal]) -> bool:
     if node.role in {"sum_node", "feedback_join", "stage_output", "base_drive", "transistor_stack"}:
         return True
+    if node.label and node.role not in {"local_ground", "local_supply"}:
+        return True
     if node.render_style == "junction" or len(terminals) >= 3:
         return True
     active_terminals = [terminal for terminal in terminals if terminal.preferred_branch_offset is not None]
@@ -338,7 +351,7 @@ def _compile_shared_node_wires(
     *,
     existing_segments: list[tuple[Point, Point, str]] | None = None,
 ) -> list[WirePath] | None:
-    if node.role not in {"stage_output", "transistor_stack", "gate_bus"}:
+    if node.role not in {"stage_output", "transistor_stack"}:
         return None
     occupied_boxes = [box for _, box in occupied]
     resolved_points = _shared_node_attachment_points(node, terminals, occupied_boxes)
@@ -793,6 +806,74 @@ def _route_attachment_to_node(
     )
 
 
+def _route_gate_bus_attachment_to_node(
+    shape_by_ref: dict[str, PlacedShape],
+    occupied: list[tuple[str, BoundingBox]],
+    attachment: TerminalRef,
+    node_point: Point,
+    *,
+    existing_segments: list[tuple[Point, Point, str]] | None = None,
+) -> tuple[Point, ...]:
+    terminal = _resolve_terminal(shape_by_ref, attachment)
+    owner_box = shape_by_ref[attachment.owner_ref].body_box
+    start_exit = _terminal_exit_point(terminal.point, terminal.side, owner_box)
+    if terminal.side not in {"left", "right"}:
+        return _simplify_path((terminal.point, start_exit, node_point))
+    boxes = [box for _, box in occupied]
+    x_candidates = sorted(
+        {
+            round(value, 2)
+            for box in boxes + [owner_box]
+            for value in (box.left - ROUTING_CLEARANCE, box.right + ROUTING_CLEARANCE)
+        }
+        | {round(node_point.x - ROUTING_CLEARANCE, 2), round(node_point.x + ROUTING_CLEARANCE, 2)}
+    )
+    y_candidates = sorted(
+        {
+            round(value, 2)
+            for box in boxes + [owner_box]
+            for value in (box.top - ROUTING_CLEARANCE, box.bottom + ROUTING_CLEARANCE)
+        }
+    )
+    candidates: list[tuple[Point, ...]] = []
+    for turn_x in x_candidates:
+        for detour_y in y_candidates:
+            candidates.append(
+                _simplify_path(
+                    (
+                        terminal.point,
+                        start_exit,
+                        Point(start_exit.x, detour_y),
+                        Point(turn_x, detour_y),
+                        Point(turn_x, node_point.y),
+                        node_point,
+                    )
+                )
+            )
+            candidates.append(
+                _simplify_path(
+                    (
+                        terminal.point,
+                        start_exit,
+                        Point(turn_x, start_exit.y),
+                        Point(turn_x, detour_y),
+                        Point(node_point.x, detour_y),
+                        node_point,
+                    )
+                )
+            )
+    valid = [
+        path
+        for path in candidates
+        if not _path_crosses_shape_body(shape_by_ref, attachment.owner_ref, path)
+        and not (existing_segments and _path_hits_existing_segments(path, existing_segments))
+    ]
+    if valid:
+        valid.sort(key=lambda path: (_bend_count(path), _path_length(path)))
+        return valid[0]
+    return _simplify_path((terminal.point, start_exit, node_point))
+
+
 def _classify_connection(
     start_shape: PlacedShape,
     start: PlacedTerminal,
@@ -861,11 +942,23 @@ def _best_path(
         ]
     )
 
-    x_candidates = [min(box.left for box in boxes + [start_box]) - ROUTING_CLEARANCE, max(box.right for box in boxes + [start_box]) + ROUTING_CLEARANCE]
-    y_candidates = [min(box.top for box in boxes + [start_box]) - ROUTING_CLEARANCE, max(box.bottom for box in boxes + [start_box]) + ROUTING_CLEARANCE]
+    x_candidates = sorted(
+        {
+            round(boundary, 2)
+            for box in boxes + [start_box]
+            for boundary in (box.left - ROUTING_CLEARANCE, box.right + ROUTING_CLEARANCE)
+        }
+    )
+    y_candidates = sorted(
+        {
+            round(boundary, 2)
+            for box in boxes + [start_box]
+            for boundary in (box.top - ROUTING_CLEARANCE, box.bottom + ROUTING_CLEARANCE)
+        }
+    )
     if end_box is not None:
-        x_candidates.extend([end_box.left - ROUTING_CLEARANCE, end_box.right + ROUTING_CLEARANCE])
-        y_candidates.extend([end_box.top - ROUTING_CLEARANCE, end_box.bottom + ROUTING_CLEARANCE])
+        x_candidates = sorted({*x_candidates, round(end_box.left - ROUTING_CLEARANCE, 2), round(end_box.right + ROUTING_CLEARANCE, 2)})
+        y_candidates = sorted({*y_candidates, round(end_box.top - ROUTING_CLEARANCE, 2), round(end_box.bottom + ROUTING_CLEARANCE, 2)})
 
     for x in x_candidates:
         candidates.append((start.point, start_exit, Point(x, start_exit.y), Point(x, end_exit.y), end_exit, end_point))
@@ -1231,6 +1324,15 @@ def _segment_hits_shape_body(
             continue
         return True
     return False
+
+
+def _path_crosses_shape_body(
+    shape_by_ref: dict[str, PlacedShape],
+    owner_ref: str,
+    path: tuple[Point, ...],
+) -> bool:
+    wire_seed = f"probe:{owner_ref}"
+    return any(_segment_hits_shape_body(shape_by_ref, wire_seed, start, end) for start, end in zip(path, path[1:]))
 
 
 def _is_legal_owner_corridor(shape: PlacedShape, start: Point, end: Point) -> bool:

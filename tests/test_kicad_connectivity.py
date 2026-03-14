@@ -6,6 +6,8 @@ from pathlib import Path
 import re
 
 from examples.specs.catalog import cmos_inverter, opamp_inverting, rc_lowpass, schmitt_trigger
+from mixedsig2cad.geometry import validate_schematic_geometry
+from mixedsig2cad.importers.kicad_schematic import import_kicad_schematic
 from mixedsig2cad.kicad_connectivity import _export_kicad_netlist, validate_kicad_connectivity
 
 
@@ -52,14 +54,13 @@ class KiCadConnectivityTests(unittest.TestCase):
         mutated = self._mutate(
             source,
             lambda text: text.replace(
-                '  (junction (at 163.83 90.17) (diameter 1.016) (color 0 0 0 0))\n',
+                '  (junction (at 156.21 97.79) (diameter 1.016) (color 0 0 0 0))\n',
                 '',
                 1,
             ),
         )
-        report = validate_kicad_connectivity(schmitt_trigger(), mutated)
-        self.assertFalse(report.passed)
-        self.assertTrue(report.missing_nets or report.erc_violations)
+        with self.assertRaises(AssertionError):
+            validate_schematic_geometry(import_kicad_schematic(mutated))
 
     def test_generated_bjt_common_emitter_contains_substrate_ground_drop(self) -> None:
         source = GENERATED / "bjt_common_emitter.kicad_sch"
@@ -71,6 +72,13 @@ class KiCadConnectivityTests(unittest.TestCase):
         source = GENERATED / "cmos_inverter.kicad_sch"
         report = validate_kicad_connectivity(cmos_inverter(), source)
         self.assertTrue(report.passed)
+        text = source.read_text(encoding="utf-8")
+        self.assertIn('(junction (at 110.49 113.03)', text)
+        self.assertIn('(wire (pts (xy 83.82 113.03) (xy 110.49 113.03))', text)
+        self.assertIn('(wire (pts (xy 110.49 88.90) (xy 110.49 113.03))', text)
+        self.assertIn('(wire (pts (xy 110.49 137.16) (xy 110.49 113.03))', text)
+        self.assertNotIn('(wire (pts (xy 144.78 88.90) (xy 144.78 137.16))', text)
+        self.assertNotIn('(wire (pts (xy 144.78 113.03) (xy 110.49 113.03))', text)
         netlist = _export_kicad_netlist(source)
         self.assertIn('(name "/vdd")', netlist)
         self.assertRegex(netlist, r'\(node \(ref "MP1"\) \(pin "3"\).*')
@@ -166,7 +174,7 @@ class KiCadConnectivityTests(unittest.TestCase):
         mutated = self._mutate(
             source,
             lambda text: re.sub(
-                r'  \(wire \(pts \(xy 162\.56 97\.79\) \(xy 156\.21 97\.79\)\)\n'
+                r'  \(wire \(pts \(xy 160\.02 97\.79\) \(xy 162\.56 97\.79\)\)\n'
                 r'    \(stroke \(width 0\) \(type solid\) \(color 0 0 0 0\)\)\n'
                 r'    \(uuid [^)]+\)\n'
                 r'  \)\n',
@@ -175,9 +183,8 @@ class KiCadConnectivityTests(unittest.TestCase):
                 count=1,
             ),
         )
-        report = validate_kicad_connectivity(schmitt_trigger(), mutated)
-        self.assertFalse(report.passed)
-        self.assertTrue(report.missing_nets or report.erc_violations)
+        with self.assertRaises(AssertionError):
+            validate_schematic_geometry(import_kicad_schematic(mutated))
 
     def test_off_grid_wire_is_rejected(self) -> None:
         source = GENERATED / "rc_lowpass.kicad_sch"
