@@ -29,13 +29,13 @@ class KiCadConnectivityTests(unittest.TestCase):
         self.assertFalse(report.missing_attachments)
         self.assertFalse(report.erc_violations)
 
-    def test_removed_opamp_wire_is_rejected(self) -> None:
+    def test_removed_opamp_output_label_is_rejected(self) -> None:
         source = GENERATED / "opamp_inverting.kicad_sch"
         mutated = self._mutate(
             source,
             lambda text: re.sub(
-                r'  \(wire \(pts \(xy 177\.80 90\.17\) \(xy 184\.15 90\.17\)\)\n'
-                r'    \(stroke \(width 0\) \(type solid\) \(color 0 0 0 0\)\)\n'
+                r'  \(label "vout" \(at 177\.80 90\.17 0\)\n'
+                r'    \(effects \(font \(size 1\.27 1\.27\)\)\)\n'
                 r'    \(uuid [^)]+\)\n'
                 r'  \)\n',
                 '',
@@ -102,6 +102,14 @@ class KiCadConnectivityTests(unittest.TestCase):
         self.assertRegex(netlist, r'\(node \(ref "XU1"\) \(pin "4"\).*')
         self.assertIn('(name "/vee")', netlist)
         self.assertRegex(netlist, r'\(node \(ref "XU1"\) \(pin "5"\).*')
+
+    def test_generated_opamp_inverting_uses_supply_labels_instead_of_long_rail_wires(self) -> None:
+        source = GENERATED / "opamp_inverting.kicad_sch"
+        text = source.read_text(encoding="utf-8")
+        self.assertEqual(text.count('(label "vcc"'), 2)
+        self.assertEqual(text.count('(label "vee"'), 2)
+        self.assertNotIn('(wire (pts (xy 167.64 78.74)', text)
+        self.assertNotIn('(wire (pts (xy 167.64 110.49)', text)
 
     def test_off_grid_wire_is_rejected(self) -> None:
         source = GENERATED / "rc_lowpass.kicad_sch"

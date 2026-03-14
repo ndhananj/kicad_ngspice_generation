@@ -662,7 +662,6 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
                 id="feedback_out",
                 point=_point(177.62, 90.0),
                 attachments=(TopologyAttachment(opamp.ref, "out"), TopologyAttachment(rf.ref, "left")),
-                role="stage_output",
             ),
         ]
     )
@@ -672,7 +671,7 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
                 id="supply_plus",
                 point=_point(167.46, 82.38),
                 attachments=(TopologyAttachment(opamp.ref, "vplus"), TopologyAttachment(supply_plus_source.ref, "pos")),
-                role="local_supply",
+                role="labeled_supply",
             )
         )
     if supply_minus_source is not None:
@@ -681,7 +680,7 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
                 id="supply_minus",
                 point=_point(167.46, 97.62),
                 attachments=(TopologyAttachment(opamp.ref, "vminus"), TopologyAttachment(supply_minus_source.ref, "pos")),
-                role="local_supply",
+                role="labeled_supply",
             )
         )
     if plus_net == "0" or set(plus_bias.nodes) != {plus_net, "0"}:

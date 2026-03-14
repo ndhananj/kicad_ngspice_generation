@@ -5,6 +5,7 @@ from ..geometry import (
     _compile_nodes_to_wires,
     _make_terminals,
     _normalize_active_branch_nodes,
+    _resolve_terminal,
     _point_in_box,
     _snap_value,
     pack_schematic_geometry,
@@ -25,6 +26,9 @@ from ..models import (
 def finalize_compiled_schematic(geometry: CompiledSchematic) -> CompiledSchematic:
     geometry.nodes = _normalize_active_branch_nodes(geometry.nodes, geometry.shapes)
     geometry = _snap_geometry_to_grid(geometry)
+    labeled_wires, labeled_texts, geometry.nodes = _compile_labeled_stub_nodes(geometry)
+    geometry.wires.extend(labeled_wires)
+    geometry.labels.extend(labeled_texts)
     geometry.labels.extend(_compile_node_labels(geometry))
     geometry.anchors = [
         NodeAnchor(point=node.point)
@@ -38,6 +42,51 @@ def finalize_compiled_schematic(geometry: CompiledSchematic) -> CompiledSchemati
     geometry = pack_schematic_geometry(geometry)
     geometry = _snap_geometry_to_grid(geometry)
     return geometry
+
+
+def _compile_labeled_stub_nodes(
+    geometry: CompiledSchematic,
+) -> tuple[list[WirePath], list[TextPlacement], list[GeometryNode]]:
+    shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
+    wires: list[WirePath] = []
+    labels: list[TextPlacement] = []
+    remaining_nodes: list[GeometryNode] = []
+    for node in geometry.nodes:
+        if node.role != "labeled_supply" or not node.label:
+            remaining_nodes.append(node)
+            continue
+        for idx, attachment in enumerate(node.attachments, start=1):
+            terminal = _resolve_terminal(shape_by_ref, attachment)
+            label_point = _label_stub_endpoint(terminal.point, terminal.side)
+            if terminal.point != label_point:
+                wires.append(
+                    WirePath(
+                        points=(terminal.point, label_point),
+                        uuid_seed=f"{geometry.name}:{node.id}:{attachment.owner_ref}:{idx}:stub",
+                    )
+                )
+            labels.append(
+                TextPlacement(
+                    text=node.label,
+                    role="net_label",
+                    position=label_point,
+                    owner_ref=node.id,
+                    uuid_seed=f"{geometry.name}:{node.id}:{attachment.owner_ref}:{idx}:label",
+                )
+            )
+    return wires, labels, remaining_nodes
+
+
+def _label_stub_endpoint(point: Point, side: str, distance: float = 2.54) -> Point:
+    if side == "left":
+        return Point(point.x - distance, point.y)
+    if side == "right":
+        return Point(point.x + distance, point.y)
+    if side == "top":
+        return Point(point.x, point.y - distance)
+    if side == "bottom":
+        return Point(point.x, point.y + distance)
+    return point
 
 
 def _compile_node_labels(geometry: CompiledSchematic) -> list[TextPlacement]:

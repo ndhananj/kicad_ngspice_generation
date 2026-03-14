@@ -231,7 +231,7 @@ def _normalize_active_branch_nodes(nodes: list[GeometryNode], shapes: list[Place
 def _preferred_branch_point(node: GeometryNode, shape_by_ref: dict[str, PlacedShape]) -> Point:
     if node.role in {"collector_node", "emitter_node"}:
         return node.point
-    if node.role in {"local_ground", "local_supply"}:
+    if node.role in {"local_ground", "local_supply", "labeled_supply"}:
         return node.point
     if node.role == "gate_bus":
         return node.point
