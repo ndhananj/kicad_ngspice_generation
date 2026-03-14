@@ -390,6 +390,43 @@
     "subpart_first_id": 65,
     "subpart_id_separator": 0
   },
-  "sheets": [],
+  "sheets": [
+    [
+      "970ce8f9-f13a-5671-8af5-42b5510a84ec",
+      "Root"
+    ],
+    [
+      "2c2e4449-0d31-5b7a-a31c-2befccbd46d3",
+      "rc_lowpass"
+    ],
+    [
+      "09e45ad4-b578-514c-b0e2-8b5a9765b463",
+      "rc_highpass"
+    ],
+    [
+      "fedc5e9c-04e3-5b4d-a302-1265ddf1efc9",
+      "rlc_bandpass"
+    ],
+    [
+      "233386be-14e6-5fde-81a7-c2e1515ce9a5",
+      "diode_clipper"
+    ],
+    [
+      "c67f519a-fb75-58bd-a00d-fab6c7e307df",
+      "bjt_common_emitter"
+    ],
+    [
+      "53e70f7d-e654-526f-b321-644a9963d664",
+      "opamp_inverting"
+    ],
+    [
+      "22083f05-c7af-5461-adf3-47b99c368287",
+      "cmos_inverter"
+    ],
+    [
+      "7adaf9f7-81dc-5c88-884f-39b1a729038d",
+      "schmitt_trigger"
+    ]
+  ],
   "text_variables": {}
 }
