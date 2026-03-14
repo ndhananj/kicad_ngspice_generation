@@ -4,6 +4,7 @@ import importlib.util
 
 from examples.specs.catalog import cmos_inverter, opamp_inverting, rc_lowpass
 from mixedsig2cad.compiled import CompiledSchematic, compile_schematic
+from mixedsig2cad.layout_compiler import compile_design
 from mixedsig2cad.exporters.kicad import export_kicad_schematic, render_kicad_schematic
 from mixedsig2cad import geometry
 from mixedsig2cad.intent import build_schematic_intent
@@ -18,10 +19,9 @@ def test_compile_schematic_returns_canonical_compiled_type() -> None:
     assert isinstance(compiled, CompiledSchematic)
 
 
-def test_export_kicad_schematic_uses_canonical_compile_path() -> None:
+def test_export_kicad_schematic_uses_seeded_example_design_compile_path() -> None:
     for spec in (rc_lowpass(), opamp_inverting(), cmos_inverter()):
-        intent = build_schematic_intent(spec)
-        compiled = compile_schematic(intent)
+        compiled = compile_design(spec)
         expected = render_kicad_schematic(project_geometry_to_kicad(compiled))
         assert export_kicad_schematic(spec) == expected
 

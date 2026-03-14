@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from mixedsig2cad.design import ExampleDesign, circuit_of
 from mixedsig2cad.spec import CircuitSpec
 
 
@@ -10,7 +11,8 @@ def _component_line(ref: str, value: str, nodes: tuple[str, ...], model: str | N
     return f"{ref} {joined_nodes} {value}"
 
 
-def export_ngspice_netlist(spec: CircuitSpec) -> str:
+def export_ngspice_netlist(spec: ExampleDesign | CircuitSpec) -> str:
+    spec = circuit_of(spec)
     lines = [f"* {spec.name}"]
     for comp in spec.components:
         lines.append(_component_line(comp.ref, comp.value, comp.nodes, comp.model))

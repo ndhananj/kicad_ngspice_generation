@@ -3,8 +3,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from mixedsig2cad.compiled import CompiledSchematic, make_body_box, make_terminals
+from mixedsig2cad.compiled import make_body_box, make_terminals
 from mixedsig2cad.models import (
+    CompiledSchematic,
     GeometryNode,
     JunctionPlacement,
     Point,
@@ -20,14 +21,17 @@ _INVERSE_KICAD = inverse_kicad_symbol_map()
 
 def import_kicad_schematic(path: str | Path) -> CompiledSchematic:
     text = Path(path).read_text(encoding="utf-8")
-    name = _match_group(text, r'\(title "([^"]+)"\)') or Path(path).stem
+    name = _match_group(text, r'\(title\s+"([^"]+)"\)') or Path(path).stem
     geometry = CompiledSchematic(name=name)
 
     for block in _top_level_blocks(text, "symbol"):
+        if '(lib_id "' not in block:
+            continue
         shape = _parse_symbol(block)
         geometry.shapes.append(shape)
         geometry.labels.extend(_parse_symbol_labels(shape, block, name))
 
+    geometry.labels.extend(_parse_global_labels(text, name))
     geometry.wires.extend(_parse_wires(text, name))
     geometry.junctions.extend(_parse_junctions(text))
     geometry.nodes.extend(_derive_nodes(geometry.shapes, geometry.wires, geometry.junctions))
@@ -35,9 +39,9 @@ def import_kicad_schematic(path: str | Path) -> CompiledSchematic:
 
 
 def _parse_symbol(block: str) -> PlacedShape:
-    lib_id = _require_group(block, r'\(lib_id "([^"]+)"\)')
+    lib_id = _require_group(block, r'\(lib_id\s+"([^"]+)"\)')
     x, y, angle = _require_groups(block, r"\(at\s+([-0-9.]+)\s+([-0-9.]+)\s+([-0-9.]+)\)")
-    ref, ref_hidden, ref_pos = _parse_property(block, "Reference")
+    ref, ref_hidden, _ = _parse_property(block, "Reference")
     value, _, _ = _parse_property(block, "Value")
     shape_name, orientation = _INVERSE_KICAD[(lib_id, int(float(angle)))]
     center = Point(round(float(x), 2), round(float(y), 2))
@@ -69,12 +73,38 @@ def _parse_symbol_labels(shape: PlacedShape, block: str, schematic_name: str) ->
     return labels
 
 
+def _parse_global_labels(text: str, schematic_name: str) -> list[TextPlacement]:
+    labels: list[TextPlacement] = []
+    for index, block in enumerate(_top_level_blocks(text, "label"), start=1):
+        label_text = _require_group(block, r'\(label\s+"([^"]+)"')
+        x, y = _require_groups(block, r"\(at\s+([-0-9.]+)\s+([-0-9.]+)\s+[-0-9.]+\)")
+        font_size = _parse_font_size(block)
+        labels.append(
+            TextPlacement(
+                text=label_text,
+                role="net_label",
+                position=Point(round(float(x), 2), round(float(y), 2)),
+                owner_ref=f"label:{index}",
+                uuid_seed=f"{schematic_name}:label:{index}",
+                font_size=font_size,
+            )
+        )
+    return labels
+
+
 def _parse_property(block: str, prop_name: str) -> tuple[str, bool, Point]:
-    prop_block = _extract_nested_block(block, f'(property "{prop_name}"')
-    value = _require_group(prop_block, r'^.*?\(property "[^"]+" "([^"]*)"', flags=re.S)
+    prop_block = _extract_named_property_block(block, prop_name)
+    value = _require_group(prop_block, r'^\(property\s+"[^"]+"\s+"([^"]*)"', flags=re.S)
     x, y = _require_groups(prop_block, r"\(at\s+([-0-9.]+)\s+([-0-9.]+)\s+[-0-9.]+\)")
-    hidden = " hide)" in prop_block
+    hidden = "(hide yes)" in prop_block or re.search(r"\(effects\b.*?\bhide\)", prop_block, re.S) is not None
     return value, hidden, Point(round(float(x), 2), round(float(y), 2))
+
+
+def _parse_font_size(block: str) -> float:
+    match = re.search(r"\(size\s+([-0-9.]+)\s+([-0-9.]+)\)", block)
+    if match is None:
+        return 1.27
+    return round(float(match.group(1)), 2)
 
 
 def _parse_wires(text: str, schematic_name: str) -> list[WirePath]:
@@ -90,10 +120,11 @@ def _parse_wires(text: str, schematic_name: str) -> list[WirePath]:
 
 
 def _parse_junctions(text: str) -> list[JunctionPlacement]:
-    return [
-        JunctionPlacement(point=Point(round(float(x), 2), round(float(y), 2)))
-        for x, y in re.findall(r"\(junction\s+\(at\s+([-0-9.]+)\s+([-0-9.]+)\)", text)
-    ]
+    junctions: list[JunctionPlacement] = []
+    for block in _top_level_blocks(text, "junction"):
+        x, y = _require_groups(block, r"\(at\s+([-0-9.]+)\s+([-0-9.]+)\)")
+        junctions.append(JunctionPlacement(point=Point(round(float(x), 2), round(float(y), 2))))
+    return junctions
 
 
 def _derive_nodes(
@@ -104,7 +135,9 @@ def _derive_nodes(
     terminals_by_point: dict[tuple[float, float], list[TerminalRef]] = {}
     for shape in shapes:
         for terminal in shape.terminals:
-            terminals_by_point.setdefault((terminal.point.x, terminal.point.y), []).append(TerminalRef(shape.ref, terminal.name))
+            terminals_by_point.setdefault((terminal.point.x, terminal.point.y), []).append(
+                TerminalRef(shape.ref, terminal.name)
+            )
 
     graph: dict[tuple[float, float], set[tuple[float, float]]] = {}
     for wire in wires:
@@ -115,14 +148,13 @@ def _derive_nodes(
             graph.setdefault(b, set()).add(a)
     for point in terminals_by_point:
         graph.setdefault(point, set())
-    for junction in junctions:
-        graph.setdefault((junction.point.x, junction.point.y), set())
+    junction_points = {(junction.point.x, junction.point.y) for junction in junctions}
+    for point in junction_points:
+        graph.setdefault(point, set())
 
     visited: set[tuple[float, float]] = set()
     nodes: list[GeometryNode] = []
     component_index = 1
-    junction_points = {(junction.point.x, junction.point.y) for junction in junctions}
-
     for point in graph:
         if point in visited:
             continue
@@ -140,7 +172,7 @@ def _derive_nodes(
             attachments.extend(terminals_by_point.get(item, ()))
         if len(attachments) < 2:
             continue
-        node_point = _choose_node_point(component, attachments, junction_points)
+        node_point = _choose_node_point(component, junction_points)
         nodes.append(
             GeometryNode(
                 id=f"imported:{component_index}",
@@ -153,39 +185,32 @@ def _derive_nodes(
     return nodes
 
 
-def _choose_node_point(
-    component: set[tuple[float, float]],
-    attachments: list[TerminalRef],
-    junction_points: set[tuple[float, float]],
-) -> Point:
+def _choose_node_point(component: set[tuple[float, float]], junction_points: set[tuple[float, float]]) -> Point:
     component_junctions = sorted(component & junction_points)
     if component_junctions:
         x, y = component_junctions[0]
         return Point(x, y)
-    if len(component) == 1:
-        x, y = next(iter(component))
-        return Point(x, y)
-    sorted_points = sorted(component)
-    if len(sorted_points) == 2:
-        (x1, y1), (x2, y2) = sorted_points
-        return Point(round((x1 + x2) / 2.0, 2), round((y1 + y2) / 2.0, 2))
-    xs = [point[0] for point in component]
-    ys = [point[1] for point in component]
-    return Point(round(sum(xs) / len(xs), 2), round(sum(ys) / len(ys), 2))
+    x, y = sorted(component)[0]
+    return Point(x, y)
 
 
 def _top_level_blocks(text: str, kind: str) -> list[str]:
     blocks: list[str] = []
-    needle = f"({kind} "
-    start = 0
-    while True:
-        idx = text.find(needle, start)
-        if idx < 0:
-            break
-        if _depth_at(text, idx) == 1:
-            blocks.append(_extract_nested_block(text[idx:], needle))
-        start = idx + len(needle)
+    pattern = re.compile(rf"\({kind}(?=[\s\)])")
+    for match in pattern.finditer(text):
+        idx = match.start()
+        if _depth_at(text, idx) != 1:
+            continue
+        blocks.append(_extract_nested_block(text, idx))
     return blocks
+
+
+def _extract_named_property_block(text: str, prop_name: str) -> str:
+    pattern = re.compile(rf'\(property\s+"{re.escape(prop_name)}"(?=[\s"])')
+    match = pattern.search(text)
+    if match is None:
+        raise AssertionError(f"missing property '{prop_name}'")
+    return _extract_nested_block(text, match.start())
 
 
 def _depth_at(text: str, limit: int) -> int:
@@ -211,10 +236,7 @@ def _depth_at(text: str, limit: int) -> int:
     return depth
 
 
-def _extract_nested_block(text: str, needle: str) -> str:
-    start = text.find(needle)
-    if start < 0:
-        raise AssertionError(f"missing block starting with {needle}")
+def _extract_nested_block(text: str, start: int) -> str:
     depth = 0
     in_string = False
     escape = False
@@ -237,7 +259,7 @@ def _extract_nested_block(text: str, needle: str) -> str:
             depth -= 1
             if depth == 0:
                 return text[start : idx + 1]
-    raise AssertionError(f"unterminated block starting with {needle}")
+    raise AssertionError(f"unterminated block at {start}")
 
 
 def _match_group(text: str, pattern: str, *, flags: int = 0) -> str | None:

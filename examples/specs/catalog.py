@@ -1,9 +1,140 @@
 from __future__ import annotations
 
+import json
+from functools import lru_cache
+from pathlib import Path
+
 from mixedsig2cad import CircuitSpec
+from mixedsig2cad.design import (
+    ExampleDesign,
+    LayoutComponentIntent,
+    LayoutSupportIntent,
+    LayoutTextIntent,
+    RoutedNetIntent,
+    SchematicLayoutIntent,
+)
+from mixedsig2cad.models import Point
 
 
-def rc_lowpass() -> CircuitSpec:
+def rc_lowpass() -> ExampleDesign:
+    return _example_design("rc_lowpass")
+
+
+def rc_highpass() -> ExampleDesign:
+    return _example_design("rc_highpass")
+
+
+def rlc_bandpass() -> ExampleDesign:
+    return _example_design("rlc_bandpass")
+
+
+def diode_clipper() -> ExampleDesign:
+    return _example_design("diode_clipper")
+
+
+def bjt_common_emitter() -> ExampleDesign:
+    return _example_design("bjt_common_emitter")
+
+
+def opamp_inverting() -> ExampleDesign:
+    return _example_design("opamp_inverting")
+
+
+def cmos_inverter() -> ExampleDesign:
+    return _example_design("cmos_inverter")
+
+
+def schmitt_trigger() -> ExampleDesign:
+    return _example_design("schmitt_trigger")
+
+
+def all_examples() -> list[ExampleDesign]:
+    return [_example_design(spec.name) for spec in _all_circuit_specs()]
+
+
+def _all_circuit_specs() -> list[CircuitSpec]:
+    return [
+        _rc_lowpass_spec(),
+        _rc_highpass_spec(),
+        _rlc_bandpass_spec(),
+        _diode_clipper_spec(),
+        _bjt_common_emitter_spec(),
+        _opamp_inverting_spec(),
+        _cmos_inverter_spec(),
+        _schmitt_trigger_spec(),
+    ]
+
+
+def _example_design(name: str) -> ExampleDesign:
+    spec = next(spec for spec in _all_circuit_specs() if spec.name == name)
+    layout = _seed_layouts()[name]
+    return ExampleDesign(name=name, circuit=spec, layout=layout)
+
+
+@lru_cache(maxsize=1)
+def _seed_layouts() -> dict[str, SchematicLayoutIntent]:
+    payload = json.loads((Path(__file__).with_name("seeded_layouts.json")).read_text(encoding="utf-8"))
+    layouts = {}
+    for name, entry in payload.items():
+        layouts[name] = SchematicLayoutIntent(
+            name=entry["name"],
+            components=tuple(
+                LayoutComponentIntent(
+                    ref=item["ref"],
+                    center=_point(item["center"]),
+                    orientation=_component_orientation(name, item["ref"], item["orientation"]),
+                    reference_position=_point(item["reference_position"]),
+                    value_position=_point(item["value_position"]),
+                    hidden_reference=item.get("hidden_reference", False),
+                )
+                for item in entry["components"]
+            ),
+            supports=tuple(
+                LayoutSupportIntent(
+                    ref=item["ref"],
+                    shape=item["shape"],
+                    value=item["value"],
+                    center=_point(item["center"]),
+                    orientation=item["orientation"],
+                    reference_position=_point(item["reference_position"]),
+                    value_position=_point(item["value_position"]),
+                    hidden_reference=item.get("hidden_reference", False),
+                )
+                for item in entry.get("supports", [])
+            ),
+            texts=tuple(
+                LayoutTextIntent(
+                    text=item["text"],
+                    role=item["role"],
+                    position=_point(item["position"]),
+                    owner_ref=item["owner_ref"],
+                    font_size=item.get("font_size", 1.27),
+                )
+                for item in entry.get("texts", [])
+            ),
+            routed_nets=tuple(
+                RoutedNetIntent(
+                    name=item["name"],
+                    segments=tuple(tuple(_point(point) for point in segment) for segment in item.get("segments", [])),
+                    junctions=tuple(_point(point) for point in item.get("junctions", [])),
+                )
+                for item in entry.get("routed_nets", [])
+            ),
+        )
+    return layouts
+
+
+def _point(payload: dict[str, float]) -> Point:
+    return Point(payload["x"], payload["y"])
+
+
+def _component_orientation(name: str, ref: str, orientation: str) -> str:
+    if name == "schmitt_trigger" and ref == "R3":
+        return "horizontal_flipped"
+    return orientation
+
+
+def _rc_lowpass_spec() -> CircuitSpec:
     return (
         CircuitSpec("rc_lowpass")
         .add("V1", "V", "DC 5", "vin", "0")
@@ -14,7 +145,7 @@ def rc_lowpass() -> CircuitSpec:
     )
 
 
-def rc_highpass() -> CircuitSpec:
+def _rc_highpass_spec() -> CircuitSpec:
     return (
         CircuitSpec("rc_highpass")
         .add("V1", "V", "AC 1", "vin", "0")
@@ -24,7 +155,7 @@ def rc_highpass() -> CircuitSpec:
     )
 
 
-def rlc_bandpass() -> CircuitSpec:
+def _rlc_bandpass_spec() -> CircuitSpec:
     return (
         CircuitSpec("rlc_bandpass")
         .add("V1", "V", "AC 1", "vin", "0")
@@ -36,7 +167,7 @@ def rlc_bandpass() -> CircuitSpec:
     )
 
 
-def diode_clipper() -> CircuitSpec:
+def _diode_clipper_spec() -> CircuitSpec:
     return (
         CircuitSpec("diode_clipper")
         .add("V1", "V", "SIN(0 5 1k)", "vin", "0")
@@ -47,7 +178,7 @@ def diode_clipper() -> CircuitSpec:
     )
 
 
-def bjt_common_emitter() -> CircuitSpec:
+def _bjt_common_emitter_spec() -> CircuitSpec:
     return (
         CircuitSpec("bjt_common_emitter")
         .add("VCC", "V", "DC 12", "vcc", "0")
@@ -66,7 +197,7 @@ def bjt_common_emitter() -> CircuitSpec:
     )
 
 
-def opamp_inverting() -> CircuitSpec:
+def _opamp_inverting_spec() -> CircuitSpec:
     return (
         CircuitSpec("opamp_inverting")
         .add("VCC", "V", "DC 12", "vcc", "0")
@@ -85,7 +216,7 @@ def opamp_inverting() -> CircuitSpec:
     )
 
 
-def cmos_inverter() -> CircuitSpec:
+def _cmos_inverter_spec() -> CircuitSpec:
     return (
         CircuitSpec("cmos_inverter")
         .add("VDD", "V", "DC 3.3", "vdd", "0")
@@ -98,7 +229,7 @@ def cmos_inverter() -> CircuitSpec:
     )
 
 
-def schmitt_trigger() -> CircuitSpec:
+def _schmitt_trigger_spec() -> CircuitSpec:
     return (
         CircuitSpec("schmitt_trigger")
         .add("VCC", "V", "DC 5", "vcc", "0")
@@ -115,16 +246,3 @@ def schmitt_trigger() -> CircuitSpec:
         .add_model(".ends OPCMP")
         .analyze("tran 10us 3ms")
     )
-
-
-def all_examples() -> list[CircuitSpec]:
-    return [
-        rc_lowpass(),
-        rc_highpass(),
-        rlc_bandpass(),
-        diode_clipper(),
-        bjt_common_emitter(),
-        opamp_inverting(),
-        cmos_inverter(),
-        schmitt_trigger(),
-    ]

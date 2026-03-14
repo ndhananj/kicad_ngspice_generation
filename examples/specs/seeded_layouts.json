@@ -1,0 +1,2827 @@
+{
+  "rc_lowpass": {
+    "name": "rc_lowpass",
+    "components": [
+      {
+        "ref": "V1",
+        "center": {
+          "x": 55.88,
+          "y": 86.36
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 55.88,
+          "y": 76.2
+        },
+        "value_position": {
+          "x": 55.88,
+          "y": 96.52
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "R1",
+        "center": {
+          "x": 90.17,
+          "y": 77.47
+        },
+        "orientation": "horizontal",
+        "reference_position": {
+          "x": 90.17,
+          "y": 69.85
+        },
+        "value_position": {
+          "x": 90.17,
+          "y": 86.36
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "C1",
+        "center": {
+          "x": 96.52,
+          "y": 96.52
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 96.52,
+          "y": 88.9
+        },
+        "value_position": {
+          "x": 96.52,
+          "y": 104.14
+        },
+        "hidden_reference": false
+      }
+    ],
+    "supports": [
+      {
+        "ref": "#SUPPORT0001",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 96.52,
+          "y": 114.3
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 96.52,
+          "y": 110.49
+        },
+        "value_position": {
+          "x": 96.52,
+          "y": 118.11
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0002",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 55.88,
+          "y": 105.41
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 55.88,
+          "y": 101.6
+        },
+        "value_position": {
+          "x": 55.88,
+          "y": 109.22
+        },
+        "hidden_reference": true
+      }
+    ],
+    "texts": [
+      {
+        "text": "vout",
+        "role": "net_label",
+        "position": {
+          "x": 96.52,
+          "y": 77.47
+        },
+        "owner_ref": "label:1",
+        "font_size": 1.27
+      },
+      {
+        "text": "vin",
+        "role": "net_label",
+        "position": {
+          "x": 69.85,
+          "y": 77.47
+        },
+        "owner_ref": "label:2",
+        "font_size": 1.27
+      }
+    ],
+    "routed_nets": [
+      {
+        "name": "0",
+        "segments": [
+          [
+            {
+              "x": 55.88,
+              "y": 93.98
+            },
+            {
+              "x": 55.88,
+              "y": 105.41
+            }
+          ],
+          [
+            {
+              "x": 96.52,
+              "y": 102.87
+            },
+            {
+              "x": 96.52,
+              "y": 114.3
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vin",
+        "segments": [
+          [
+            {
+              "x": 55.88,
+              "y": 78.74
+            },
+            {
+              "x": 55.88,
+              "y": 77.47
+            }
+          ],
+          [
+            {
+              "x": 55.88,
+              "y": 77.47
+            },
+            {
+              "x": 83.82,
+              "y": 77.47
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vout",
+        "segments": [
+          [
+            {
+              "x": 96.52,
+              "y": 90.17
+            },
+            {
+              "x": 96.52,
+              "y": 77.47
+            }
+          ]
+        ],
+        "junctions": []
+      }
+    ]
+  },
+  "rc_highpass": {
+    "name": "rc_highpass",
+    "components": [
+      {
+        "ref": "V1",
+        "center": {
+          "x": 55.88,
+          "y": 86.36
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 55.88,
+          "y": 76.2
+        },
+        "value_position": {
+          "x": 55.88,
+          "y": 96.52
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "C1",
+        "center": {
+          "x": 90.17,
+          "y": 77.47
+        },
+        "orientation": "horizontal",
+        "reference_position": {
+          "x": 90.17,
+          "y": 69.85
+        },
+        "value_position": {
+          "x": 90.17,
+          "y": 86.36
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "R1",
+        "center": {
+          "x": 96.52,
+          "y": 96.52
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 96.52,
+          "y": 88.9
+        },
+        "value_position": {
+          "x": 96.52,
+          "y": 104.14
+        },
+        "hidden_reference": false
+      }
+    ],
+    "supports": [
+      {
+        "ref": "#SUPPORT0001",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 96.52,
+          "y": 114.3
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 96.52,
+          "y": 110.49
+        },
+        "value_position": {
+          "x": 96.52,
+          "y": 118.11
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0002",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 55.88,
+          "y": 105.41
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 55.88,
+          "y": 101.6
+        },
+        "value_position": {
+          "x": 55.88,
+          "y": 109.22
+        },
+        "hidden_reference": true
+      }
+    ],
+    "texts": [
+      {
+        "text": "vin",
+        "role": "net_label",
+        "position": {
+          "x": 69.85,
+          "y": 77.47
+        },
+        "owner_ref": "label:1",
+        "font_size": 1.27
+      },
+      {
+        "text": "vmid",
+        "role": "net_label",
+        "position": {
+          "x": 96.52,
+          "y": 77.47
+        },
+        "owner_ref": "label:2",
+        "font_size": 1.27
+      }
+    ],
+    "routed_nets": [
+      {
+        "name": "0",
+        "segments": [
+          [
+            {
+              "x": 55.88,
+              "y": 93.98
+            },
+            {
+              "x": 55.88,
+              "y": 105.41
+            }
+          ],
+          [
+            {
+              "x": 96.52,
+              "y": 102.87
+            },
+            {
+              "x": 96.52,
+              "y": 114.3
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vin",
+        "segments": [
+          [
+            {
+              "x": 55.88,
+              "y": 78.74
+            },
+            {
+              "x": 55.88,
+              "y": 77.47
+            }
+          ],
+          [
+            {
+              "x": 55.88,
+              "y": 77.47
+            },
+            {
+              "x": 83.82,
+              "y": 77.47
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vmid",
+        "segments": [
+          [
+            {
+              "x": 96.52,
+              "y": 90.17
+            },
+            {
+              "x": 96.52,
+              "y": 77.47
+            }
+          ]
+        ],
+        "junctions": []
+      }
+    ]
+  },
+  "rlc_bandpass": {
+    "name": "rlc_bandpass",
+    "components": [
+      {
+        "ref": "R1",
+        "center": {
+          "x": 90.17,
+          "y": 77.47
+        },
+        "orientation": "horizontal",
+        "reference_position": {
+          "x": 90.17,
+          "y": 69.85
+        },
+        "value_position": {
+          "x": 90.17,
+          "y": 86.36
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "R2",
+        "center": {
+          "x": 135.89,
+          "y": 96.52
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 90.17,
+          "y": 69.85
+        },
+        "value_position": {
+          "x": 90.17,
+          "y": 86.36
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "C1",
+        "center": {
+          "x": 116.84,
+          "y": 96.52
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 116.84,
+          "y": 88.9
+        },
+        "value_position": {
+          "x": 116.84,
+          "y": 104.14
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "L1",
+        "center": {
+          "x": 119.38,
+          "y": 77.47
+        },
+        "orientation": "horizontal",
+        "reference_position": {
+          "x": 119.38,
+          "y": 69.85
+        },
+        "value_position": {
+          "x": 119.38,
+          "y": 86.36
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "V1",
+        "center": {
+          "x": 55.88,
+          "y": 86.36
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 55.88,
+          "y": 76.2
+        },
+        "value_position": {
+          "x": 55.88,
+          "y": 96.52
+        },
+        "hidden_reference": false
+      }
+    ],
+    "supports": [
+      {
+        "ref": "#SUPPORT0001",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 135.89,
+          "y": 114.3
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 135.89,
+          "y": 110.49
+        },
+        "value_position": {
+          "x": 135.89,
+          "y": 118.11
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0002",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 55.88,
+          "y": 105.41
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 55.88,
+          "y": 101.6
+        },
+        "value_position": {
+          "x": 55.88,
+          "y": 109.22
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0003",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 116.84,
+          "y": 114.3
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 116.84,
+          "y": 110.49
+        },
+        "value_position": {
+          "x": 116.84,
+          "y": 118.11
+        },
+        "hidden_reference": true
+      }
+    ],
+    "texts": [
+      {
+        "text": "vin",
+        "role": "net_label",
+        "position": {
+          "x": 69.85,
+          "y": 77.47
+        },
+        "owner_ref": "label:1",
+        "font_size": 1.27
+      },
+      {
+        "text": "n2",
+        "role": "net_label",
+        "position": {
+          "x": 125.73,
+          "y": 77.47
+        },
+        "owner_ref": "label:2",
+        "font_size": 1.27
+      },
+      {
+        "text": "n1",
+        "role": "net_label",
+        "position": {
+          "x": 96.52,
+          "y": 77.47
+        },
+        "owner_ref": "label:3",
+        "font_size": 1.27
+      }
+    ],
+    "routed_nets": [
+      {
+        "name": "0",
+        "segments": [
+          [
+            {
+              "x": 116.84,
+              "y": 102.87
+            },
+            {
+              "x": 116.84,
+              "y": 114.3
+            }
+          ],
+          [
+            {
+              "x": 55.88,
+              "y": 93.98
+            },
+            {
+              "x": 55.88,
+              "y": 105.41
+            }
+          ],
+          [
+            {
+              "x": 135.89,
+              "y": 102.87
+            },
+            {
+              "x": 135.89,
+              "y": 114.3
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "n1",
+        "segments": [
+          [
+            {
+              "x": 113.03,
+              "y": 77.47
+            },
+            {
+              "x": 96.52,
+              "y": 77.47
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "n2",
+        "segments": [
+          [
+            {
+              "x": 116.84,
+              "y": 90.17
+            },
+            {
+              "x": 125.73,
+              "y": 90.17
+            }
+          ],
+          [
+            {
+              "x": 135.89,
+              "y": 77.47
+            },
+            {
+              "x": 125.73,
+              "y": 77.47
+            }
+          ],
+          [
+            {
+              "x": 135.89,
+              "y": 90.17
+            },
+            {
+              "x": 135.89,
+              "y": 77.47
+            }
+          ],
+          [
+            {
+              "x": 125.73,
+              "y": 90.17
+            },
+            {
+              "x": 125.73,
+              "y": 77.47
+            }
+          ]
+        ],
+        "junctions": [
+          {
+            "x": 125.73,
+            "y": 77.47
+          }
+        ]
+      },
+      {
+        "name": "vin",
+        "segments": [
+          [
+            {
+              "x": 55.88,
+              "y": 77.47
+            },
+            {
+              "x": 83.82,
+              "y": 77.47
+            }
+          ],
+          [
+            {
+              "x": 55.88,
+              "y": 78.74
+            },
+            {
+              "x": 55.88,
+              "y": 77.47
+            }
+          ]
+        ],
+        "junctions": []
+      }
+    ]
+  },
+  "diode_clipper": {
+    "name": "diode_clipper",
+    "components": [
+      {
+        "ref": "R1",
+        "center": {
+          "x": 90.17,
+          "y": 77.47
+        },
+        "orientation": "horizontal",
+        "reference_position": {
+          "x": 90.17,
+          "y": 69.85
+        },
+        "value_position": {
+          "x": 90.17,
+          "y": 86.36
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "V1",
+        "center": {
+          "x": 55.88,
+          "y": 86.36
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 55.88,
+          "y": 76.2
+        },
+        "value_position": {
+          "x": 55.88,
+          "y": 96.52
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "D1",
+        "center": {
+          "x": 96.52,
+          "y": 95.25
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 96.52,
+          "y": 87.63
+        },
+        "value_position": {
+          "x": 96.52,
+          "y": 102.87
+        },
+        "hidden_reference": false
+      }
+    ],
+    "supports": [
+      {
+        "ref": "#SUPPORT0001",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 55.88,
+          "y": 105.41
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 55.88,
+          "y": 101.6
+        },
+        "value_position": {
+          "x": 55.88,
+          "y": 109.22
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0002",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 96.52,
+          "y": 111.76
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 96.52,
+          "y": 107.95
+        },
+        "value_position": {
+          "x": 96.52,
+          "y": 115.57000000000001
+        },
+        "hidden_reference": true
+      }
+    ],
+    "texts": [
+      {
+        "text": "vin",
+        "role": "net_label",
+        "position": {
+          "x": 69.85,
+          "y": 77.47
+        },
+        "owner_ref": "label:1",
+        "font_size": 1.27
+      },
+      {
+        "text": "vout",
+        "role": "net_label",
+        "position": {
+          "x": 96.52,
+          "y": 77.47
+        },
+        "owner_ref": "label:2",
+        "font_size": 1.27
+      }
+    ],
+    "routed_nets": [
+      {
+        "name": "0",
+        "segments": [
+          [
+            {
+              "x": 55.88,
+              "y": 93.98
+            },
+            {
+              "x": 55.88,
+              "y": 105.41
+            }
+          ],
+          [
+            {
+              "x": 96.52,
+              "y": 100.33
+            },
+            {
+              "x": 96.52,
+              "y": 111.76
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vin",
+        "segments": [
+          [
+            {
+              "x": 55.88,
+              "y": 77.47
+            },
+            {
+              "x": 83.82,
+              "y": 77.47
+            }
+          ],
+          [
+            {
+              "x": 55.88,
+              "y": 78.74
+            },
+            {
+              "x": 55.88,
+              "y": 77.47
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vout",
+        "segments": [
+          [
+            {
+              "x": 96.52,
+              "y": 90.17
+            },
+            {
+              "x": 96.52,
+              "y": 77.47
+            }
+          ]
+        ],
+        "junctions": []
+      }
+    ]
+  },
+  "bjt_common_emitter": {
+    "name": "bjt_common_emitter",
+    "components": [
+      {
+        "ref": "RL",
+        "center": {
+          "x": 199.39,
+          "y": 115.57
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 199.39,
+          "y": 106.68
+        },
+        "value_position": {
+          "x": 199.39,
+          "y": 123.19
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "VS",
+        "center": {
+          "x": 69.85,
+          "y": 107.95
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 69.85,
+          "y": 97.79
+        },
+        "value_position": {
+          "x": 69.85,
+          "y": 118.11
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "RE",
+        "center": {
+          "x": 163.83,
+          "y": 115.57
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 163.83,
+          "y": 106.68
+        },
+        "value_position": {
+          "x": 163.83,
+          "y": 123.19
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "Q1",
+        "center": {
+          "x": 160.02,
+          "y": 100.33
+        },
+        "orientation": "right",
+        "reference_position": {
+          "x": 160.02,
+          "y": 90.17
+        },
+        "value_position": {
+          "x": 160.02,
+          "y": 110.49
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "R1",
+        "center": {
+          "x": 125.73,
+          "y": 93.98
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 125.73,
+          "y": 85.09
+        },
+        "value_position": {
+          "x": 125.73,
+          "y": 101.6
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "CE",
+        "center": {
+          "x": 177.8,
+          "y": 115.57
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 177.8,
+          "y": 106.68
+        },
+        "value_position": {
+          "x": 177.8,
+          "y": 123.19
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "VCC",
+        "center": {
+          "x": 219.71,
+          "y": 76.2
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 219.71,
+          "y": 66.04
+        },
+        "value_position": {
+          "x": 219.71,
+          "y": 86.36
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "R2",
+        "center": {
+          "x": 125.73,
+          "y": 115.57
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 125.73,
+          "y": 85.09
+        },
+        "value_position": {
+          "x": 125.73,
+          "y": 101.6
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "RC",
+        "center": {
+          "x": 163.83,
+          "y": 85.09
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 163.83,
+          "y": 76.2
+        },
+        "value_position": {
+          "x": 163.83,
+          "y": 92.71
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "CB",
+        "center": {
+          "x": 100.33,
+          "y": 100.33
+        },
+        "orientation": "horizontal",
+        "reference_position": {
+          "x": 100.33,
+          "y": 91.44
+        },
+        "value_position": {
+          "x": 100.33,
+          "y": 107.95
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "CC",
+        "center": {
+          "x": 193.04,
+          "y": 91.44
+        },
+        "orientation": "horizontal",
+        "reference_position": {
+          "x": 193.04,
+          "y": 82.55
+        },
+        "value_position": {
+          "x": 193.04,
+          "y": 99.06
+        },
+        "hidden_reference": false
+      }
+    ],
+    "supports": [],
+    "texts": [
+      {
+        "text": "base",
+        "role": "net_label",
+        "position": {
+          "x": 125.73,
+          "y": 100.33
+        },
+        "owner_ref": "label:1",
+        "font_size": 1.27
+      },
+      {
+        "text": "collector",
+        "role": "net_label",
+        "position": {
+          "x": 163.83,
+          "y": 91.44
+        },
+        "owner_ref": "label:2",
+        "font_size": 1.27
+      },
+      {
+        "text": "vout",
+        "role": "net_label",
+        "position": {
+          "x": 199.39,
+          "y": 91.44
+        },
+        "owner_ref": "label:3",
+        "font_size": 1.27
+      },
+      {
+        "text": "vin_src",
+        "role": "net_label",
+        "position": {
+          "x": 81.28,
+          "y": 100.33
+        },
+        "owner_ref": "label:4",
+        "font_size": 1.27
+      },
+      {
+        "text": "emitter",
+        "role": "net_label",
+        "position": {
+          "x": 163.83,
+          "y": 109.22
+        },
+        "owner_ref": "label:5",
+        "font_size": 1.27
+      }
+    ],
+    "routed_nets": [
+      {
+        "name": "0",
+        "segments": [
+          [
+            {
+              "x": 157.48,
+              "y": 109.22
+            },
+            {
+              "x": 157.48,
+              "y": 121.92
+            }
+          ],
+          [
+            {
+              "x": 69.85,
+              "y": 115.57
+            },
+            {
+              "x": 69.85,
+              "y": 121.92
+            }
+          ],
+          [
+            {
+              "x": 69.85,
+              "y": 121.92
+            },
+            {
+              "x": 157.48,
+              "y": 121.92
+            }
+          ],
+          [
+            {
+              "x": 157.48,
+              "y": 121.92
+            },
+            {
+              "x": 219.71,
+              "y": 121.92
+            }
+          ],
+          [
+            {
+              "x": 219.71,
+              "y": 83.82
+            },
+            {
+              "x": 219.71,
+              "y": 121.92
+            }
+          ]
+        ],
+        "junctions": [
+          {
+            "x": 157.48,
+            "y": 121.92
+          }
+        ]
+      },
+      {
+        "name": "base",
+        "segments": [
+          [
+            {
+              "x": 106.68,
+              "y": 100.33
+            },
+            {
+              "x": 125.73,
+              "y": 100.33
+            }
+          ],
+          [
+            {
+              "x": 125.73,
+              "y": 109.22
+            },
+            {
+              "x": 125.73,
+              "y": 100.33
+            }
+          ],
+          [
+            {
+              "x": 152.4,
+              "y": 100.33
+            },
+            {
+              "x": 125.73,
+              "y": 100.33
+            }
+          ]
+        ],
+        "junctions": [
+          {
+            "x": 125.73,
+            "y": 100.33
+          }
+        ]
+      },
+      {
+        "name": "bjt_common_emitter:imported:wire:9",
+        "segments": [
+          [
+            {
+              "x": 163.83,
+              "y": 78.74
+            },
+            {
+              "x": 163.83,
+              "y": 68.58
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "collector",
+        "segments": [
+          [
+            {
+              "x": 186.69,
+              "y": 91.44
+            },
+            {
+              "x": 163.83,
+              "y": 91.44
+            }
+          ]
+        ],
+        "junctions": [
+          {
+            "x": 163.83,
+            "y": 91.44
+          }
+        ]
+      },
+      {
+        "name": "emitter",
+        "segments": [
+          [
+            {
+              "x": 177.8,
+              "y": 109.22
+            },
+            {
+              "x": 163.83,
+              "y": 109.22
+            }
+          ]
+        ],
+        "junctions": [
+          {
+            "x": 163.83,
+            "y": 109.22
+          }
+        ]
+      },
+      {
+        "name": "vcc",
+        "segments": [
+          [
+            {
+              "x": 125.73,
+              "y": 87.63
+            },
+            {
+              "x": 125.73,
+              "y": 68.58
+            }
+          ],
+          [
+            {
+              "x": 125.73,
+              "y": 68.58
+            },
+            {
+              "x": 219.71,
+              "y": 68.58
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vin_src",
+        "segments": [
+          [
+            {
+              "x": 69.85,
+              "y": 100.33
+            },
+            {
+              "x": 93.98,
+              "y": 100.33
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vout",
+        "segments": [
+          [
+            {
+              "x": 199.39,
+              "y": 91.44
+            },
+            {
+              "x": 199.39,
+              "y": 109.22
+            }
+          ]
+        ],
+        "junctions": []
+      }
+    ]
+  },
+  "opamp_inverting": {
+    "name": "opamp_inverting",
+    "components": [
+      {
+        "ref": "VCC",
+        "center": {
+          "x": 80.01,
+          "y": 59.69
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 80.01,
+          "y": 49.53
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 69.85
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "XU1",
+        "center": {
+          "x": 170.18,
+          "y": 90.17
+        },
+        "orientation": "right",
+        "reference_position": {
+          "x": 170.18,
+          "y": 80.01
+        },
+        "value_position": {
+          "x": 170.18,
+          "y": 100.33
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "RF",
+        "center": {
+          "x": 162.56,
+          "y": 76.2
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 162.56,
+          "y": 68.58
+        },
+        "value_position": {
+          "x": 162.56,
+          "y": 83.82
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "RIN",
+        "center": {
+          "x": 129.54,
+          "y": 82.55
+        },
+        "orientation": "horizontal",
+        "reference_position": {
+          "x": 129.54,
+          "y": 74.93
+        },
+        "value_position": {
+          "x": 129.54,
+          "y": 90.17
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "R3",
+        "center": {
+          "x": 162.56,
+          "y": 104.14
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 162.56,
+          "y": 96.52
+        },
+        "value_position": {
+          "x": 162.56,
+          "y": 111.76
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "VEE",
+        "center": {
+          "x": 80.01,
+          "y": 100.33
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 80.01,
+          "y": 90.17
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 110.49
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "VIN",
+        "center": {
+          "x": 80.01,
+          "y": 139.7
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 80.01,
+          "y": 129.54
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 149.86
+        },
+        "hidden_reference": false
+      }
+    ],
+    "supports": [
+      {
+        "ref": "#SUPPORT0001",
+        "shape": "power",
+        "value": "VCC",
+        "center": {
+          "x": 167.64,
+          "y": 80.01
+        },
+        "orientation": "up",
+        "reference_position": {
+          "x": 167.64,
+          "y": 76.2
+        },
+        "value_position": {
+          "x": 167.64,
+          "y": 83.82000000000001
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0002",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 80.01,
+          "y": 160.02
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 80.01,
+          "y": 156.21
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 163.83
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0003",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 162.56,
+          "y": 118.11
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 162.56,
+          "y": 114.3
+        },
+        "value_position": {
+          "x": 162.56,
+          "y": 121.92
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0004",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 80.01,
+          "y": 80.01
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 80.01,
+          "y": 76.2
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 83.82000000000001
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0005",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 80.01,
+          "y": 119.38
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 80.01,
+          "y": 115.57
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 123.19
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0006",
+        "shape": "power",
+        "value": "VCC",
+        "center": {
+          "x": 80.01,
+          "y": 49.53
+        },
+        "orientation": "up",
+        "reference_position": {
+          "x": 80.01,
+          "y": 45.72
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 53.34
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0007",
+        "shape": "power",
+        "value": "VEE",
+        "center": {
+          "x": 80.01,
+          "y": 90.17
+        },
+        "orientation": "up",
+        "reference_position": {
+          "x": 80.01,
+          "y": 86.36
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 93.98
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0008",
+        "shape": "power",
+        "value": "VEE",
+        "center": {
+          "x": 167.64,
+          "y": 100.33
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 167.64,
+          "y": 96.52
+        },
+        "value_position": {
+          "x": 167.64,
+          "y": 104.14
+        },
+        "hidden_reference": true
+      }
+    ],
+    "texts": [
+      {
+        "text": "vplus_ref",
+        "role": "net_label",
+        "position": {
+          "x": 162.56,
+          "y": 97.79
+        },
+        "owner_ref": "label:1",
+        "font_size": 1.5
+      },
+      {
+        "text": "vminus",
+        "role": "net_label",
+        "position": {
+          "x": 162.56,
+          "y": 82.55
+        },
+        "owner_ref": "label:2",
+        "font_size": 1.5
+      },
+      {
+        "text": "vin",
+        "role": "net_label",
+        "position": {
+          "x": 123.19,
+          "y": 82.55
+        },
+        "owner_ref": "label:3",
+        "font_size": 1.5
+      },
+      {
+        "text": "vout",
+        "role": "net_label",
+        "position": {
+          "x": 177.8,
+          "y": 69.85
+        },
+        "owner_ref": "label:4",
+        "font_size": 1.5
+      }
+    ],
+    "routed_nets": [
+      {
+        "name": "0",
+        "segments": [
+          [
+            {
+              "x": 80.01,
+              "y": 147.32
+            },
+            {
+              "x": 80.01,
+              "y": 160.02
+            }
+          ],
+          [
+            {
+              "x": 162.56,
+              "y": 110.49
+            },
+            {
+              "x": 162.56,
+              "y": 118.11
+            }
+          ],
+          [
+            {
+              "x": 80.01,
+              "y": 107.95
+            },
+            {
+              "x": 80.01,
+              "y": 119.38
+            }
+          ],
+          [
+            {
+              "x": 80.01,
+              "y": 67.31
+            },
+            {
+              "x": 80.01,
+              "y": 80.01
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vcc",
+        "segments": [
+          [
+            {
+              "x": 80.01,
+              "y": 52.07
+            },
+            {
+              "x": 80.01,
+              "y": 49.53
+            }
+          ],
+          [
+            {
+              "x": 167.64,
+              "y": 82.55
+            },
+            {
+              "x": 167.64,
+              "y": 80.01
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vee",
+        "segments": [
+          [
+            {
+              "x": 167.64,
+              "y": 97.79
+            },
+            {
+              "x": 167.64,
+              "y": 100.33
+            }
+          ],
+          [
+            {
+              "x": 80.01,
+              "y": 92.71
+            },
+            {
+              "x": 80.01,
+              "y": 90.17
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vin",
+        "segments": [
+          [
+            {
+              "x": 80.01,
+              "y": 132.08
+            },
+            {
+              "x": 80.01,
+              "y": 128.27
+            }
+          ],
+          [
+            {
+              "x": 80.01,
+              "y": 128.27
+            },
+            {
+              "x": 123.19,
+              "y": 128.27
+            }
+          ],
+          [
+            {
+              "x": 123.19,
+              "y": 128.27
+            },
+            {
+              "x": 123.19,
+              "y": 82.55
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vminus",
+        "segments": [
+          [
+            {
+              "x": 162.56,
+              "y": 87.63
+            },
+            {
+              "x": 162.56,
+              "y": 82.55
+            }
+          ],
+          [
+            {
+              "x": 135.89,
+              "y": 82.55
+            },
+            {
+              "x": 162.56,
+              "y": 82.55
+            }
+          ]
+        ],
+        "junctions": [
+          {
+            "x": 162.56,
+            "y": 82.55
+          }
+        ]
+      },
+      {
+        "name": "vout",
+        "segments": [
+          [
+            {
+              "x": 177.8,
+              "y": 90.17
+            },
+            {
+              "x": 177.8,
+              "y": 69.85
+            }
+          ],
+          [
+            {
+              "x": 162.56,
+              "y": 69.85
+            },
+            {
+              "x": 177.8,
+              "y": 69.85
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vplus_ref",
+        "segments": [
+          [
+            {
+              "x": 162.56,
+              "y": 92.71
+            },
+            {
+              "x": 162.56,
+              "y": 97.79
+            }
+          ]
+        ],
+        "junctions": []
+      }
+    ]
+  },
+  "cmos_inverter": {
+    "name": "cmos_inverter",
+    "components": [
+      {
+        "ref": "VDD",
+        "center": {
+          "x": 62.23,
+          "y": 68.58
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 62.23,
+          "y": 58.42
+        },
+        "value_position": {
+          "x": 62.23,
+          "y": 78.74
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "VIN",
+        "center": {
+          "x": 83.82,
+          "y": 123.19
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 83.82,
+          "y": 113.03
+        },
+        "value_position": {
+          "x": 83.82,
+          "y": 133.35
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "MN1",
+        "center": {
+          "x": 160.02,
+          "y": 137.16
+        },
+        "orientation": "right",
+        "reference_position": {
+          "x": 160.02,
+          "y": 127.0
+        },
+        "value_position": {
+          "x": 160.02,
+          "y": 147.32
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "MP1",
+        "center": {
+          "x": 160.02,
+          "y": 88.9
+        },
+        "orientation": "right",
+        "reference_position": {
+          "x": 160.02,
+          "y": 78.74
+        },
+        "value_position": {
+          "x": 160.02,
+          "y": 99.06
+        },
+        "hidden_reference": false
+      }
+    ],
+    "supports": [
+      {
+        "ref": "#SUPPORT0001",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 163.83,
+          "y": 154.94
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 163.83,
+          "y": 151.13
+        },
+        "value_position": {
+          "x": 163.83,
+          "y": 158.75
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0002",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 83.82,
+          "y": 142.24
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 83.82,
+          "y": 138.43
+        },
+        "value_position": {
+          "x": 83.82,
+          "y": 146.05
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0003",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 62.23,
+          "y": 87.63
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 62.23,
+          "y": 83.82
+        },
+        "value_position": {
+          "x": 62.23,
+          "y": 91.44
+        },
+        "hidden_reference": true
+      }
+    ],
+    "texts": [
+      {
+        "text": "vin",
+        "role": "net_label",
+        "position": {
+          "x": 110.49,
+          "y": 113.03
+        },
+        "owner_ref": "label:1",
+        "font_size": 1.27
+      },
+      {
+        "text": "vdd",
+        "role": "net_label",
+        "position": {
+          "x": 163.83,
+          "y": 83.82
+        },
+        "owner_ref": "label:2",
+        "font_size": 1.27
+      },
+      {
+        "text": "vout",
+        "role": "net_label",
+        "position": {
+          "x": 162.56,
+          "y": 113.03
+        },
+        "owner_ref": "label:3",
+        "font_size": 1.27
+      }
+    ],
+    "routed_nets": [
+      {
+        "name": "0",
+        "segments": [
+          [
+            {
+              "x": 162.56,
+              "y": 142.24
+            },
+            {
+              "x": 163.83,
+              "y": 142.24
+            }
+          ],
+          [
+            {
+              "x": 165.1,
+              "y": 142.24
+            },
+            {
+              "x": 163.83,
+              "y": 142.24
+            }
+          ],
+          [
+            {
+              "x": 163.83,
+              "y": 154.94
+            },
+            {
+              "x": 163.83,
+              "y": 142.24
+            }
+          ],
+          [
+            {
+              "x": 62.23,
+              "y": 76.2
+            },
+            {
+              "x": 62.23,
+              "y": 87.63
+            }
+          ],
+          [
+            {
+              "x": 83.82,
+              "y": 130.81
+            },
+            {
+              "x": 83.82,
+              "y": 142.24
+            }
+          ]
+        ],
+        "junctions": [
+          {
+            "x": 163.83,
+            "y": 142.24
+          }
+        ]
+      },
+      {
+        "name": "vdd",
+        "segments": [
+          [
+            {
+              "x": 163.83,
+              "y": 57.15
+            },
+            {
+              "x": 163.83,
+              "y": 83.82
+            }
+          ],
+          [
+            {
+              "x": 62.23,
+              "y": 57.15
+            },
+            {
+              "x": 163.83,
+              "y": 57.15
+            }
+          ],
+          [
+            {
+              "x": 62.23,
+              "y": 60.96
+            },
+            {
+              "x": 62.23,
+              "y": 57.15
+            }
+          ],
+          [
+            {
+              "x": 162.56,
+              "y": 83.82
+            },
+            {
+              "x": 163.83,
+              "y": 83.82
+            }
+          ],
+          [
+            {
+              "x": 165.1,
+              "y": 83.82
+            },
+            {
+              "x": 163.83,
+              "y": 83.82
+            }
+          ]
+        ],
+        "junctions": [
+          {
+            "x": 163.83,
+            "y": 83.82
+          }
+        ]
+      },
+      {
+        "name": "vin",
+        "segments": [
+          [
+            {
+              "x": 110.49,
+              "y": 88.9
+            },
+            {
+              "x": 110.49,
+              "y": 113.03
+            }
+          ],
+          [
+            {
+              "x": 154.94,
+              "y": 137.16
+            },
+            {
+              "x": 110.49,
+              "y": 137.16
+            }
+          ],
+          [
+            {
+              "x": 83.82,
+              "y": 115.57
+            },
+            {
+              "x": 83.82,
+              "y": 113.03
+            }
+          ],
+          [
+            {
+              "x": 154.94,
+              "y": 88.9
+            },
+            {
+              "x": 110.49,
+              "y": 88.9
+            }
+          ],
+          [
+            {
+              "x": 110.49,
+              "y": 137.16
+            },
+            {
+              "x": 110.49,
+              "y": 113.03
+            }
+          ],
+          [
+            {
+              "x": 83.82,
+              "y": 113.03
+            },
+            {
+              "x": 110.49,
+              "y": 113.03
+            }
+          ]
+        ],
+        "junctions": [
+          {
+            "x": 110.49,
+            "y": 113.03
+          }
+        ]
+      },
+      {
+        "name": "vout",
+        "segments": [
+          [
+            {
+              "x": 162.56,
+              "y": 93.98
+            },
+            {
+              "x": 162.56,
+              "y": 132.08
+            }
+          ]
+        ],
+        "junctions": []
+      }
+    ]
+  },
+  "schmitt_trigger": {
+    "name": "schmitt_trigger",
+    "components": [
+      {
+        "ref": "R3",
+        "center": {
+          "x": 175.26,
+          "y": 118.11
+        },
+        "orientation": "horizontal",
+        "reference_position": {
+          "x": 175.26,
+          "y": 110.49
+        },
+        "value_position": {
+          "x": 175.26,
+          "y": 125.73
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "R1",
+        "center": {
+          "x": 140.97,
+          "y": 91.44
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 175.26,
+          "y": 110.49
+        },
+        "value_position": {
+          "x": 175.26,
+          "y": 125.73
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "VIN",
+        "center": {
+          "x": 80.01,
+          "y": 100.33
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 80.01,
+          "y": 90.17
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 110.49
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "VREF",
+        "center": {
+          "x": 80.01,
+          "y": 139.7
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 80.01,
+          "y": 129.54
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 149.86
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "R2",
+        "center": {
+          "x": 140.97,
+          "y": 104.14
+        },
+        "orientation": "vertical",
+        "reference_position": {
+          "x": 175.26,
+          "y": 110.49
+        },
+        "value_position": {
+          "x": 175.26,
+          "y": 125.73
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "VCC",
+        "center": {
+          "x": 80.01,
+          "y": 59.69
+        },
+        "orientation": "vertical_up",
+        "reference_position": {
+          "x": 80.01,
+          "y": 49.53
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 69.85
+        },
+        "hidden_reference": false
+      },
+      {
+        "ref": "XU1",
+        "center": {
+          "x": 170.18,
+          "y": 95.25
+        },
+        "orientation": "right",
+        "reference_position": {
+          "x": 170.18,
+          "y": 85.09
+        },
+        "value_position": {
+          "x": 170.18,
+          "y": 105.41
+        },
+        "hidden_reference": false
+      }
+    ],
+    "supports": [
+      {
+        "ref": "#SUPPORT0001",
+        "shape": "power",
+        "value": "VCC",
+        "center": {
+          "x": 80.01,
+          "y": 49.53
+        },
+        "orientation": "up",
+        "reference_position": {
+          "x": 80.01,
+          "y": 45.72
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 53.34
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0002",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 80.01,
+          "y": 80.01
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 80.01,
+          "y": 76.2
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 83.82000000000001
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0003",
+        "shape": "power",
+        "value": "VREF",
+        "center": {
+          "x": 140.97,
+          "y": 85.09
+        },
+        "orientation": "up",
+        "reference_position": {
+          "x": 140.97,
+          "y": 81.28
+        },
+        "value_position": {
+          "x": 140.97,
+          "y": 88.9
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0004",
+        "shape": "power",
+        "value": "VCC",
+        "center": {
+          "x": 167.64,
+          "y": 90.17
+        },
+        "orientation": "up",
+        "reference_position": {
+          "x": 167.64,
+          "y": 86.36
+        },
+        "value_position": {
+          "x": 167.64,
+          "y": 93.98
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0005",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 140.97,
+          "y": 119.38
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 140.97,
+          "y": 115.57
+        },
+        "value_position": {
+          "x": 140.97,
+          "y": 123.19
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0006",
+        "shape": "power",
+        "value": "VIN",
+        "center": {
+          "x": 157.48,
+          "y": 92.71
+        },
+        "orientation": "right",
+        "reference_position": {
+          "x": 157.48,
+          "y": 88.89999999999999
+        },
+        "value_position": {
+          "x": 157.48,
+          "y": 96.52
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0007",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 167.64,
+          "y": 110.49
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 167.64,
+          "y": 106.67999999999999
+        },
+        "value_position": {
+          "x": 167.64,
+          "y": 114.3
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0008",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 80.01,
+          "y": 119.38
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 80.01,
+          "y": 115.57
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 123.19
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0009",
+        "shape": "power",
+        "value": "VIN",
+        "center": {
+          "x": 80.01,
+          "y": 88.9
+        },
+        "orientation": "up",
+        "reference_position": {
+          "x": 80.01,
+          "y": 85.09
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 92.71000000000001
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0010",
+        "shape": "power",
+        "value": "VREF",
+        "center": {
+          "x": 80.01,
+          "y": 128.27
+        },
+        "orientation": "up",
+        "reference_position": {
+          "x": 80.01,
+          "y": 124.46000000000001
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 132.08
+        },
+        "hidden_reference": true
+      },
+      {
+        "ref": "#SUPPORT0011",
+        "shape": "ground",
+        "value": "GND",
+        "center": {
+          "x": 80.01,
+          "y": 160.02
+        },
+        "orientation": "down",
+        "reference_position": {
+          "x": 80.01,
+          "y": 156.21
+        },
+        "value_position": {
+          "x": 80.01,
+          "y": 163.83
+        },
+        "hidden_reference": true
+      }
+    ],
+    "texts": [
+      {
+        "text": "vout",
+        "role": "net_label",
+        "position": {
+          "x": 185.42,
+          "y": 95.25
+        },
+        "owner_ref": "label:1",
+        "font_size": 1.5
+      },
+      {
+        "text": "vplus",
+        "role": "net_label",
+        "position": {
+          "x": 156.21,
+          "y": 97.79
+        },
+        "owner_ref": "label:2",
+        "font_size": 1.5
+      }
+    ],
+    "routed_nets": [
+      {
+        "name": "0",
+        "segments": [
+          [
+            {
+              "x": 140.97,
+              "y": 110.49
+            },
+            {
+              "x": 140.97,
+              "y": 119.38
+            }
+          ],
+          [
+            {
+              "x": 80.01,
+              "y": 67.31
+            },
+            {
+              "x": 80.01,
+              "y": 80.01
+            }
+          ],
+          [
+            {
+              "x": 167.64,
+              "y": 102.87
+            },
+            {
+              "x": 167.64,
+              "y": 110.49
+            }
+          ],
+          [
+            {
+              "x": 80.01,
+              "y": 147.32
+            },
+            {
+              "x": 80.01,
+              "y": 160.02
+            }
+          ],
+          [
+            {
+              "x": 80.01,
+              "y": 107.95
+            },
+            {
+              "x": 80.01,
+              "y": 119.38
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "junction:147.32:97.79",
+        "segments": [],
+        "junctions": [
+          {
+            "x": 147.32,
+            "y": 97.79
+          }
+        ]
+      },
+      {
+        "name": "vcc",
+        "segments": [
+          [
+            {
+              "x": 80.01,
+              "y": 52.07
+            },
+            {
+              "x": 80.01,
+              "y": 49.53
+            }
+          ],
+          [
+            {
+              "x": 167.64,
+              "y": 87.63
+            },
+            {
+              "x": 167.64,
+              "y": 90.17
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vin",
+        "segments": [
+          [
+            {
+              "x": 80.01,
+              "y": 92.71
+            },
+            {
+              "x": 80.01,
+              "y": 88.9
+            }
+          ],
+          [
+            {
+              "x": 157.48,
+              "y": 92.71
+            },
+            {
+              "x": 162.56,
+              "y": 92.71
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vout",
+        "segments": [
+          [
+            {
+              "x": 181.61,
+              "y": 118.11
+            },
+            {
+              "x": 185.42,
+              "y": 118.11
+            }
+          ],
+          [
+            {
+              "x": 185.42,
+              "y": 118.11
+            },
+            {
+              "x": 185.42,
+              "y": 95.25
+            }
+          ],
+          [
+            {
+              "x": 177.8,
+              "y": 95.25
+            },
+            {
+              "x": 185.42,
+              "y": 95.25
+            }
+          ]
+        ],
+        "junctions": []
+      },
+      {
+        "name": "vplus",
+        "segments": [
+          [
+            {
+              "x": 168.91,
+              "y": 118.11
+            },
+            {
+              "x": 147.32,
+              "y": 118.11
+            }
+          ],
+          [
+            {
+              "x": 147.32,
+              "y": 118.11
+            },
+            {
+              "x": 147.32,
+              "y": 97.79
+            }
+          ],
+          [
+            {
+              "x": 147.32,
+              "y": 97.79
+            },
+            {
+              "x": 162.56,
+              "y": 97.79
+            }
+          ],
+          [
+            {
+              "x": 147.32,
+              "y": 97.79
+            },
+            {
+              "x": 140.97,
+              "y": 97.79
+            }
+          ]
+        ],
+        "junctions": [
+          {
+            "x": 140.97,
+            "y": 97.79
+          }
+        ]
+      },
+      {
+        "name": "vref",
+        "segments": [
+          [
+            {
+              "x": 80.01,
+              "y": 132.08
+            },
+            {
+              "x": 80.01,
+              "y": 128.27
+            }
+          ]
+        ],
+        "junctions": []
+      }
+    ]
+  }
+}

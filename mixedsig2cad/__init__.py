@@ -1,7 +1,9 @@
 """High-level mixed-signal spec to KiCad/ngspice generators."""
 
 from .compiled import CompiledSchematic, compile_schematic
+from .design import ExampleDesign, SchematicLayoutIntent
 from .intent import build_schematic_intent
+from .layout_compiler import compile_design
 from .consistency import (
     GeometryComparison,
     RoundTripReport,
@@ -31,6 +33,9 @@ __all__ = [
     "CircuitSpec",
     "CompiledSchematic",
     "Component",
+    "ExampleDesign",
+    "SchematicLayoutIntent",
+    "compile_design",
     "compile_schematic",
     "compare_geometries",
     "compare_topologies",

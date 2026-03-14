@@ -9,6 +9,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from .design import ExampleDesign, circuit_of
 from .spec import CircuitSpec
 
 CONNECTIVITY_ERC_TYPES = {
@@ -37,7 +38,8 @@ class ConnectivityReport:
     passed: bool
 
 
-def validate_kicad_connectivity(spec: CircuitSpec, schematic_path: str | Path) -> ConnectivityReport:
+def validate_kicad_connectivity(spec: ExampleDesign | CircuitSpec, schematic_path: str | Path) -> ConnectivityReport:
+    spec = circuit_of(spec)
     path = Path(schematic_path)
     netlist_text = _export_kicad_netlist(path)
     from .importers.kicad_schematic import import_kicad_schematic
@@ -88,7 +90,7 @@ def validate_kicad_connectivity(spec: CircuitSpec, schematic_path: str | Path) -
 
 
 def _expected_net_clusters(spec: CircuitSpec, *, shapes_by_ref) -> dict[str, tuple[str, ...]]:
-    from .symbols import kicad_pin_map
+    from .symbols import kicad_pin_map, terminal_name_for_component
 
     clusters: dict[str, list[str]] = {}
     for comp in spec.components:
@@ -96,10 +98,9 @@ def _expected_net_clusters(spec: CircuitSpec, *, shapes_by_ref) -> dict[str, tup
         if shape is None:
             continue
         pin_map = kicad_pin_map(shape.shape, shape.orientation)
-        terminal_names = tuple(pin_map)
         for pin_index, net_name in enumerate(comp.nodes, start=1):
-            terminal_name = terminal_names[min(pin_index - 1, len(terminal_names) - 1)]
-            clusters.setdefault(net_name, []).append(f"{comp.ref}.{pin_map[terminal_name]}")
+            terminal_name = terminal_name_for_component(comp.kind, shape.orientation, pin_index - 1)
+            clusters.setdefault(_normalize_net_name(net_name), []).append(f"{comp.ref}.{pin_map[terminal_name]}")
         if comp.kind == "Q" and shape.shape == "npn_bjt" and "substrate" in pin_map:
             clusters.setdefault("0", []).append(f"{comp.ref}.{pin_map['substrate']}")
     return {
@@ -123,8 +124,16 @@ def _parse_netlist_clusters(text: str, *, expected_refs: set[str]) -> dict[str, 
             )
         )
         if len(attachments) >= 2:
-            clusters[name_match.group(1)] = attachments
+            clusters[_normalize_net_name(name_match.group(1))] = attachments
     return clusters
+
+
+def _normalize_net_name(name: str) -> str:
+    normalized = name.strip()
+    if normalized.startswith("/"):
+        normalized = normalized[1:]
+    lowered = normalized.lower()
+    return "0" if lowered == "gnd" else lowered
 
 
 def _nested_blocks(text: str, kind: str) -> list[str]:

@@ -28,6 +28,10 @@ SYMBOL_TERMINAL_METADATA: dict[tuple[str, str], tuple[SymbolTerminalDef, ...]] =
         SymbolTerminalDef("left", "left", "series_inline"),
         SymbolTerminalDef("right", "right", "series_inline"),
     ),
+    ("resistor", "horizontal_flipped"): (
+        SymbolTerminalDef("left", "left", "series_inline"),
+        SymbolTerminalDef("right", "right", "series_inline"),
+    ),
     ("resistor", "vertical"): (
         SymbolTerminalDef("top", "top", "branch_to_junction"),
         SymbolTerminalDef("bottom", "bottom", "local_ground_drop"),
@@ -60,6 +64,12 @@ SYMBOL_TERMINAL_METADATA: dict[tuple[str, str], tuple[SymbolTerminalDef, ...]] =
     ),
     ("power", "down"): (
         SymbolTerminalDef("top", "top", "local_supply_rise"),
+    ),
+    ("power", "right"): (
+        SymbolTerminalDef("left", "left", "local_supply_rise"),
+    ),
+    ("power", "left"): (
+        SymbolTerminalDef("right", "right", "local_supply_rise"),
     ),
     ("opamp", "right"): (
         SymbolTerminalDef("plus", "left", "branch_to_junction", (-6.0, 0.0)),
@@ -103,6 +113,7 @@ COMPONENT_TERMINAL_ORDERS: dict[tuple[str, str], tuple[str, ...]] = {
     ("V", "vertical_up"): ("pos", "neg"),
     ("I", "vertical_up"): ("pos", "neg"),
     ("R", "horizontal"): ("left", "right"),
+    ("R", "horizontal_flipped"): ("right", "left"),
     ("R", "vertical"): ("top", "bottom"),
     ("C", "horizontal"): ("left", "right"),
     ("C", "vertical"): ("top", "bottom"),
@@ -118,6 +129,7 @@ KICAD_SYMBOLS: dict[tuple[str, str], tuple[str, int]] = {
     ("voltage_source", "vertical_up"): ("VSOURCE", 180),
     ("current_source", "vertical_up"): ("ISOURCE", 180),
     ("resistor", "horizontal"): ("R", 90),
+    ("resistor", "horizontal_flipped"): ("R", 270),
     ("resistor", "vertical"): ("R", 180),
     ("capacitor", "vertical"): ("CAP", 180),
     ("capacitor", "horizontal"): ("CAP", 90),
@@ -127,6 +139,8 @@ KICAD_SYMBOLS: dict[tuple[str, str], tuple[str, int]] = {
     ("ground", "down"): ("GND", 0),
     ("power", "up"): ("VCC", 0),
     ("power", "down"): ("VCC", 180),
+    ("power", "right"): ("VCC", 90),
+    ("power", "left"): ("VCC", 270),
     ("opamp", "right"): ("OPAMP", 0),
     ("npn_bjt", "right"): ("QNPN", 0),
     ("pmos", "right"): ("MPMOS", 0),
@@ -137,6 +151,7 @@ KICAD_PIN_MAPS: dict[tuple[str, str], dict[str, str]] = {
     ("voltage_source", "vertical_up"): {"pos": "2", "neg": "1"},
     ("current_source", "vertical_up"): {"pos": "2", "neg": "1"},
     ("resistor", "horizontal"): {"left": "1", "right": "2"},
+    ("resistor", "horizontal_flipped"): {"left": "2", "right": "1"},
     ("resistor", "vertical"): {"top": "2", "bottom": "1"},
     ("capacitor", "vertical"): {"top": "2", "bottom": "1"},
     ("capacitor", "horizontal"): {"left": "1", "right": "2"},
@@ -146,6 +161,8 @@ KICAD_PIN_MAPS: dict[tuple[str, str], dict[str, str]] = {
     ("ground", "down"): {"top": "1"},
     ("power", "up"): {"bottom": "1"},
     ("power", "down"): {"top": "1"},
+    ("power", "right"): {"left": "1"},
+    ("power", "left"): {"right": "1"},
     ("opamp", "right"): {"plus": "1", "minus": "2", "out": "3", "vplus": "4", "vminus": "5"},
     ("npn_bjt", "right"): {"collector": "1", "base": "2", "emitter": "3", "substrate": "4"},
     ("pmos", "right"): {"drain": "1", "gate": "2", "source": "3", "body": "4"},
@@ -242,9 +259,10 @@ def kicad_pin_map(shape: str, orientation: str) -> dict[str, str]:
 
 def inverse_kicad_symbol_map() -> dict[tuple[str, int], tuple[str, str]]:
     inverse = {value: key for key, value in KICAD_SYMBOLS.items()}
-    inverse[("R", 270)] = ("resistor", "horizontal")
     inverse[("VEE", 0)] = ("power", "up")
     inverse[("VEE", 180)] = ("power", "down")
+    inverse[("VEE", 90)] = ("power", "right")
+    inverse[("VEE", 270)] = ("power", "left")
     return inverse
 
 

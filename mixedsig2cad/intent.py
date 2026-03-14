@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from .design import ExampleDesign, circuit_of
 from .spec import CircuitSpec, Component
 
 
@@ -57,7 +58,8 @@ GROUND_NETS = {"0", "gnd", "vss"}
 SUPPLY_NETS = {"vcc", "vdd", "vee"}
 
 
-def build_schematic_intent(spec: CircuitSpec) -> SchematicIntent:
+def build_schematic_intent(spec: ExampleDesign | CircuitSpec) -> SchematicIntent:
+    spec = circuit_of(spec)
     components = [
         IntentComponent(ref=comp.ref, kind=comp.kind, value=comp.value, nodes=comp.nodes, model=comp.model)
         for comp in spec.components
