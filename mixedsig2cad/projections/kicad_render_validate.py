@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import os
 import re
 import shutil
@@ -9,9 +10,11 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 
+from mixedsig2cad.importers.kicad_schematic import import_kicad_schematic
 from mixedsig2cad.compiled import make_body_box, make_terminals
 from mixedsig2cad.exporters.kicad import render_kicad_schematic
 from mixedsig2cad.models import (
+    BoundingBox,
     CompiledSchematic,
     Point,
     PlacedShape,
@@ -52,6 +55,24 @@ class RenderedSymbolComparison:
     rendered_terminal_sides: dict[str, str]
     expected_pin_name_terminals: dict[str, str]
     rendered_pin_name_terminals: dict[str, str]
+    passed: bool
+    notes: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RenderedSvgText:
+    text: str
+    anchor: Point
+    bounds: BoundingBox
+
+
+@dataclass(frozen=True, slots=True)
+class RenderedExampleLabelComparison:
+    schematic_name: str
+    label_text: str
+    role: str
+    expected_position: Point
+    rendered_bounds: BoundingBox
     passed: bool
     notes: tuple[str, ...]
 
@@ -150,6 +171,31 @@ def validate_rendered_kicad_symbols(*, strict_pin_labels: bool = True) -> list[R
     return results
 
 
+def validate_rendered_example_labels(paths: list[str | Path]) -> list[RenderedExampleLabelComparison]:
+    kicad_cli = shutil.which("kicad-cli")
+    if not kicad_cli:
+        return []
+    results: list[RenderedExampleLabelComparison] = []
+    failures: list[RenderedExampleLabelComparison] = []
+    with tempfile.TemporaryDirectory(prefix="kicad-example-labels-") as tmpdir:
+        tmp = Path(tmpdir)
+        for raw_path in paths:
+            path = Path(raw_path)
+            geometry = import_kicad_schematic(path)
+            svg_path = _export_svg(kicad_cli, path, tmp / path.stem)
+            rendered_texts = observe_rendered_svg_texts(svg_path)
+            comparisons = _compare_rendered_example_labels(geometry, rendered_texts)
+            results.extend(comparisons)
+            failures.extend(result for result in comparisons if not result.passed)
+    if failures:
+        details = "\n".join(
+            f"{result.schematic_name}:{result.role}:{result.label_text}: {'; '.join(result.notes)}"
+            for result in failures
+        )
+        raise AssertionError(f"rendered example label validation failed:\n{details}")
+    return results
+
+
 def _compare_rendered_symbol(
     shape: str,
     orientation: str,
@@ -225,6 +271,148 @@ def _export_svg(kicad_cli: str, schematic_path: Path, output_dir: Path) -> Path:
     if not svg_path.exists():
         raise AssertionError(f"expected SVG output for {schematic_path}")
     return svg_path
+
+
+def observe_rendered_svg_texts(path: str | Path) -> list[RenderedSvgText]:
+    root = ET.fromstring(Path(path).read_text(encoding="utf-8"))
+    events: list[tuple[str, ET.Element, tuple[float, float, float, float, float, float]]] = []
+    _flatten_svg_events(root, _identity_matrix(), events)
+    rendered: list[RenderedSvgText] = []
+    pending_text: tuple[ET.Element, tuple[float, float, float, float, float, float]] | None = None
+    for kind, element, transform in events:
+        if kind == "text":
+            content = (element.text or "").strip()
+            pending_text = (element, transform) if content else None
+            continue
+        if kind != "stroked-text" or pending_text is None:
+            continue
+        text_element, text_transform = pending_text
+        content = (text_element.text or "").strip()
+        desc = element.find("{*}desc")
+        if desc is None or (desc.text or "").strip() != content:
+            continue
+        bounds = _stroked_text_bounds(element, transform)
+        if bounds is None:
+            continue
+        rendered.append(RenderedSvgText(text=content, anchor=_text_anchor(text_element, text_transform), bounds=bounds))
+        pending_text = None
+    return rendered
+
+
+def _compare_rendered_example_labels(
+    geometry: CompiledSchematic,
+    rendered_texts: list[RenderedSvgText],
+) -> list[RenderedExampleLabelComparison]:
+    labels = _visible_example_labels(geometry)
+    unmatched = list(rendered_texts)
+    comparisons: list[RenderedExampleLabelComparison] = []
+    accepted_bounds: list[BoundingBox] = []
+    for label in labels:
+        match = _nearest_rendered_text(label, unmatched)
+        if match is None:
+            result = RenderedExampleLabelComparison(
+                schematic_name=geometry.name,
+                label_text=label.text,
+                role=label.role,
+                expected_position=label.position,
+                rendered_bounds=BoundingBox(label.position.x, label.position.y, label.position.x, label.position.y),
+                passed=False,
+                notes=("missing rendered label",),
+            )
+            comparisons.append(result)
+            continue
+        unmatched.remove(match)
+        notes = list(_rendered_label_notes(label, match.bounds, geometry, accepted_bounds))
+        accepted_bounds.append(match.bounds)
+        comparisons.append(
+            RenderedExampleLabelComparison(
+                schematic_name=geometry.name,
+                label_text=label.text,
+                role=label.role,
+                expected_position=label.position,
+                rendered_bounds=match.bounds,
+                passed=not notes,
+                notes=tuple(notes),
+            )
+        )
+    return comparisons
+
+
+def _visible_example_labels(geometry: CompiledSchematic) -> list[TextPlacement]:
+    shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
+    visible: list[TextPlacement] = []
+    for label in geometry.labels:
+        if label.role == "reference":
+            owner = shape_by_ref.get(label.owner_ref)
+            if owner is not None and owner.hidden_reference:
+                continue
+            visible.append(label)
+        elif label.role in {"value", "net_label"}:
+            visible.append(label)
+    return visible
+
+
+def _nearest_rendered_text(label: TextPlacement, rendered_texts: list[RenderedSvgText]) -> RenderedSvgText | None:
+    candidates = [item for item in rendered_texts if item.text == label.text]
+    if not candidates:
+        return None
+    best = min(candidates, key=lambda item: _distance(item.anchor, label.position))
+    if _distance(best.anchor, label.position) > 8.0:
+        return None
+    return best
+
+
+def _rendered_label_notes(
+    label: TextPlacement,
+    bounds: BoundingBox,
+    geometry: CompiledSchematic,
+    accepted_bounds: list[BoundingBox],
+) -> tuple[str, ...]:
+    notes: list[str] = []
+    exclusion = _label_exclusion_zone(label, geometry)
+    if _boxes_overlap(bounds, exclusion):
+        notes.append("rendered text overlaps labeled object")
+    for existing in accepted_bounds:
+        if _boxes_overlap(bounds, existing):
+            notes.append("rendered text overlaps another example label")
+            break
+    return tuple(notes)
+
+
+def _label_exclusion_zone(label: TextPlacement, geometry: CompiledSchematic) -> BoundingBox:
+    shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
+    if label.role in {"reference", "value"} and label.owner_ref in shape_by_ref:
+        return _expand_box(shape_by_ref[label.owner_ref].body_box, 0.2)
+    anchor = _net_label_anchor(label.position, geometry)
+    return BoundingBox(anchor.x - 1.6, anchor.y - 1.6, anchor.x + 1.6, anchor.y + 1.6)
+
+
+def _nearest_anchor(position: Point, geometry: CompiledSchematic) -> Point:
+    anchors: list[Point] = []
+    anchors.extend(node.point for node in geometry.nodes)
+    anchors.extend(junction.point for junction in geometry.junctions)
+    for shape in geometry.shapes:
+        anchors.extend(terminal.point for terminal in shape.terminals)
+    for wire in geometry.wires:
+        anchors.extend(wire.points)
+    if not anchors:
+        return position
+    return min(anchors, key=lambda point: (_distance(point, position), point.x, point.y))
+
+
+def _net_label_anchor(position: Point, geometry: CompiledSchematic) -> Point:
+    stub_matches: list[Point] = []
+    for wire in geometry.wires:
+        points = wire.points
+        if len(points) != 2:
+            continue
+        if _distance(points[1], position) < 0.05:
+            stub_matches.append(points[0])
+        elif _distance(points[0], position) < 0.05:
+            stub_matches.append(points[1])
+    if stub_matches:
+        return min(stub_matches, key=lambda point: (_distance(point, position), point.x, point.y))
+    return _nearest_anchor(position, geometry)
 
 
 def _svg_texts(root: ET.Element) -> list[tuple[str, Point]]:
@@ -397,3 +585,136 @@ def _probe_value(shape: str) -> str:
         "pmos": "PMOS",
         "nmos": "NMOS",
     }[shape]
+
+
+def _flatten_svg_events(
+    element: ET.Element,
+    transform: tuple[float, float, float, float, float, float],
+    events: list[tuple[str, ET.Element, tuple[float, float, float, float, float, float]]],
+) -> None:
+    current_transform = _compose_transform(transform, _parse_transform(element.attrib.get("transform", "")))
+    tag = element.tag.rsplit("}", 1)[-1]
+    if tag == "text":
+        events.append(("text", element, current_transform))
+    elif tag == "g" and element.attrib.get("class") == "stroked-text":
+        events.append(("stroked-text", element, current_transform))
+    for child in element:
+        _flatten_svg_events(child, current_transform, events)
+
+
+def _stroked_text_bounds(
+    group: ET.Element,
+    transform: tuple[float, float, float, float, float, float],
+) -> BoundingBox | None:
+    current_transform = _compose_transform(transform, _parse_transform(group.attrib.get("transform", "")))
+    points: list[Point] = []
+    for child in group:
+        tag = child.tag.rsplit("}", 1)[-1]
+        if tag == "path":
+            points.extend(_path_points(child.attrib.get("d", ""), current_transform))
+        elif tag == "g":
+            nested = _stroked_text_bounds(child, current_transform)
+            if nested is not None:
+                points.extend(
+                    [
+                        Point(nested.left, nested.top),
+                        Point(nested.right, nested.top),
+                        Point(nested.left, nested.bottom),
+                        Point(nested.right, nested.bottom),
+                    ]
+                )
+    if not points:
+        return None
+    return BoundingBox(
+        left=round(min(point.x for point in points), 4),
+        top=round(min(point.y for point in points), 4),
+        right=round(max(point.x for point in points), 4),
+        bottom=round(max(point.y for point in points), 4),
+    )
+
+
+def _text_anchor(text: ET.Element, transform: tuple[float, float, float, float, float, float]) -> Point:
+    x = float(text.attrib.get("x", "0"))
+    y = float(text.attrib.get("y", "0"))
+    return _apply_transform(Point(x, y), _compose_transform(transform, _parse_transform(text.attrib.get("transform", ""))))
+
+
+def _path_points(path_data: str, transform: tuple[float, float, float, float, float, float]) -> list[Point]:
+    coords = [float(value) for value in re.findall(r"[-0-9.]+", path_data)]
+    points: list[Point] = []
+    for idx in range(0, len(coords) - 1, 2):
+        points.append(_apply_transform(Point(coords[idx], coords[idx + 1]), transform))
+    return points
+
+
+def _parse_transform(value: str) -> tuple[float, float, float, float, float, float]:
+    matrix = _identity_matrix()
+    for kind, args_text in re.findall(r"([a-zA-Z]+)\(([^)]*)\)", value):
+        args = [float(item) for item in re.findall(r"[-0-9.]+", args_text)]
+        if kind == "translate":
+            tx = args[0]
+            ty = args[1] if len(args) > 1 else 0.0
+            step = (1.0, 0.0, 0.0, 1.0, tx, ty)
+        elif kind == "scale":
+            sx = args[0]
+            sy = args[1] if len(args) > 1 else sx
+            step = (sx, 0.0, 0.0, sy, 0.0, 0.0)
+        elif kind == "rotate":
+            angle = math.radians(args[0])
+            cos_a = math.cos(angle)
+            sin_a = math.sin(angle)
+            if len(args) == 3:
+                cx, cy = args[1], args[2]
+                step = _compose_transform(
+                    _compose_transform((1.0, 0.0, 0.0, 1.0, cx, cy), (cos_a, sin_a, -sin_a, cos_a, 0.0, 0.0)),
+                    (1.0, 0.0, 0.0, 1.0, -cx, -cy),
+                )
+            else:
+                step = (cos_a, sin_a, -sin_a, cos_a, 0.0, 0.0)
+        else:
+            continue
+        matrix = _compose_transform(matrix, step)
+    return matrix
+
+
+def _identity_matrix() -> tuple[float, float, float, float, float, float]:
+    return (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+
+
+def _compose_transform(
+    first: tuple[float, float, float, float, float, float],
+    second: tuple[float, float, float, float, float, float],
+) -> tuple[float, float, float, float, float, float]:
+    a1, b1, c1, d1, e1, f1 = first
+    a2, b2, c2, d2, e2, f2 = second
+    return (
+        a1 * a2 + c1 * b2,
+        b1 * a2 + d1 * b2,
+        a1 * c2 + c1 * d2,
+        b1 * c2 + d1 * d2,
+        a1 * e2 + c1 * f2 + e1,
+        b1 * e2 + d1 * f2 + f1,
+    )
+
+
+def _apply_transform(point: Point, transform: tuple[float, float, float, float, float, float]) -> Point:
+    a, b, c, d, e, f = transform
+    return Point(round(a * point.x + c * point.y + e, 4), round(b * point.x + d * point.y + f, 4))
+
+
+def _expand_box(box: BoundingBox, padding: float) -> BoundingBox:
+    return BoundingBox(
+        left=round(box.left - padding, 4),
+        top=round(box.top - padding, 4),
+        right=round(box.right + padding, 4),
+        bottom=round(box.bottom + padding, 4),
+    )
+
+
+def _boxes_overlap(first: BoundingBox, second: BoundingBox) -> bool:
+    return not (
+        first.right <= second.left
+        or first.left >= second.right
+        or first.bottom <= second.top
+        or first.top >= second.bottom
+    )

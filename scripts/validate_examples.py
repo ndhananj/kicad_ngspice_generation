@@ -14,6 +14,7 @@ from examples.specs.catalog import all_examples
 from mixedsig2cad import (
     build_schematic_intent,
     compare_geometries,
+    compile_design,
     compile_schematic,
     compare_topologies,
     derive_topology_layout,
@@ -21,6 +22,7 @@ from mixedsig2cad import (
     import_kicad_schematic,
     roundtrip_kicad_schematic,
     validate_kicad_connectivity,
+    validate_rendered_example_labels,
     validate_rendered_kicad_symbols,
 )
 from mixedsig2cad.geometry import PAGE_BOTTOM, PAGE_LEFT, PAGE_RIGHT, PAGE_TOP
@@ -141,8 +143,7 @@ def validate_connectivity() -> None:
 
 def validate_geometry() -> None:
     for spec in all_examples():
-        intent = build_schematic_intent(spec)
-        geometry = compile_schematic(intent)
+        geometry = compile_design(spec)
         project_geometry_to_kicad(geometry)
         bounds = _geometry_bounds(geometry)
         assert bounds is not None, f"missing geometry bounds for {spec.name}"
@@ -171,6 +172,12 @@ def validate_rendered_symbols() -> None:
         opamp = by_shape[("opamp", "right")]
         expected = {"plus", "minus", "out", "vplus", "vminus"}
         assert set(opamp.rendered_terminal_sides) == expected, f"missing rendered OPAMP terminals: {opamp.rendered_terminal_sides}"
+
+
+def validate_rendered_example_label_positions() -> None:
+    paths = sorted((ROOT / "examples" / "generated" / "kicad").glob("*.kicad_sch"))
+    results = validate_rendered_example_labels(paths)
+    assert results or shutil.which("kicad-cli") is None, "expected rendered label validation results when kicad-cli is installed"
 
 
 def _geometry_bounds(geometry) -> tuple[float, float, float, float] | None:
@@ -285,6 +292,7 @@ def validate_ngspice(path: Path) -> None:
 def main() -> None:
     validate_geometry()
     validate_rendered_symbols()
+    validate_rendered_example_label_positions()
     for kicad in (ROOT / "examples" / "generated" / "kicad").glob("*.kicad_sch"):
         validate_kicad(kicad)
         _kicad_cli_parse(kicad)

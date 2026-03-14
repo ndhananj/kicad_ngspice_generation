@@ -32,7 +32,7 @@ from .importers import (
     import_kicad_schematic,
     parse_circuit_source,
 )
-from .projections.kicad_render_validate import validate_rendered_kicad_symbols
+from .projections.kicad_render_validate import validate_rendered_example_labels, validate_rendered_kicad_symbols
 from .spec import Analysis, CircuitSpec, Component
 from .exporters.kicad import export_kicad_schematic
 from .exporters.ngspice import export_ngspice_netlist
@@ -74,5 +74,6 @@ __all__ = [
     "roundtrip_image",
     "roundtrip_kicad_schematic",
     "validate_kicad_connectivity",
+    "validate_rendered_example_labels",
     "validate_rendered_kicad_symbols",
 ]

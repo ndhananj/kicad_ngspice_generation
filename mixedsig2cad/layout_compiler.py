@@ -4,6 +4,7 @@ from collections import defaultdict
 
 from .compiled import place_shape
 from .design import ExampleDesign, SchematicLayoutIntent
+from .label_placement import normalize_example_label_positions
 from .models import CompiledSchematic, GeometryNode, JunctionPlacement, Point, TerminalRef, TextPlacement, WirePath
 from .spec import CircuitSpec
 from .symbols import component_symbol
@@ -14,7 +15,7 @@ GLOBAL_NETS = {"0", "gnd", "vcc", "vdd", "vee", "vss"}
 def compile_design(design: ExampleDesign) -> CompiledSchematic:
     geometry = compile_layout_intent(design.circuit, design.layout)
     geometry.name = design.name
-    return geometry
+    return normalize_example_label_positions(geometry)
 
 
 def compile_layout_intent(spec: CircuitSpec, layout: SchematicLayoutIntent) -> CompiledSchematic:

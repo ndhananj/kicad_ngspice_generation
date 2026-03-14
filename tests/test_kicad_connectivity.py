@@ -36,7 +36,7 @@ class KiCadConnectivityTests(unittest.TestCase):
         mutated = self._mutate(
             source,
             lambda text: re.sub(
-                r'  \(label "vout" \(at [-0-9.]+ 69\.85 0\)\n'
+                r'  \(label "vout" \(at [-0-9.]+ [-0-9.]+ 0\)\n'
                 r'    \(effects \(font \(size [-0-9.]+ [-0-9.]+\)\)\)\n'
                 r'    \(uuid [^)]+\)\n'
                 r'  \)\n',
@@ -121,17 +121,35 @@ class KiCadConnectivityTests(unittest.TestCase):
         self.assertNotIn('(wire (pts (xy 167.64 78.74)', text)
         self.assertNotIn('(wire (pts (xy 167.64 110.49)', text)
         self.assertIn('(symbol (lib_id "VCC") (at 80.01 90.17 0)', text)
-        self.assertIn('(property "Value" "VEE" (at 80.01 93.98 0)', text)
         self.assertIn('(symbol (lib_id "VCC") (at 167.64 100.33 180)', text)
-        self.assertIn('(property "Value" "VEE" (at 167.64 104.14 0)', text)
+        geometry = import_kicad_schematic(source)
+        vee_supports = [
+            shape for shape in geometry.shapes if shape.shape == "power" and shape.value == "VEE"
+        ]
+        self.assertEqual(len(vee_supports), 2)
 
     def test_generated_opamp_inverting_uses_larger_readable_signal_labels(self) -> None:
         source = GENERATED / "opamp_inverting.kicad_sch"
-        text = source.read_text(encoding="utf-8")
-        self.assertIn('(label "vin" (at 123.19 82.55 0)\n    (effects (font (size 1.50 1.50)))', text)
-        self.assertIn('(label "vplus_ref" (at 162.56 97.79 0)\n    (effects (font (size 1.50 1.50)))', text)
-        self.assertIn('(label "vminus" (at 162.56 82.55 0)\n    (effects (font (size 1.50 1.50)))', text)
-        self.assertIn('(label "vout" (at 177.80 69.85 0)\n    (effects (font (size 1.50 1.50)))', text)
+        geometry = import_kicad_schematic(source)
+        by_text = {label.text: label for label in geometry.labels if label.role == "net_label"}
+        for name in ("vin", "vplus_ref", "vminus", "vout"):
+            self.assertIn(name, by_text)
+            self.assertEqual(by_text[name].font_size, 1.50)
+            self.assertTrue(
+                all(
+                    not (
+                        shape.body_box.left <= by_text[name].position.x <= shape.body_box.right
+                        and shape.body_box.top <= by_text[name].position.y <= shape.body_box.bottom
+                    )
+                    for shape in geometry.shapes
+                )
+            )
+            self.assertTrue(
+                any(
+                    len(wire.points) == 2 and wire.points[-1] == by_text[name].position
+                    for wire in geometry.wires
+                )
+            )
 
     def test_generated_opamp_inverting_uses_compact_feedback_loop(self) -> None:
         source = GENERATED / "opamp_inverting.kicad_sch"
