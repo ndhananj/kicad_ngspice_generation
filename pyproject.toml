@@ -3,6 +3,14 @@ name = "mixedsig2cad"
 version = "0.1.0"
 description = "Generate KiCad and ngspice examples from high-level mixed-signal specs"
 requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "Pillow",
+    "opencv-python-headless",
+    "svgpathtools",
+    "segment-anything",
+    "pytesseract",
+]
 
 [tool.setuptools]
 packages = ["mixedsig2cad", "mixedsig2cad.exporters", "mixedsig2cad.projections", "mixedsig2cad.importers", "examples", "examples.specs"]

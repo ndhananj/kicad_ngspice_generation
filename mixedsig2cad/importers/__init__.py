@@ -1,12 +1,46 @@
+from .hybrid_parser import (
+    CanonicalScene,
+    DependencyStatus,
+    OverlayArtifact,
+    ParseArtifacts,
+    ParseResult,
+    ParsedComponent,
+    ParsedGraph,
+    ParsedJunction,
+    SceneBox,
+    SceneFill,
+    SceneGraphObject,
+    SceneMask,
+    SceneStroke,
+    SceneText,
+    check_parser_runtime_dependencies,
+    parse_circuit_source,
+)
 from .kicad_schematic import import_kicad_schematic
 from .raster_extract import extract_geometry_from_image
 from .raster_observation import DrawingObservation, ObservedJunction, ObservedSymbol, ObservedWire
 
 __all__ = [
+    "CanonicalScene",
+    "check_parser_runtime_dependencies",
+    "DependencyStatus",
     "DrawingObservation",
     "ObservedJunction",
     "ObservedSymbol",
     "ObservedWire",
+    "OverlayArtifact",
+    "ParseArtifacts",
+    "ParsedComponent",
+    "ParsedGraph",
+    "ParsedJunction",
+    "ParseResult",
+    "parse_circuit_source",
+    "SceneBox",
+    "SceneFill",
+    "SceneGraphObject",
+    "SceneMask",
+    "SceneStroke",
+    "SceneText",
     "extract_geometry_from_image",
     "import_kicad_schematic",
 ]

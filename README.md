@@ -2,6 +2,15 @@
 
 A Python-first toolkit and example corpus for generating **KiCad schematic files** and **ngspice netlists** from a shared mixed-signal specification.
 
+## Install
+
+```bash
+pip install -r requirements.txt
+python3 scripts/setup_parser_env.py
+```
+
+The setup script verifies the parser stack is present. For OCR-backed parsing with `pytesseract`, you also need the external `tesseract` binary installed on the system.
+
 ## What is included
 
 - `mixedsig2cad/`: library code for high-level spec modeling and exporters.
@@ -56,6 +65,7 @@ Reverse extraction is also available:
 
 ```python
 from mixedsig2cad import (
+    parse_circuit_source,
     compare_geometries,
     compare_topologies,
     derive_topology_layout,
@@ -66,6 +76,11 @@ from mixedsig2cad import (
 geometry = import_kicad_schematic("examples/generated/kicad/rc_lowpass.kicad_sch")
 topology = derive_topology_layout(geometry)
 report = roundtrip_kicad_schematic("examples/generated/kicad/rc_lowpass.kicad_sch")
+parsed = parse_circuit_source(
+    "examples/generated/kicad/rc_lowpass.kicad_sch",
+    source_type="vector",
+    output_dir="out/rc_lowpass_parse",
+)
 ```
 
 Current reverse-import guarantees:
@@ -74,6 +89,8 @@ Current reverse-import guarantees:
 - KiCad image import is implemented through `extract_geometry_from_image(...)`.
 - SVG images exported from KiCad are the supported image path today.
 - Bitmap and hand-drawn image extraction remain best-effort.
+- `parse_circuit_source(..., source_type="vector")` emits scene data, graph data, overlay output, and optional netlists when a `CircuitSpec` is provided.
+- `parse_circuit_source(..., source_type="raster")` currently enforces parser dependency checks and reserves the SAM-backed raster path.
 
 ## Generate the full example library
 
