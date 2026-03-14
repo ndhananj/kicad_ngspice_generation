@@ -242,6 +242,7 @@ def kicad_pin_map(shape: str, orientation: str) -> dict[str, str]:
 
 def inverse_kicad_symbol_map() -> dict[tuple[str, int], tuple[str, str]]:
     inverse = {value: key for key, value in KICAD_SYMBOLS.items()}
+    inverse[("R", 270)] = ("resistor", "horizontal")
     inverse[("VEE", 0)] = ("power", "up")
     inverse[("VEE", 180)] = ("power", "down")
     return inverse
