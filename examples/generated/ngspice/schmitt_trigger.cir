@@ -1,10 +1,11 @@
 * schmitt_trigger
 VCC vcc 0 DC 5
 VIN vin 0 PWL(0 0 1m 5 2m 0)
-R1 vcc vout 100k
-R2 vout vplus 100k
-R3 vin vminus 10k
-XU1 vplus vminus vout vcc 0 OPCMP
+VREF vref 0 DC 2.5
+R1 vref vplus 100k
+R2 vplus 0 100k
+R3 vout vplus 100k
+XU1 vplus vin vout vcc 0 OPCMP
 
 .subckt OPCMP 1 2 6 4 5
 E1 6 0 1 2 1e6

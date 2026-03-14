@@ -134,6 +134,51 @@ class KiCadConnectivityTests(unittest.TestCase):
         self.assertNotIn('(wire (pts (xy 179.07 48.26) (xy 156.21 48.26))', text)
         self.assertNotIn('(wire (pts (xy 156.21 48.26) (xy 156.21 87.63))', text)
 
+    def test_generated_schmitt_trigger_uses_canonical_pin_roles(self) -> None:
+        source = GENERATED / "schmitt_trigger.kicad_sch"
+        report = validate_kicad_connectivity(schmitt_trigger(), source)
+        self.assertTrue(report.passed)
+        netlist = _export_kicad_netlist(source)
+        vin_net = re.search(r'\(net \(code "[^"]+"\) \(name "/vin"\)(.*?)\)\n    \(net ', netlist, re.S)
+        self.assertIsNotNone(vin_net)
+        self.assertIn('(name "/vin")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "XU1"\) \(pin "2"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "VIN"\) \(pin "2"\).*')
+        self.assertNotIn('(node (ref "XU1") (pin "1")', vin_net.group(1))
+        self.assertIn('(name "/vplus")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "XU1"\) \(pin "1"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "R1"\) \(pin "2"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "R2"\) \(pin "2"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "R3"\) \(pin "2"\).*')
+        self.assertIn('(name "/vref")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "VREF"\) \(pin "1"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "R1"\) \(pin "1"\).*')
+        self.assertIn('(name "/vout")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "XU1"\) \(pin "3"\).*')
+        self.assertRegex(netlist, r'\(node \(ref "R3"\) \(pin "1"\).*')
+        self.assertIn('(name "VCC")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "XU1"\) \(pin "4"\).*')
+        self.assertIn('(name "GND")', netlist)
+        self.assertRegex(netlist, r'\(node \(ref "XU1"\) \(pin "5"\).*')
+
+    def test_removed_schmitt_trigger_positive_input_junction_is_rejected(self) -> None:
+        source = GENERATED / "schmitt_trigger.kicad_sch"
+        mutated = self._mutate(
+            source,
+            lambda text: re.sub(
+                r'  \(wire \(pts \(xy 162\.56 97\.79\) \(xy 156\.21 97\.79\)\)\n'
+                r'    \(stroke \(width 0\) \(type solid\) \(color 0 0 0 0\)\)\n'
+                r'    \(uuid [^)]+\)\n'
+                r'  \)\n',
+                "",
+                text,
+                count=1,
+            ),
+        )
+        report = validate_kicad_connectivity(schmitt_trigger(), mutated)
+        self.assertFalse(report.passed)
+        self.assertTrue(report.missing_nets or report.erc_violations)
+
     def test_off_grid_wire_is_rejected(self) -> None:
         source = GENERATED / "rc_lowpass.kicad_sch"
         mutated = self._mutate(

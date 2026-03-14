@@ -111,6 +111,8 @@ def _compile_node_labels(geometry: CompiledSchematic) -> list[TextPlacement]:
 def _preferred_net_label_font_size(schematic_name: str, label: str) -> float:
     if schematic_name == "opamp_inverting" and label in {"vin", "vplus_ref", "vminus", "vout"}:
         return 1.50
+    if schematic_name == "schmitt_trigger" and label in {"vin", "vref", "vplus", "vout"}:
+        return 1.50
     return 1.27
 
 

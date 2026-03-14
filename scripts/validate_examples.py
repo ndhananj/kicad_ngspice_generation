@@ -36,7 +36,7 @@ EXPECTED_CONNECTIVITY_PASS = {
     "bjt_common_emitter": False,
     "opamp_inverting": True,
     "cmos_inverter": False,
-    "schmitt_trigger": False,
+    "schmitt_trigger": True,
 }
 
 
@@ -99,6 +99,12 @@ def validate_kicad(path: Path) -> None:
         assert '(wire (pts (xy 157.48 109.22) (xy 157.48 121.92))' in text, (
             "expected a straight substrate drop from Q1 to the negative rail in the common-emitter example"
         )
+    if path.name == "schmitt_trigger.kicad_sch":
+        assert text.count('(symbol (lib_id "VSOURCE")') == 3, "expected VCC, VIN, and VREF sources in schmitt_trigger"
+        assert '(label "vin"' in text and '(label "vref"' in text and '(label "vplus"' in text and '(label "vout"' in text, (
+            "expected named VIN, VREF, VPLUS, and VOUT labels in schmitt_trigger"
+        )
+        assert text.count("  (junction ") >= 2, "expected explicit threshold and output junctions in schmitt_trigger"
     report = roundtrip_kicad_schematic(path)
     assert report.exact_roundtrip, f"structured KiCad roundtrip failed for {path}: {report}"
     if path.name == "bjt_common_emitter.kicad_sch":

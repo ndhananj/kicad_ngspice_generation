@@ -55,6 +55,7 @@ def build_topology_layout(intent: SchematicIntent) -> TopologyLayout | None:
         _build_series_shunt_layout(intent)
         or _build_bjt_common_emitter_layout(intent)
         or _build_static_cmos_layout(intent)
+        or _build_schmitt_trigger_layout(intent)
         or _build_opamp_inverting_layout(intent)
     )
 
@@ -706,6 +707,150 @@ def _build_opamp_inverting_layout(intent: SchematicIntent) -> TopologyLayout | N
         )
     if plus_net == "0" or set(plus_bias.nodes) != {plus_net, "0"}:
         return None
+    return layout
+
+
+def _build_schmitt_trigger_layout(intent: SchematicIntent) -> TopologyLayout | None:
+    opamps = [comp for comp in intent.components if comp.kind == "X" and len(comp.nodes) >= 5]
+    if len(opamps) != 1:
+        return None
+    opamp = opamps[0]
+    plus_net, minus_net, out_net, supply_plus_net, supply_minus_net = opamp.nodes[:5]
+    if supply_minus_net != "0":
+        return None
+
+    resistors = [comp for comp in intent.components if comp.kind == "R" and len(comp.nodes) == 2]
+    sources = [comp for comp in intent.components if comp.kind == "V" and len(comp.nodes) >= 2]
+
+    if any(minus_net in resistor.nodes for resistor in resistors):
+        return None
+
+    lower_divider = _find_resistor(resistors, plus_net, "0")
+    feedback = _find_resistor(resistors, plus_net, out_net)
+    upper_candidates = [
+        resistor
+        for resistor in resistors
+        if plus_net in resistor.nodes and resistor not in {lower_divider, feedback}
+    ]
+    if lower_divider is None or feedback is None or len(upper_candidates) != 1:
+        return None
+
+    upper_divider = upper_candidates[0]
+    vref_net = next(node for node in upper_divider.nodes if node != plus_net)
+    if vref_net in {minus_net, out_net, "0", supply_plus_net, supply_minus_net}:
+        return None
+
+    vin_source = next((source for source in sources if source.nodes[:2] == (minus_net, "0")), None)
+    vref_source = next((source for source in sources if source.nodes[:2] == (vref_net, "0")), None)
+    supply_plus_source = next((source for source in sources if source.nodes[:2] == (supply_plus_net, "0")), None)
+    if vin_source is None or vref_source is None or supply_plus_source is None:
+        return None
+
+    if intent.nets.get(minus_net) is None or intent.nets[minus_net].role != "signal_in":
+        return None
+
+    layout = TopologyLayout(name=intent.name)
+    layout.placements.extend(
+        [
+            TopologyPlacement(ref=opamp.ref, center=_point(170.0, 100.0), orientation="right"),
+            TopologyPlacement(ref=upper_divider.ref, center=_point(140.97, 85.09), orientation="horizontal"),
+            TopologyPlacement(ref=lower_divider.ref, center=_point(147.32, 112.70), orientation="vertical"),
+            TopologyPlacement(ref=feedback.ref, center=_point(170.18, 97.46), orientation="horizontal"),
+            TopologyPlacement(ref=supply_plus_source.ref, center=_point(80.0, 60.0), orientation="vertical_up"),
+            TopologyPlacement(ref=vin_source.ref, center=_point(80.0, 100.0), orientation="vertical_up"),
+            TopologyPlacement(ref=vref_source.ref, center=_point(80.0, 140.0), orientation="vertical_up"),
+            TopologyPlacement(ref="#PWR0001", center=_point(147.32, 128.08), shape="ground", value="GND", orientation="down"),
+            TopologyPlacement(ref="#PWR0002", center=_point(80.0, 79.62), shape="ground", value="GND", orientation="down"),
+            TopologyPlacement(ref="#PWR0003", center=_point(80.0, 119.62), shape="ground", value="GND", orientation="down"),
+            TopologyPlacement(ref="#PWR0004", center=_point(80.0, 159.62), shape="ground", value="GND", orientation="down"),
+            TopologyPlacement(ref="#PWR0005", center=_point(80.0, 49.84), shape="power", value="VCC", orientation="up"),
+            TopologyPlacement(ref="#PWR0006", center=_point(167.46, 90.16), shape="power", value="VCC", orientation="up"),
+            TopologyPlacement(ref="#PWR0007", center=_point(167.46, 110.48), shape="ground", value="GND", orientation="down"),
+        ]
+    )
+
+    plus_node = _point(156.21, 102.87)
+    minus_node = _point(162.56, 97.79)
+    output_node = _point(184.15, 100.33)
+    vref_node = _point(123.19, 85.09)
+
+    layout.connections.extend(
+        [
+            TopologyConnection(
+                id="vcc_source_ground",
+                point=_point(80.0, 79.62),
+                attachments=(TopologyAttachment(supply_plus_source.ref, "neg"), TopologyAttachment("#PWR0002", "top")),
+                role="local_ground",
+            ),
+            TopologyConnection(
+                id="vin_source_ground",
+                point=_point(80.0, 119.62),
+                attachments=(TopologyAttachment(vin_source.ref, "neg"), TopologyAttachment("#PWR0003", "top")),
+                role="local_ground",
+            ),
+            TopologyConnection(
+                id="vref_source_ground",
+                point=_point(80.0, 159.62),
+                attachments=(TopologyAttachment(vref_source.ref, "neg"), TopologyAttachment("#PWR0004", "top")),
+                role="local_ground",
+            ),
+            TopologyConnection(
+                id="supply_plus_source",
+                point=_point(80.0, 52.38),
+                attachments=(TopologyAttachment(supply_plus_source.ref, "pos"), TopologyAttachment("#PWR0005", "bottom")),
+                role="local_supply",
+            ),
+            TopologyConnection(
+                id="supply_plus",
+                point=_point(167.46, 92.38),
+                attachments=(TopologyAttachment(opamp.ref, "vplus"), TopologyAttachment("#PWR0006", "bottom")),
+                role="local_supply",
+            ),
+            TopologyConnection(
+                id="supply_minus",
+                point=_point(167.46, 107.62),
+                attachments=(TopologyAttachment(opamp.ref, "vminus"), TopologyAttachment("#PWR0007", "top")),
+                role="local_ground",
+            ),
+            TopologyConnection(
+                id="vin_node",
+                point=minus_node,
+                attachments=(TopologyAttachment(vin_source.ref, "pos"), TopologyAttachment(opamp.ref, "minus")),
+                role="signal_input",
+            ),
+            TopologyConnection(
+                id="vref_node",
+                point=vref_node,
+                attachments=(TopologyAttachment(vref_source.ref, "pos"), TopologyAttachment(upper_divider.ref, "left")),
+                role="reference_input",
+            ),
+            TopologyConnection(
+                id="plus_node",
+                point=plus_node,
+                attachments=(
+                    TopologyAttachment(upper_divider.ref, "right"),
+                    TopologyAttachment(lower_divider.ref, "top"),
+                    TopologyAttachment(feedback.ref, "right"),
+                    TopologyAttachment(opamp.ref, "plus"),
+                ),
+                render_style="junction",
+                role="threshold_node",
+            ),
+            TopologyConnection(
+                id="plus_ground",
+                point=_point(147.32, 119.05),
+                attachments=(TopologyAttachment(lower_divider.ref, "bottom"), TopologyAttachment("#PWR0001", "top")),
+                role="local_ground",
+            ),
+            TopologyConnection(
+                id="output_node",
+                point=output_node,
+                attachments=(TopologyAttachment(opamp.ref, "out"), TopologyAttachment(feedback.ref, "left")),
+                render_style="junction",
+                role="stage_output",
+            ),
+        ]
+    )
     return layout
 
 
