@@ -77,16 +77,22 @@ def _parse_global_labels(text: str, schematic_name: str) -> list[TextPlacement]:
     labels: list[TextPlacement] = []
     for index, block in enumerate(_top_level_blocks(text, "label"), start=1):
         label_text = _require_group(block, r'\(label\s+"([^"]+)"')
-        x, y = _require_groups(block, r"\(at\s+([-0-9.]+)\s+([-0-9.]+)\s+[-0-9.]+\)")
+        x, y, angle = _require_groups(block, r"\(at\s+([-0-9.]+)\s+([-0-9.]+)\s+([-0-9.]+)\)")
         font_size = _parse_font_size(block)
+        anchor = Point(round(float(x), 2), round(float(y), 2))
+        anchor_angle = int(round(float(angle))) % 360
+        anchor_justify = _parse_justify(block)
         labels.append(
             TextPlacement(
                 text=label_text,
                 role="net_label",
-                position=Point(round(float(x), 2), round(float(y), 2)),
+                position=_label_visual_position(label_text, anchor, font_size, anchor_angle, anchor_justify),
                 owner_ref=f"label:{index}",
                 uuid_seed=f"{schematic_name}:label:{index}",
                 font_size=font_size,
+                anchor_position=anchor,
+                anchor_angle=anchor_angle,
+                anchor_justify=anchor_justify,
             )
         )
     return labels
@@ -105,6 +111,33 @@ def _parse_font_size(block: str) -> float:
     if match is None:
         return 1.27
     return round(float(match.group(1)), 2)
+
+
+def _parse_justify(block: str) -> str:
+    match = re.search(r"\(justify\s+([^)]+)\)", block)
+    if match is None:
+        return ""
+    return " ".join(match.group(1).split())
+
+
+def _label_visual_position(text: str, anchor: Point, font_size: float, angle: int, justify: str) -> Point:
+    half_width = max(font_size, len(text) * font_size * 0.42)
+    half_height = max(0.9, font_size * 0.7)
+    if justify == "left":
+        return Point(round(anchor.x + half_width, 2), anchor.y)
+    if justify == "right":
+        return Point(round(anchor.x - half_width, 2), anchor.y)
+    if justify == "bottom":
+        return Point(anchor.x, round(anchor.y - half_height, 2))
+    if justify == "top":
+        return Point(anchor.x, round(anchor.y + half_height, 2))
+    if angle == 180:
+        return Point(round(anchor.x - half_width, 2), anchor.y)
+    if angle == 90:
+        return Point(anchor.x, round(anchor.y - half_height, 2))
+    if angle == 270:
+        return Point(anchor.x, round(anchor.y + half_height, 2))
+    return Point(round(anchor.x + half_width, 2), anchor.y)
 
 
 def _parse_wires(text: str, schematic_name: str) -> list[WirePath]:

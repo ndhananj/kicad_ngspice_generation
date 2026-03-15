@@ -36,8 +36,8 @@ class KiCadConnectivityTests(unittest.TestCase):
         mutated = self._mutate(
             source,
             lambda text: re.sub(
-                r'  \(label "vout" \(at [-0-9.]+ [-0-9.]+ 0\)\n'
-                r'    \(effects \(font \(size [-0-9.]+ [-0-9.]+\)\)\)\n'
+                r'  \(label "vout" \(at [-0-9.]+ [-0-9.]+ [-0-9.]+\)\n'
+                r'    \(effects \(font \(size [-0-9.]+ [-0-9.]+\)\)(?: \(justify [^)]+\))?\)\n'
                 r'    \(uuid [^)]+\)\n'
                 r'  \)\n',
                 '',
@@ -135,6 +135,7 @@ class KiCadConnectivityTests(unittest.TestCase):
         for name in ("vin", "vplus_ref", "vminus", "vout"):
             self.assertIn(name, by_text)
             self.assertEqual(by_text[name].font_size, 1.50)
+            self.assertIsNotNone(by_text[name].anchor_position)
             self.assertTrue(
                 all(
                     not (
@@ -145,6 +146,11 @@ class KiCadConnectivityTests(unittest.TestCase):
                 )
             )
             self.assertTrue(
+                by_text[name].anchor_position in {junction.point for junction in geometry.junctions}
+                or by_text[name].anchor_position in {node.point for node in geometry.nodes}
+                or any(any(point == by_text[name].anchor_position for point in wire.points) for wire in geometry.wires)
+            )
+            self.assertFalse(
                 any(
                     len(wire.points) == 2 and wire.points[-1] == by_text[name].position
                     for wire in geometry.wires

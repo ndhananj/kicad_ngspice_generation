@@ -53,6 +53,8 @@ def test_net_label_is_moved_off_wire_anchor() -> None:
 
     assert label.position != Point(50.0, 40.0)
     assert label.position.y != 40.0
+    assert label.anchor_position == Point(50.0, 40.0)
+    assert len(normalized.wires) == 1
 
 
 def test_label_search_avoids_previously_placed_label_overlap() -> None:

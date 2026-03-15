@@ -38,6 +38,10 @@ class KiCadTextPlacement:
     y: float
     uuid_seed: str
     font_size: float
+    anchor_x: float | None = None
+    anchor_y: float | None = None
+    anchor_angle: int = 0
+    anchor_justify: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,6 +169,10 @@ def _project_text(text: TextPlacement) -> KiCadTextPlacement:
         y=text.position.y,
         uuid_seed=text.uuid_seed,
         font_size=text.font_size,
+        anchor_x=text.anchor_position.x if text.anchor_position is not None else None,
+        anchor_y=text.anchor_position.y if text.anchor_position is not None else None,
+        anchor_angle=text.anchor_angle,
+        anchor_justify=text.anchor_justify,
     )
 
 

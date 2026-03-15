@@ -384,7 +384,7 @@ def _label_exclusion_zone(label: TextPlacement, geometry: CompiledSchematic) -> 
     if label.role in {"reference", "value"} and label.owner_ref in shape_by_ref:
         return _expand_box(shape_by_ref[label.owner_ref].body_box, 0.2)
     anchor = _net_label_anchor(label.position, geometry)
-    return BoundingBox(anchor.x - 1.6, anchor.y - 1.6, anchor.x + 1.6, anchor.y + 1.6)
+    return BoundingBox(anchor.x - 0.2, anchor.y - 0.2, anchor.x + 0.2, anchor.y + 0.2)
 
 
 def _nearest_anchor(position: Point, geometry: CompiledSchematic) -> Point:
@@ -401,6 +401,9 @@ def _nearest_anchor(position: Point, geometry: CompiledSchematic) -> Point:
 
 
 def _net_label_anchor(position: Point, geometry: CompiledSchematic) -> Point:
+    for label in geometry.labels:
+        if label.role == "net_label" and label.position == position and label.anchor_position is not None:
+            return label.anchor_position
     stub_matches: list[Point] = []
     for wire in geometry.wires:
         points = wire.points

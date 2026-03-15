@@ -106,6 +106,9 @@ class TextPlacement:
     owner_ref: str
     uuid_seed: str
     font_size: float = 1.27
+    anchor_position: Point | None = None
+    anchor_angle: int = 0
+    anchor_justify: str = ""
 
 
 @dataclass(frozen=True, slots=True)

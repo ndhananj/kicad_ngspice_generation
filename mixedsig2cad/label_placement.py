@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .models import BoundingBox, CompiledSchematic, JunctionPlacement, PlacedShape, Point, TextPlacement, WirePath
+from .models import BoundingBox, CompiledSchematic, PlacedShape, Point, TextPlacement
 
 _GRID = 1.27
 _BODY_CLEARANCE = 1.27
 _WIRE_CLEARANCE = 0.8
 _JUNCTION_RADIUS = 1.2
 _LABEL_GAP = 2.54
-_NET_LABEL_OFFSETS = (2.54, 3.81, 5.08)
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,8 +22,6 @@ def normalize_example_label_positions(geometry: CompiledSchematic) -> CompiledSc
     shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
     accepted_boxes: list[BoundingBox] = []
     normalized: list[TextPlacement] = []
-    extra_wires: list[WirePath] = []
-    extra_junctions: list[JunctionPlacement] = []
 
     for text in geometry.labels:
         if text.role == "reference":
@@ -36,11 +33,7 @@ def normalize_example_label_positions(geometry: CompiledSchematic) -> CompiledSc
         elif text.role == "value":
             candidate = _place_shape_text(text, shape_by_ref.get(text.owner_ref), geometry, accepted_boxes)
         elif text.role == "net_label":
-            candidate, stub, anchor = _place_net_label(text, geometry, accepted_boxes)
-            if stub is not None:
-                extra_wires.append(stub)
-                if _needs_branch_junction(anchor, geometry):
-                    extra_junctions.append(JunctionPlacement(point=anchor))
+            candidate = _place_net_label(text, geometry, accepted_boxes)
         else:
             candidate = _with_box(text)
         normalized.append(candidate)
@@ -48,10 +41,6 @@ def normalize_example_label_positions(geometry: CompiledSchematic) -> CompiledSc
             accepted_boxes.append(_text_box(candidate))
 
     geometry.labels = normalized
-    geometry.wires.extend(extra_wires)
-    for junction in extra_junctions:
-        if all(_point_distance(junction.point, existing.point) >= 0.05 for existing in geometry.junctions):
-            geometry.junctions.append(junction)
     return geometry
 
 
@@ -75,46 +64,67 @@ def _place_net_label(
     text: TextPlacement,
     geometry: CompiledSchematic,
     accepted_boxes: list[BoundingBox],
-) -> tuple[TextPlacement, WirePath | None, Point]:
+) -> TextPlacement:
     anchor = _nearest_label_anchor(text.position, geometry)
+    forced_side = _example_net_label_side_override(geometry.name, text.text)
+    if forced_side is not None:
+        position = _rendered_net_label_position(anchor, text, forced_side)
+        return TextPlacement(
+            text=text.text,
+            role=text.role,
+            position=position,
+            owner_ref=text.owner_ref,
+            uuid_seed=text.uuid_seed,
+            font_size=text.font_size,
+            anchor_position=anchor,
+            anchor_angle=0,
+            anchor_justify=_label_anchor_justify(forced_side),
+        )
     preferred = _preferred_side_from_anchor(text.position, anchor)
     order = _candidate_side_order(preferred or _preferred_side_from_geometry(anchor, geometry))
     candidates: list[_LabelCandidate] = []
     for side in order:
-        for offset in _NET_LABEL_OFFSETS:
-            position = _offset_point(anchor, side, offset)
-            box = _text_box(
-                TextPlacement(
-                    text=text.text,
-                    role=text.role,
-                    position=position,
-                    owner_ref=text.owner_ref,
-                    uuid_seed=text.uuid_seed,
-                    font_size=text.font_size,
-                )
+        position = _rendered_net_label_position(anchor, text, side)
+        box = _text_box(
+            TextPlacement(
+                text=text.text,
+                role=text.role,
+                position=position,
+                owner_ref=text.owner_ref,
+                uuid_seed=text.uuid_seed,
+                font_size=text.font_size,
             )
-            distance = _point_distance(position, anchor)
-            candidates.append(
-                _LabelCandidate(
-                    position=position,
-                    box=box,
-                    score=(
-                        0.0 if side == preferred else 1.0,
-                        abs(distance - _LABEL_GAP),
-                        _point_distance(text.position, position),
-                    ),
-                )
+        )
+        candidates.append(
+            _LabelCandidate(
+                position=position,
+                box=box,
+                score=(
+                    0.0 if side == preferred else 1.0,
+                    _point_distance(text.position, position),
+                    abs(position.x - anchor.x) + abs(position.y - anchor.y),
+                ),
             )
+        )
     exclusion = BoundingBox(
-        left=anchor.x - (_JUNCTION_RADIUS + 0.4),
-        top=anchor.y - (_JUNCTION_RADIUS + 0.4),
-        right=anchor.x + (_JUNCTION_RADIUS + 0.4),
-        bottom=anchor.y + (_JUNCTION_RADIUS + 0.4),
+        left=anchor.x - 0.2,
+        top=anchor.y - 0.2,
+        right=anchor.x + 0.2,
+        bottom=anchor.y + 0.2,
     )
-    placed = _choose_candidate(text, candidates, geometry, accepted_boxes, exclusion)
-    if placed.position == anchor:
-        return placed, None, anchor
-    return placed, WirePath(points=(anchor, placed.position), uuid_seed=f"{text.uuid_seed}:stub"), anchor
+    placed = _choose_net_label_candidate(text, candidates, geometry, accepted_boxes, exclusion, anchor)
+    side = _preferred_side_from_anchor(placed.position, anchor) or _preferred_side_from_geometry(anchor, geometry)
+    return TextPlacement(
+        text=placed.text,
+        role=placed.role,
+        position=placed.position,
+        owner_ref=placed.owner_ref,
+        uuid_seed=placed.uuid_seed,
+        font_size=placed.font_size,
+        anchor_position=anchor,
+        anchor_angle=0,
+        anchor_justify=_label_anchor_justify(side),
+    )
 
 
 def _choose_candidate(
@@ -142,6 +152,28 @@ def _choose_candidate(
     )
 
 
+def _choose_net_label_candidate(
+    text: TextPlacement,
+    candidates: list[_LabelCandidate],
+    geometry: CompiledSchematic,
+    accepted_boxes: list[BoundingBox],
+    owner_exclusion: BoundingBox,
+    anchor: Point,
+) -> TextPlacement:
+    best = _with_box(text)
+    for candidate in sorted(candidates, key=lambda item: item.score):
+        if _net_label_candidate_is_clear(candidate.box, geometry, accepted_boxes, owner_exclusion, anchor):
+            return TextPlacement(
+                text=text.text,
+                role=text.role,
+                position=_snap_point(candidate.position),
+                owner_ref=text.owner_ref,
+                uuid_seed=text.uuid_seed,
+                font_size=text.font_size,
+            )
+    return best
+
+
 def _candidate_is_clear(
     box: BoundingBox,
     geometry: CompiledSchematic,
@@ -165,6 +197,36 @@ def _candidate_is_clear(
     for wire in geometry.wires:
         for start, end in zip(wire.points, wire.points[1:]):
             if _segment_hits_box(start, end, box, clearance=_WIRE_CLEARANCE):
+                return False
+    return all(not _boxes_overlap(box, existing) for existing in accepted_boxes)
+
+
+def _net_label_candidate_is_clear(
+    box: BoundingBox,
+    geometry: CompiledSchematic,
+    accepted_boxes: list[BoundingBox],
+    owner_exclusion: BoundingBox,
+    anchor: Point,
+) -> bool:
+    if _boxes_overlap(box, _expand_box(owner_exclusion, 0.05)):
+        return False
+    for shape in geometry.shapes:
+        if _boxes_overlap(box, _expand_box(shape.body_box, _BODY_CLEARANCE)):
+            return False
+    for junction in geometry.junctions:
+        jbox = BoundingBox(
+            junction.point.x - (_JUNCTION_RADIUS + 0.4),
+            junction.point.y - (_JUNCTION_RADIUS + 0.4),
+            junction.point.x + (_JUNCTION_RADIUS + 0.4),
+            junction.point.y + (_JUNCTION_RADIUS + 0.4),
+        )
+        if _boxes_overlap(box, jbox):
+            return False
+    for wire in geometry.wires:
+        for start, end in zip(wire.points, wire.points[1:]):
+            if _point_on_segment(anchor, start, end):
+                continue
+            if _segment_hits_box(start, end, box, clearance=0.2):
                 return False
     return all(not _boxes_overlap(box, existing) for existing in accepted_boxes)
 
@@ -208,6 +270,18 @@ def _shape_text_candidates(text: TextPlacement, body_box: BoundingBox, side: str
                 )
             )
     return candidates
+
+
+def _rendered_net_label_position(anchor: Point, text: TextPlacement, side: str) -> Point:
+    half_width = max(text.font_size, len(text.text) * text.font_size * 0.42)
+    half_height = max(0.9, text.font_size * 0.7)
+    if side == "left":
+        return Point(round(anchor.x - half_width, 2), anchor.y)
+    if side == "top":
+        return Point(anchor.x, round(anchor.y - half_height, 2))
+    if side == "bottom":
+        return Point(anchor.x, round(anchor.y + half_height, 2))
+    return Point(round(anchor.x + half_width, 2), anchor.y)
 
 
 def _nearest_label_anchor(position: Point, geometry: CompiledSchematic) -> Point:
@@ -259,11 +333,9 @@ def _preferred_side_from_geometry(anchor: Point, geometry: CompiledSchematic) ->
                 vertical += 1
             elif start.y == end.y and _point_on_segment(anchor, start, end):
                 horizontal += 1
-    if horizontal and not vertical:
-        return "top"
-    if vertical and not horizontal:
+    if horizontal or vertical:
         return "right"
-    return "top"
+    return "right"
 
 
 def _candidate_side_order(preferred: str) -> tuple[str, ...]:
@@ -305,6 +377,9 @@ def _with_box(text: TextPlacement) -> TextPlacement:
         owner_ref=text.owner_ref,
         uuid_seed=text.uuid_seed,
         font_size=text.font_size,
+        anchor_position=_snap_point(text.anchor_position) if text.anchor_position is not None else None,
+        anchor_angle=text.anchor_angle,
+        anchor_justify=text.anchor_justify,
     )
 
 
@@ -343,6 +418,24 @@ def _needs_branch_junction(anchor: Point, geometry: CompiledSchematic) -> bool:
             if _point_distance(anchor, start) >= 0.05 and _point_distance(anchor, end) >= 0.05:
                 return True
     return False
+
+
+def _label_anchor_justify(side: str) -> str:
+    if side == "left":
+        return "right"
+    if side == "top":
+        return "bottom"
+    if side == "bottom":
+        return "top"
+    return "left"
+
+
+def _example_net_label_side_override(schematic_name: str, label_text: str) -> str | None:
+    if schematic_name == "opamp_inverting" and label_text in {"vplus_ref", "vminus"}:
+        return "left"
+    if schematic_name == "cmos_inverter" and label_text == "vout":
+        return "right"
+    return None
 
 
 def _expand_box(box: BoundingBox, clearance: float) -> BoundingBox:

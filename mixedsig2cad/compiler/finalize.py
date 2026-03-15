@@ -173,6 +173,9 @@ def _snap_geometry_to_grid(geometry: CompiledSchematic) -> CompiledSchematic:
             owner_ref=text.owner_ref,
             uuid_seed=text.uuid_seed,
             font_size=text.font_size,
+            anchor_position=snap_point(text.anchor_position) if text.anchor_position is not None else None,
+            anchor_angle=text.anchor_angle,
+            anchor_justify=text.anchor_justify,
         )
         for text in geometry.labels
     ]

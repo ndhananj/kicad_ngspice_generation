@@ -38,10 +38,20 @@ def _text(text: str, x: float, y: float, seed: str, *, font_size: float = 1.27) 
     ]
 
 
-def _label(text: str, x: float, y: float, seed: str, *, font_size: float = 1.27) -> list[str]:
+def _label(
+    text: str,
+    x: float,
+    y: float,
+    seed: str,
+    *,
+    font_size: float = 1.27,
+    angle: int = 0,
+    justify: str = "",
+) -> list[str]:
+    justify_clause = f" (justify {justify})" if justify else ""
     return [
-        f'  (label "{text}" (at {x:.2f} {y:.2f} 0)',
-        f"    (effects (font (size {font_size:.2f} {font_size:.2f})))",
+        f'  (label "{text}" (at {x:.2f} {y:.2f} {angle})',
+        f"    (effects (font (size {font_size:.2f} {font_size:.2f})){justify_clause})",
         f"    (uuid {deterministic_uuid(seed)})",
         "  )",
     ]
@@ -118,7 +128,19 @@ def render_kicad_schematic(projection: KiCadProjection) -> str:
         if text.role in {"reference", "value"}:
             continue
         if text.role == "net_label":
-            lines.extend(_label(text.text, text.x, text.y, text.uuid_seed, font_size=text.font_size))
+            label_x = text.anchor_x if text.anchor_x is not None else text.x
+            label_y = text.anchor_y if text.anchor_y is not None else text.y
+            lines.extend(
+                _label(
+                    text.text,
+                    label_x,
+                    label_y,
+                    text.uuid_seed,
+                    font_size=text.font_size,
+                    angle=text.anchor_angle,
+                    justify=text.anchor_justify,
+                )
+            )
         else:
             lines.extend(_text(text.text, text.x, text.y, text.uuid_seed, font_size=text.font_size))
 
