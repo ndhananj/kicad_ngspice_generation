@@ -102,6 +102,9 @@ class OverlayArtifact:
 class DependencyStatus:
     sam_available: bool
     ocr_available: bool
+    pdflatex_available: bool = False
+    kicad_cli_available: bool = False
+    pdf_raster_available: bool = False
     missing: tuple[str, ...] = ()
 
 
@@ -132,6 +135,23 @@ class ParseResult:
 def check_parser_runtime_dependencies(*, require_sam: bool = False, require_ocr: bool = False) -> DependencyStatus:
     if require_sam or require_ocr:
         _require_runtime_dependencies(require_sam=require_sam, require_ocr=require_ocr)
+    return _runtime_dependency_status()
+
+
+def check_validation_runtime_dependencies(
+    *,
+    require_kicad: bool = False,
+    require_tex: bool = False,
+    require_ocr: bool = False,
+    require_pdf_raster: bool = False,
+) -> DependencyStatus:
+    if require_kicad or require_tex or require_ocr or require_pdf_raster:
+        _require_validation_runtime_dependencies(
+            require_kicad=require_kicad,
+            require_tex=require_tex,
+            require_ocr=require_ocr,
+            require_pdf_raster=require_pdf_raster,
+        )
     return _runtime_dependency_status()
 
 
@@ -438,6 +458,9 @@ def _runtime_dependency_status() -> DependencyStatus:
     missing: list[str] = []
     sam_available = _module_available("segment_anything") or _module_available("sam2")
     ocr_available = _module_available("easyocr") or _module_available("pytesseract")
+    pdflatex_available = shutil.which("pdflatex") is not None
+    kicad_cli_available = shutil.which("kicad-cli") is not None
+    pdf_raster_available = _module_available("fitz")
     if not sam_available:
         missing.append("segment_anything or sam2")
     if not ocr_available:
@@ -445,9 +468,18 @@ def _runtime_dependency_status() -> DependencyStatus:
     if _module_available("pytesseract") and shutil.which("tesseract") is None:
         missing.append("tesseract binary")
         ocr_available = False
+    if not pdflatex_available:
+        missing.append("pdflatex")
+    if not kicad_cli_available:
+        missing.append("kicad-cli")
+    if not pdf_raster_available:
+        missing.append("PyMuPDF")
     return DependencyStatus(
         sam_available=sam_available,
         ocr_available=ocr_available,
+        pdflatex_available=pdflatex_available,
+        kicad_cli_available=kicad_cli_available,
+        pdf_raster_available=pdf_raster_available,
         missing=tuple(missing),
     )
 
@@ -462,6 +494,31 @@ def _require_runtime_dependencies(*, require_sam: bool, require_ocr: bool) -> No
     if missing:
         raise RuntimeError(
             "Missing parser dependencies: "
+            + ", ".join(missing)
+            + ". Run `pip install -r requirements.txt` and then `python3 scripts/setup_parser_env.py`."
+        )
+
+
+def _require_validation_runtime_dependencies(
+    *,
+    require_kicad: bool,
+    require_tex: bool,
+    require_ocr: bool,
+    require_pdf_raster: bool,
+) -> None:
+    status = _runtime_dependency_status()
+    missing: list[str] = []
+    if require_kicad and not status.kicad_cli_available:
+        missing.append("kicad-cli")
+    if require_tex and not status.pdflatex_available:
+        missing.append("pdflatex")
+    if require_ocr and not status.ocr_available:
+        missing.append("easyocr or pytesseract with tesseract binary")
+    if require_pdf_raster and not status.pdf_raster_available:
+        missing.append("PyMuPDF")
+    if missing:
+        raise RuntimeError(
+            "Missing validation dependencies: "
             + ", ".join(missing)
             + ". Run `pip install -r requirements.txt` and then `python3 scripts/setup_parser_env.py`."
         )

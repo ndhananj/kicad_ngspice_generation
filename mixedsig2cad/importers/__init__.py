@@ -14,6 +14,7 @@ from .hybrid_parser import (
     SceneStroke,
     SceneText,
     check_parser_runtime_dependencies,
+    check_validation_runtime_dependencies,
     parse_circuit_source,
 )
 from .kicad_schematic import import_kicad_schematic
@@ -23,6 +24,7 @@ from .raster_observation import DrawingObservation, ObservedJunction, ObservedSy
 __all__ = [
     "CanonicalScene",
     "check_parser_runtime_dependencies",
+    "check_validation_runtime_dependencies",
     "DependencyStatus",
     "DrawingObservation",
     "ObservedJunction",

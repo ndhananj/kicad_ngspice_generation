@@ -1,12 +1,15 @@
 \providecommand{\msCircuitMixedSigNpnBjtSymbol}[4]{%
   \pgfmathsetmacro{\msx}{#1}
   \pgfmathsetmacro{\msy}{#2}
-  \draw ({\msx + -0.25},{\msy + 0.38}) rectangle ({\msx + 0.45},{\msy + -0.45});
-  \node[font=\scriptsize,align=center] at (#1,#2) {#3\\#4};
-  \draw ({\msx + 0.38},{\msy + 0.89}) -- ({\msx + 0.38},{\msy + 0.38});
-  \draw ({\msx + -0.76},{\msy + 0.00}) -- ({\msx + -0.25},{\msy + 0.00});
-  \draw ({\msx + 0.38},{\msy + -0.89}) -- ({\msx + 0.38},{\msy + -0.45});
-  \draw ({\msx + -0.25},{\msy + -0.89}) -- ({\msx + -0.25},{\msy + -0.45});
+  \draw ({\msx + -0.51},{\msy + -0.00}) -- ({\msx + -0.16},{\msy + -0.00});
+  \draw ({\msx + -0.16},{\msy + 0.40}) -- ({\msx + -0.16},{\msy + -0.40});
+  \draw ({\msx + -0.16},{\msy + 0.12}) -- ({\msx + 0.30},{\msy + 0.50});
+  \draw ({\msx + -0.16},{\msy + -0.12}) -- ({\msx + 0.20},{\msy + -0.48});
+  \draw ({\msx + 0.08},{\msy + -0.36}) -- ({\msx + 0.20},{\msy + -0.48});
+  \draw ({\msx + 0.14},{\msy + -0.21}) -- ({\msx + 0.20},{\msy + -0.48});
+  \draw ({\msx + 0.08},{\msy + 0.82}) -- ({\msx + 0.30},{\msy + 0.50});
+  \draw ({\msx + 0.48},{\msy + -0.00}) -- ({\msx + 0.20},{\msy + -0.48});
+  \node[font=\scriptsize,align=center] at ({\msx + 0.00},{\msy + -1.05}) {#3\\#4};
 }
 \begin{circuitikz}[american voltages,scale=1,transform shape]
   \draw (19.94,-10.92) to[R,l={10k},t={RL}] (19.94,-12.19);

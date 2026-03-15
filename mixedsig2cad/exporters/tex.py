@@ -488,26 +488,73 @@ def _transistor_symbol_definitions(geometry: CompiledSchematic, *, dialect: str)
 def _build_transistor_symbol_definition(shape_name: str, *, dialect: str) -> TexSymbolDefinition:
     spec = TRANSISTOR_SYMBOLS[shape_name]
     orientation = default_orientation_for_shape(shape_name)
-    left, top, right, bottom = body_box(shape_name, orientation)
-    terminal_segments: list[str] = []
-    for terminal in terminal_defs(shape_name, orientation):
-        edge_x = min(max(terminal.offset[0], left), right)
-        edge_y = min(max(terminal.offset[1], top), bottom)
-        point_x, point_y = _tex_offset(terminal.offset[0], terminal.offset[1], dialect=dialect)
-        edge_draw_x, edge_draw_y = _tex_offset(edge_x, edge_y, dialect=dialect)
-        terminal_segments.append(
-            rf"  \draw ({{\msx + {point_x:.2f}}},{{\msy + {point_y:.2f}}}) -- ({{\msx + {edge_draw_x:.2f}}},{{\msy + {edge_draw_y:.2f}}});"
-        )
-    box_left, box_top = _tex_offset(left, top, dialect=dialect)
-    box_right, box_bottom = _tex_offset(right, bottom, dialect=dialect)
+    _, _, _, _ = body_box(shape_name, orientation)
     label = r"{#3\\#4}" if dialect == "circuitikz" else r"{#3 #4}"
-    body_lines = (
-        r"  \pgfmathsetmacro{\msx}{#1}",
-        r"  \pgfmathsetmacro{\msy}{#2}",
-        rf"  \draw ({{\msx + {box_left:.2f}}},{{\msy + {box_top:.2f}}}) rectangle ({{\msx + {box_right:.2f}}},{{\msy + {box_bottom:.2f}}});",
-        rf"  \node[font=\scriptsize,align=center] at (#1,#2) {label};",
-        *terminal_segments,
-    )
+    if shape_name == "npn_bjt":
+        body_lines = (
+            r"  \pgfmathsetmacro{\msx}{#1}",
+            r"  \pgfmathsetmacro{\msy}{#2}",
+            *_transistor_line_commands(
+                (
+                    ((-5.08, 0.0), (-1.60, 0.0)),
+                    ((-1.60, -4.00), (-1.60, 4.00)),
+                    ((-1.60, -1.20), (3.00, -5.00)),
+                    ((-1.60, 1.20), (2.00, 4.80)),
+                    ((0.80, 3.60), (2.00, 4.80)),
+                    ((1.40, 2.10), (2.00, 4.80)),
+                    ((0.80, -8.20), (3.00, -5.00)),
+                    ((4.80, 0.0), (2.00, 4.80)),
+                ),
+                dialect=dialect,
+            ),
+            rf"  \node[font=\scriptsize,align=center] at ({{\msx + 0.00}},{{\msy + {_tex_dimension(-10.50, dialect=dialect):.2f}}}) {label};",
+        )
+    elif shape_name == "nmos":
+        body_lines = (
+            r"  \pgfmathsetmacro{\msx}{#1}",
+            r"  \pgfmathsetmacro{\msy}{#2}",
+            *_transistor_line_commands(
+                (
+                    ((-7.00, 0.0), (-3.20, 0.0)),
+                    ((-1.80, -4.60), (-1.80, 4.60)),
+                    ((1.80, -4.60), (1.80, 4.60)),
+                    ((-3.20, 0.0), (-3.20, 4.20)),
+                    ((-3.20, -4.20), (-3.20, 0.0)),
+                    ((1.80, -8.80), (1.80, -4.60)),
+                    ((1.80, 4.60), (1.80, 8.80)),
+                    ((4.80, 0.0), (1.80, 0.0)),
+                    ((0.20, 1.80), (1.80, 0.0)),
+                    ((0.20, -1.80), (1.80, 0.0)),
+                ),
+                dialect=dialect,
+            ),
+            rf"  \node[font=\scriptsize,align=center] at ({{\msx + 0.00}},{{\msy + {_tex_dimension(-10.80, dialect=dialect):.2f}}}) {label};",
+        )
+    elif shape_name == "pmos":
+        bubble_radius = _tex_dimension(0.90, dialect=dialect)
+        body_lines = (
+            r"  \pgfmathsetmacro{\msx}{#1}",
+            r"  \pgfmathsetmacro{\msy}{#2}",
+            *_transistor_line_commands(
+                (
+                    ((-7.40, 0.0), (-4.20, 0.0)),
+                    ((-1.80, -4.60), (-1.80, 4.60)),
+                    ((1.80, -4.60), (1.80, 4.60)),
+                    ((-4.20, 0.0), (-4.20, 4.20)),
+                    ((-4.20, -4.20), (-4.20, 0.0)),
+                    ((1.80, -8.80), (1.80, -4.60)),
+                    ((1.80, 4.60), (1.80, 8.80)),
+                    ((4.80, 0.0), (1.80, 0.0)),
+                    ((0.20, 1.80), (1.80, 0.0)),
+                    ((0.20, -1.80), (1.80, 0.0)),
+                ),
+                dialect=dialect,
+            ),
+            rf"  \draw ({{\msx + {_tex_dimension(-3.20, dialect=dialect):.2f}}},{{\msy + 0.00}}) circle ({bubble_radius:.2f});",
+            rf"  \node[font=\scriptsize,align=center] at ({{\msx + 0.00}},{{\msy + {_tex_dimension(-10.80, dialect=dialect):.2f}}}) {label};",
+        )
+    else:
+        raise AssertionError(f"unsupported transistor TeX macro shape {shape_name}")
     return TexSymbolDefinition(
         name=_transistor_macro_name(spec, dialect=dialect),
         parameter_count=4,
@@ -541,6 +588,25 @@ def _tex_offset(x: float, y: float, *, dialect: str) -> tuple[float, float]:
     return (x, y)
 
 
+def _tex_dimension(value: float, *, dialect: str) -> float:
+    return value * SCALE if dialect == "circuitikz" else value
+
+
+def _transistor_line_commands(
+    segments: tuple[tuple[tuple[float, float], tuple[float, float]], ...],
+    *,
+    dialect: str,
+) -> tuple[str, ...]:
+    commands: list[str] = []
+    for start, end in segments:
+        start_x, start_y = _tex_offset(start[0], start[1], dialect=dialect)
+        end_x, end_y = _tex_offset(end[0], end[1], dialect=dialect)
+        commands.append(
+            rf"  \draw ({{\msx + {start_x:.2f}}},{{\msy + {start_y:.2f}}}) -- ({{\msx + {end_x:.2f}}},{{\msy + {end_y:.2f}}});"
+        )
+    return tuple(commands)
+
+
 def _render_symbol_definitions(definitions: tuple[TexSymbolDefinition, ...]) -> list[str]:
     lines: list[str] = []
     for definition in definitions:
@@ -562,7 +628,16 @@ def _render_document_section(section: TexDocumentSection, *, level: int) -> list
 
 def _render_section_body(body: str | TexDrawing | TexSvgInclude | TexInput) -> str:
     if isinstance(body, TexDrawing):
-        return render_tex_drawing(body)
+        drawing = render_tex_drawing(body)
+        return "\n".join(
+            [
+                r"\begin{center}",
+                r"\resizebox{\linewidth}{!}{%",
+                drawing,
+                r"}",
+                r"\end{center}",
+            ]
+        )
     if isinstance(body, TexSvgInclude):
         return _render_svg_include(body)
     if isinstance(body, TexInput):

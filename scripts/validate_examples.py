@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT))
 from examples.specs.catalog import all_examples
 from mixedsig2cad import (
     build_schematic_intent,
+    check_validation_runtime_dependencies,
     compare_geometries,
     compile_design,
     compile_schematic,
@@ -24,6 +25,8 @@ from mixedsig2cad import (
     validate_kicad_connectivity,
     validate_rendered_example_labels,
     validate_rendered_kicad_symbols,
+    validate_rendered_tex_examples,
+    validate_rendered_tex_transistors,
 )
 from mixedsig2cad.exporters.tex import export_example_report_tex
 from mixedsig2cad.geometry import PAGE_BOTTOM, PAGE_LEFT, PAGE_RIGHT, PAGE_TOP
@@ -215,6 +218,16 @@ def validate_tex_outputs() -> None:
     _pdflatex(master)
 
 
+def validate_rendered_tex() -> None:
+    specs = all_examples()
+    tex_dir = ROOT / "examples" / "generated" / "tex"
+    label_results, clip_results = validate_rendered_tex_examples(specs, tex_dir=tex_dir)
+    transistor_results = validate_rendered_tex_transistors(specs, tex_dir=tex_dir)
+    assert label_results, "expected rendered TeX label validation results"
+    assert clip_results, "expected rendered TeX clipping validation results"
+    assert transistor_results, "expected rendered TeX transistor validation results"
+
+
 def _geometry_bounds(geometry) -> tuple[float, float, float, float] | None:
     xs: list[float] = []
     ys: list[float] = []
@@ -317,6 +330,11 @@ def validate_ngspice(path: Path) -> None:
 
 
 def main() -> None:
+    check_validation_runtime_dependencies(
+        require_kicad=True,
+        require_tex=True,
+        require_pdf_raster=True,
+    )
     validate_geometry()
     validate_rendered_symbols()
     validate_rendered_example_label_positions()
@@ -327,6 +345,7 @@ def main() -> None:
     for cir in sorted((ROOT / "examples" / "generated" / "ngspice").glob("*.cir")):
         validate_ngspice(cir)
     validate_tex_outputs()
+    validate_rendered_tex()
     print("all generated examples passed structural, kicad-cli, and TeX validation")
 
 

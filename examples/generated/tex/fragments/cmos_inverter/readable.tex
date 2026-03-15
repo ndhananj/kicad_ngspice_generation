@@ -1,22 +1,33 @@
 \providecommand{\msCircuitMixedSigNmosSymbol}[4]{%
   \pgfmathsetmacro{\msx}{#1}
   \pgfmathsetmacro{\msy}{#2}
-  \draw ({\msx + -0.13},{\msy + 0.25}) rectangle ({\msx + 0.51},{\msy + -0.25});
-  \node[font=\scriptsize,align=center] at (#1,#2) {#3\\#4};
-  \draw ({\msx + 0.25},{\msy + 0.51}) -- ({\msx + 0.25},{\msy + 0.25});
-  \draw ({\msx + -0.51},{\msy + 0.00}) -- ({\msx + -0.13},{\msy + 0.00});
-  \draw ({\msx + 0.25},{\msy + -0.51}) -- ({\msx + 0.25},{\msy + -0.25});
-  \draw ({\msx + 0.51},{\msy + -0.51}) -- ({\msx + 0.51},{\msy + -0.25});
+  \draw ({\msx + -0.70},{\msy + -0.00}) -- ({\msx + -0.32},{\msy + -0.00});
+  \draw ({\msx + -0.18},{\msy + 0.46}) -- ({\msx + -0.18},{\msy + -0.46});
+  \draw ({\msx + 0.18},{\msy + 0.46}) -- ({\msx + 0.18},{\msy + -0.46});
+  \draw ({\msx + -0.32},{\msy + -0.00}) -- ({\msx + -0.32},{\msy + -0.42});
+  \draw ({\msx + -0.32},{\msy + 0.42}) -- ({\msx + -0.32},{\msy + -0.00});
+  \draw ({\msx + 0.18},{\msy + 0.88}) -- ({\msx + 0.18},{\msy + 0.46});
+  \draw ({\msx + 0.18},{\msy + -0.46}) -- ({\msx + 0.18},{\msy + -0.88});
+  \draw ({\msx + 0.48},{\msy + -0.00}) -- ({\msx + 0.18},{\msy + -0.00});
+  \draw ({\msx + 0.02},{\msy + -0.18}) -- ({\msx + 0.18},{\msy + -0.00});
+  \draw ({\msx + 0.02},{\msy + 0.18}) -- ({\msx + 0.18},{\msy + -0.00});
+  \node[font=\scriptsize,align=center] at ({\msx + 0.00},{\msy + -1.08}) {#3\\#4};
 }
 \providecommand{\msCircuitMixedSigPmosSymbol}[4]{%
   \pgfmathsetmacro{\msx}{#1}
   \pgfmathsetmacro{\msy}{#2}
-  \draw ({\msx + -0.13},{\msy + 0.25}) rectangle ({\msx + 0.51},{\msy + -0.25});
-  \node[font=\scriptsize,align=center] at (#1,#2) {#3\\#4};
-  \draw ({\msx + 0.25},{\msy + -0.51}) -- ({\msx + 0.25},{\msy + -0.25});
-  \draw ({\msx + -0.51},{\msy + 0.00}) -- ({\msx + -0.13},{\msy + 0.00});
-  \draw ({\msx + 0.25},{\msy + 0.51}) -- ({\msx + 0.25},{\msy + 0.25});
-  \draw ({\msx + 0.51},{\msy + 0.51}) -- ({\msx + 0.51},{\msy + 0.25});
+  \draw ({\msx + -0.74},{\msy + -0.00}) -- ({\msx + -0.42},{\msy + -0.00});
+  \draw ({\msx + -0.18},{\msy + 0.46}) -- ({\msx + -0.18},{\msy + -0.46});
+  \draw ({\msx + 0.18},{\msy + 0.46}) -- ({\msx + 0.18},{\msy + -0.46});
+  \draw ({\msx + -0.42},{\msy + -0.00}) -- ({\msx + -0.42},{\msy + -0.42});
+  \draw ({\msx + -0.42},{\msy + 0.42}) -- ({\msx + -0.42},{\msy + -0.00});
+  \draw ({\msx + 0.18},{\msy + 0.88}) -- ({\msx + 0.18},{\msy + 0.46});
+  \draw ({\msx + 0.18},{\msy + -0.46}) -- ({\msx + 0.18},{\msy + -0.88});
+  \draw ({\msx + 0.48},{\msy + -0.00}) -- ({\msx + 0.18},{\msy + -0.00});
+  \draw ({\msx + 0.02},{\msy + -0.18}) -- ({\msx + 0.18},{\msy + -0.00});
+  \draw ({\msx + 0.02},{\msy + 0.18}) -- ({\msx + 0.18},{\msy + -0.00});
+  \draw ({\msx + -0.32},{\msy + 0.00}) circle (0.09);
+  \node[font=\scriptsize,align=center] at ({\msx + 0.00},{\msy + -1.08}) {#3\\#4};
 }
 \begin{circuitikz}[american voltages,scale=1,transform shape]
   \draw (6.22,-6.10) to[V,l={DC 3.3},t={VDD}] (6.22,-7.62);

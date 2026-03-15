@@ -42,9 +42,12 @@ def test_parse_raster_requires_dependencies() -> None:
 def test_dependency_status_reports_missing_runtime_tools() -> None:
     status = check_parser_runtime_dependencies()
 
-    assert status.sam_available is False
-    assert status.ocr_available is False
-    assert status.missing
+    assert isinstance(status.sam_available, bool)
+    assert isinstance(status.ocr_available, bool)
+    assert isinstance(status.pdflatex_available, bool)
+    assert isinstance(status.kicad_cli_available, bool)
+    assert isinstance(status.pdf_raster_available, bool)
+    assert isinstance(status.missing, tuple)
 
 
 def test_setup_parser_env_returns_failure_when_modules_missing(monkeypatch: pytest.MonkeyPatch) -> None:

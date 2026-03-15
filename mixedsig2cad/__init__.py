@@ -28,11 +28,16 @@ from .importers import (
     ParsedJunction,
     ParseResult,
     check_parser_runtime_dependencies,
+    check_validation_runtime_dependencies,
     extract_geometry_from_image,
     import_kicad_schematic,
     parse_circuit_source,
 )
 from .projections.kicad_render_validate import validate_rendered_example_labels, validate_rendered_kicad_symbols
+from .projections.tex_render_validate import (
+    validate_rendered_tex_examples,
+    validate_rendered_tex_transistors,
+)
 from .projections.kicad_cli import export_schematic_pdf, export_schematic_svg
 from .spec import Analysis, CircuitSpec, Component
 from .exporters.kicad import export_kicad_schematic
@@ -68,6 +73,7 @@ __all__ = [
     "compare_geometries",
     "compare_topologies",
     "check_parser_runtime_dependencies",
+    "check_validation_runtime_dependencies",
     "ConnectivityReport",
     "DependencyStatus",
     "KiCadErcViolation",
@@ -119,4 +125,6 @@ __all__ = [
     "validate_kicad_connectivity",
     "validate_rendered_example_labels",
     "validate_rendered_kicad_symbols",
+    "validate_rendered_tex_examples",
+    "validate_rendered_tex_transistors",
 ]

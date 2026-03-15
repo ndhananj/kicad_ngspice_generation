@@ -10,6 +10,7 @@ dependencies = [
     "svgpathtools",
     "segment-anything",
     "pytesseract",
+    "PyMuPDF",
 ]
 
 [tool.setuptools]
