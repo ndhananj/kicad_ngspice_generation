@@ -14,7 +14,8 @@ The setup script verifies the parser stack is present. For OCR-backed parsing wi
 ## What is included
 
 - `mixedsig2cad/`: library code for high-level spec modeling and exporters.
-- `examples/specs/catalog.py`: 8 programmatic circuit examples.
+- `examples/specs/catalog.py`: parameterized example topologies plus instantiation helpers.
+- `examples/specs/circuit_values.json`: single source of circuit values, models, waveforms, and analyses for all examples.
 - `examples/generated/kicad/*.kicad_sch`: generated KiCad schematic examples.
 - `examples/generated/kicad/examples.kicad_pro`: KiCad project that opens all generated schematics as hierarchical sheets.
 - `examples/generated/ngspice/*.cir`: generated ngspice netlist examples.
@@ -63,6 +64,32 @@ kicad_report = export_example_report_tex(spec)
 kicad_text = export_kicad_schematic(spec)
 ngspice_text = export_ngspice_netlist(spec)
 ```
+
+## Parameterized example library
+
+The authored examples are split into:
+
+- topology templates in `examples/specs/catalog.py` with refs, kinds, and connectivity only
+- shared instance data in `examples/specs/circuit_values.json`
+- generated `CircuitSpec` / `ExampleDesign` objects created by instantiating a topology with one JSON entry
+
+Example:
+
+```python
+from examples.specs.catalog import (
+    build_rc_lowpass_topology,
+    example_instance_values,
+    instantiate_topology,
+    rc_lowpass,
+)
+
+topology = build_rc_lowpass_topology()
+values = example_instance_values("rc_lowpass")
+spec = instantiate_topology(topology, values)
+design = rc_lowpass()
+```
+
+This keeps the main architectures free of hard-coded numbers and ensures the TeX, KiCad, and ngspice outputs all draw their example-specific values from the same source.
 
 The pipeline is now layered:
 
@@ -134,10 +161,11 @@ Internal code is split so most maintenance tasks only need one focused area:
 ## Example library catalog
 
 Each entry has:
-1) programmatic source in `examples/specs/catalog.py`,
-2) generated KiCad file in `examples/generated/kicad/`, and
-3) generated ngspice file in `examples/generated/ngspice/`, and
-4) generated TeX report files in `examples/generated/tex/`.
+1) topology source in `examples/specs/catalog.py`,
+2) shared instance values in `examples/specs/circuit_values.json`,
+3) generated KiCad file in `examples/generated/kicad/`, and
+4) generated ngspice file in `examples/generated/ngspice/`, and
+5) generated TeX report files in `examples/generated/tex/`.
 
 - `rc_lowpass`
 - `rc_highpass`

@@ -706,6 +706,19 @@ def _reference_section(spec: CircuitSpec) -> str:
         [
             r"\end{longtable}",
             "",
+            r"\paragraph{Model Statements}",
+        ]
+    )
+    if spec.models:
+        lines.append(r"\begin{itemize}")
+        for model_line in spec.models:
+            lines.append(rf"  \item \texttt{{{_latex_escape(model_line)}}}")
+        lines.append(r"\end{itemize}")
+    else:
+        lines.append("No model statements defined.")
+    lines.extend(
+        [
+            "",
             r"\paragraph{Analyses}",
         ]
     )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
@@ -16,59 +17,250 @@ from mixedsig2cad.design import (
 from mixedsig2cad.models import Point
 
 
+@dataclass(frozen=True, slots=True)
+class ComponentTopology:
+    ref: str
+    kind: str
+    nodes: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ExampleTopology:
+    name: str
+    components: tuple[ComponentTopology, ...]
+
+
+def build_rc_lowpass_topology() -> ExampleTopology:
+    return _topology_named("rc_lowpass")
+
+
+def build_rc_highpass_topology() -> ExampleTopology:
+    return _topology_named("rc_highpass")
+
+
+def build_rlc_bandpass_topology() -> ExampleTopology:
+    return _topology_named("rlc_bandpass")
+
+
+def build_diode_clipper_topology() -> ExampleTopology:
+    return _topology_named("diode_clipper")
+
+
+def build_bjt_common_emitter_topology() -> ExampleTopology:
+    return _topology_named("bjt_common_emitter")
+
+
+def build_opamp_inverting_topology() -> ExampleTopology:
+    return _topology_named("opamp_inverting")
+
+
+def build_cmos_inverter_topology() -> ExampleTopology:
+    return _topology_named("cmos_inverter")
+
+
+def build_schmitt_trigger_topology() -> ExampleTopology:
+    return _topology_named("schmitt_trigger")
+
+
+def topology_named(name: str) -> ExampleTopology:
+    return _topology_named(name)
+
+
+def all_topologies() -> list[ExampleTopology]:
+    return [_topology_named(name) for name in _TOPOLOGY_BUILDERS]
+
+
+def example_instance_values(name: str) -> dict:
+    return json.loads(json.dumps(_instance_catalog()[name]))
+
+
+def instantiate_topology(topology: ExampleTopology, values: dict) -> CircuitSpec:
+    spec = CircuitSpec(topology.name)
+    components_by_ref = values["components"]
+    expected_refs = {component.ref for component in topology.components}
+    unknown_refs = set(components_by_ref) - expected_refs
+    missing_refs = expected_refs - set(components_by_ref)
+    if unknown_refs or missing_refs:
+        problems = []
+        if unknown_refs:
+            problems.append(f"unknown component refs: {sorted(unknown_refs)}")
+        if missing_refs:
+            problems.append(f"missing component refs: {sorted(missing_refs)}")
+        raise ValueError(f"invalid values for topology {topology.name}: {'; '.join(problems)}")
+
+    for component in topology.components:
+        value_entry = components_by_ref[component.ref]
+        spec.add(
+            component.ref,
+            component.kind,
+            value_entry["value"],
+            *component.nodes,
+            model=value_entry.get("model"),
+        )
+
+    for model_line in values.get("models", []):
+        spec.add_model(model_line)
+    for analysis in values.get("analyses", []):
+        spec.analyze(analysis)
+    return spec
+
+
+def instantiate_example(name: str) -> ExampleDesign:
+    spec = instantiate_topology(_topology_named(name), _instance_catalog()[name])
+    return ExampleDesign(name=name, circuit=spec, layout=_seed_layouts()[name])
+
+
 def rc_lowpass() -> ExampleDesign:
-    return _example_design("rc_lowpass")
+    return instantiate_example("rc_lowpass")
 
 
 def rc_highpass() -> ExampleDesign:
-    return _example_design("rc_highpass")
+    return instantiate_example("rc_highpass")
 
 
 def rlc_bandpass() -> ExampleDesign:
-    return _example_design("rlc_bandpass")
+    return instantiate_example("rlc_bandpass")
 
 
 def diode_clipper() -> ExampleDesign:
-    return _example_design("diode_clipper")
+    return instantiate_example("diode_clipper")
 
 
 def bjt_common_emitter() -> ExampleDesign:
-    return _example_design("bjt_common_emitter")
+    return instantiate_example("bjt_common_emitter")
 
 
 def opamp_inverting() -> ExampleDesign:
-    return _example_design("opamp_inverting")
+    return instantiate_example("opamp_inverting")
 
 
 def cmos_inverter() -> ExampleDesign:
-    return _example_design("cmos_inverter")
+    return instantiate_example("cmos_inverter")
 
 
 def schmitt_trigger() -> ExampleDesign:
-    return _example_design("schmitt_trigger")
+    return instantiate_example("schmitt_trigger")
 
 
 def all_examples() -> list[ExampleDesign]:
-    return [_example_design(spec.name) for spec in _all_circuit_specs()]
+    return [instantiate_example(name) for name in _TOPOLOGY_BUILDERS]
 
 
 def _all_circuit_specs() -> list[CircuitSpec]:
-    return [
-        _rc_lowpass_spec(),
-        _rc_highpass_spec(),
-        _rlc_bandpass_spec(),
-        _diode_clipper_spec(),
-        _bjt_common_emitter_spec(),
-        _opamp_inverting_spec(),
-        _cmos_inverter_spec(),
-        _schmitt_trigger_spec(),
-    ]
+    return [instantiate_topology(_topology_named(name), _instance_catalog()[name]) for name in _TOPOLOGY_BUILDERS]
 
 
-def _example_design(name: str) -> ExampleDesign:
-    spec = next(spec for spec in _all_circuit_specs() if spec.name == name)
-    layout = _seed_layouts()[name]
-    return ExampleDesign(name=name, circuit=spec, layout=layout)
+_TOPOLOGY_BUILDERS = (
+    "rc_lowpass",
+    "rc_highpass",
+    "rlc_bandpass",
+    "diode_clipper",
+    "bjt_common_emitter",
+    "opamp_inverting",
+    "cmos_inverter",
+    "schmitt_trigger",
+)
+
+
+def _topology_named(name: str) -> ExampleTopology:
+    try:
+        return _topologies()[name]
+    except KeyError as exc:
+        raise KeyError(f"unknown example topology: {name}") from exc
+
+
+@lru_cache(maxsize=1)
+def _topologies() -> dict[str, ExampleTopology]:
+    return {
+        "rc_lowpass": ExampleTopology(
+            name="rc_lowpass",
+            components=(
+                ComponentTopology("V1", "V", ("vin", "0")),
+                ComponentTopology("R1", "R", ("vin", "vout")),
+                ComponentTopology("C1", "C", ("vout", "0")),
+            ),
+        ),
+        "rc_highpass": ExampleTopology(
+            name="rc_highpass",
+            components=(
+                ComponentTopology("V1", "V", ("vin", "0")),
+                ComponentTopology("C1", "C", ("vin", "vmid")),
+                ComponentTopology("R1", "R", ("vmid", "0")),
+            ),
+        ),
+        "rlc_bandpass": ExampleTopology(
+            name="rlc_bandpass",
+            components=(
+                ComponentTopology("V1", "V", ("vin", "0")),
+                ComponentTopology("R1", "R", ("vin", "n1")),
+                ComponentTopology("L1", "L", ("n1", "n2")),
+                ComponentTopology("C1", "C", ("n2", "0")),
+                ComponentTopology("R2", "R", ("n2", "0")),
+            ),
+        ),
+        "diode_clipper": ExampleTopology(
+            name="diode_clipper",
+            components=(
+                ComponentTopology("V1", "V", ("vin", "0")),
+                ComponentTopology("R1", "R", ("vin", "vout")),
+                ComponentTopology("D1", "D", ("vout", "0")),
+            ),
+        ),
+        "bjt_common_emitter": ExampleTopology(
+            name="bjt_common_emitter",
+            components=(
+                ComponentTopology("VCC", "V", ("vcc", "0")),
+                ComponentTopology("VS", "V", ("vin_src", "0")),
+                ComponentTopology("CB", "C", ("vin_src", "base")),
+                ComponentTopology("R1", "R", ("vcc", "base")),
+                ComponentTopology("R2", "R", ("base", "0")),
+                ComponentTopology("RC", "R", ("vcc", "collector")),
+                ComponentTopology("RE", "R", ("emitter", "0")),
+                ComponentTopology("CE", "C", ("emitter", "0")),
+                ComponentTopology("CC", "C", ("collector", "vout")),
+                ComponentTopology("RL", "R", ("vout", "0")),
+                ComponentTopology("Q1", "Q", ("collector", "base", "emitter")),
+            ),
+        ),
+        "opamp_inverting": ExampleTopology(
+            name="opamp_inverting",
+            components=(
+                ComponentTopology("VCC", "V", ("vcc", "0")),
+                ComponentTopology("VEE", "V", ("vee", "0")),
+                ComponentTopology("VIN", "V", ("vin", "0")),
+                ComponentTopology("RIN", "R", ("vin", "vminus")),
+                ComponentTopology("RF", "R", ("vout", "vminus")),
+                ComponentTopology("R3", "R", ("vplus_ref", "0")),
+                ComponentTopology("XU1", "X", ("vplus_ref", "vminus", "vout", "vcc", "vee")),
+            ),
+        ),
+        "cmos_inverter": ExampleTopology(
+            name="cmos_inverter",
+            components=(
+                ComponentTopology("VDD", "V", ("vdd", "0")),
+                ComponentTopology("VIN", "V", ("vin", "0")),
+                ComponentTopology("MP1", "M", ("vout", "vin", "vdd", "vdd")),
+                ComponentTopology("MN1", "M", ("vout", "vin", "0", "0")),
+            ),
+        ),
+        "schmitt_trigger": ExampleTopology(
+            name="schmitt_trigger",
+            components=(
+                ComponentTopology("VCC", "V", ("vcc", "0")),
+                ComponentTopology("VIN", "V", ("vin", "0")),
+                ComponentTopology("VREF", "V", ("vref", "0")),
+                ComponentTopology("R1", "R", ("vref", "vplus")),
+                ComponentTopology("R2", "R", ("vplus", "0")),
+                ComponentTopology("R3", "R", ("vout", "vplus")),
+                ComponentTopology("XU1", "X", ("vplus", "vin", "vout", "vcc", "0")),
+            ),
+        ),
+    }
+
+
+@lru_cache(maxsize=1)
+def _instance_catalog() -> dict[str, dict]:
+    return json.loads((Path(__file__).with_name("circuit_values.json")).read_text(encoding="utf-8"))
 
 
 @lru_cache(maxsize=1)
@@ -132,117 +324,3 @@ def _component_orientation(name: str, ref: str, orientation: str) -> str:
     if name == "schmitt_trigger" and ref == "R3":
         return "horizontal_flipped"
     return orientation
-
-
-def _rc_lowpass_spec() -> CircuitSpec:
-    return (
-        CircuitSpec("rc_lowpass")
-        .add("V1", "V", "DC 5", "vin", "0")
-        .add("R1", "R", "1k", "vin", "vout")
-        .add("C1", "C", "100n", "vout", "0")
-        .analyze("op")
-        .analyze("ac dec 20 10 1e6")
-    )
-
-
-def _rc_highpass_spec() -> CircuitSpec:
-    return (
-        CircuitSpec("rc_highpass")
-        .add("V1", "V", "AC 1", "vin", "0")
-        .add("C1", "C", "10n", "vin", "vmid")
-        .add("R1", "R", "10k", "vmid", "0")
-        .analyze("ac dec 20 10 1e6")
-    )
-
-
-def _rlc_bandpass_spec() -> CircuitSpec:
-    return (
-        CircuitSpec("rlc_bandpass")
-        .add("V1", "V", "AC 1", "vin", "0")
-        .add("R1", "R", "50", "vin", "n1")
-        .add("L1", "L", "10m", "n1", "n2")
-        .add("C1", "C", "100n", "n2", "0")
-        .add("R2", "R", "1k", "n2", "0")
-        .analyze("ac dec 40 10 100k")
-    )
-
-
-def _diode_clipper_spec() -> CircuitSpec:
-    return (
-        CircuitSpec("diode_clipper")
-        .add("V1", "V", "SIN(0 5 1k)", "vin", "0")
-        .add("R1", "R", "1k", "vin", "vout")
-        .add("D1", "D", "D4148", "vout", "0", model="D4148")
-        .add_model(".model D4148 D(Is=2.5e-9 N=1.75 Rs=0.6 Cjo=1.5p)")
-        .analyze("tran 0.05ms 5ms")
-    )
-
-
-def _bjt_common_emitter_spec() -> CircuitSpec:
-    return (
-        CircuitSpec("bjt_common_emitter")
-        .add("VCC", "V", "DC 12", "vcc", "0")
-        .add("VS", "V", "SIN(0 0.02 1k)", "vin_src", "0")
-        .add("CB", "C", "10u", "vin_src", "base")
-        .add("R1", "R", "100k", "vcc", "base")
-        .add("R2", "R", "22k", "base", "0")
-        .add("RC", "R", "2.2k", "vcc", "collector")
-        .add("RE", "R", "1k", "emitter", "0")
-        .add("CE", "C", "100u", "emitter", "0")
-        .add("CC", "C", "10u", "collector", "vout")
-        .add("RL", "R", "10k", "vout", "0")
-        .add("Q1", "Q", "2N3904", "collector", "base", "emitter", model="Q2N3904")
-        .add_model(".model Q2N3904 NPN(Is=6.734f Bf=255.9 Vaf=74.03 Cje=4.493p Tf=301.2p)")
-        .analyze("tran 10us 5ms")
-    )
-
-
-def _opamp_inverting_spec() -> CircuitSpec:
-    return (
-        CircuitSpec("opamp_inverting")
-        .add("VCC", "V", "DC 12", "vcc", "0")
-        .add("VEE", "V", "DC -12", "vee", "0")
-        .add("VIN", "V", "SIN(0 0.5 500)", "vin", "0")
-        .add("RIN", "R", "10k", "vin", "vminus")
-        .add("RF", "R", "100k", "vout", "vminus")
-        .add("R3", "R", "10k", "vplus_ref", "0")
-        .add("XU1", "X", "OPAMP", "vplus_ref", "vminus", "vout", "vcc", "vee")
-        .add_model(".subckt OPAMP 1 2 6 4 5")
-        .add_model("EGAIN 6 0 1 2 1e5")
-        .add_model("RINP 1 0 1e9")
-        .add_model("RINN 2 0 1e9")
-        .add_model(".ends OPAMP")
-        .analyze("tran 0.1ms 10ms")
-    )
-
-
-def _cmos_inverter_spec() -> CircuitSpec:
-    return (
-        CircuitSpec("cmos_inverter")
-        .add("VDD", "V", "DC 3.3", "vdd", "0")
-        .add("VIN", "V", "PULSE(0 3.3 0 1n 1n 10n 20n)", "vin", "0")
-        .add("MP1", "M", "PM1", "vout", "vin", "vdd", "vdd", model="PM1")
-        .add("MN1", "M", "NM1", "vout", "vin", "0", "0", model="NM1")
-        .add_model(".model NM1 NMOS (Level=1 Vto=0.7 Kp=120u Lambda=0.03)")
-        .add_model(".model PM1 PMOS (Level=1 Vto=-0.7 Kp=60u Lambda=0.04)")
-        .analyze("tran 0.1n 100n")
-    )
-
-
-def _schmitt_trigger_spec() -> CircuitSpec:
-    return (
-        CircuitSpec("schmitt_trigger")
-        .add("VCC", "V", "DC 5", "vcc", "0")
-        .add("VIN", "V", "PWL(0 0 1m 5 2m 0)", "vin", "0")
-        .add("VREF", "V", "DC 2.5", "vref", "0")
-        .add("R1", "R", "100k", "vref", "vplus")
-        .add("R2", "R", "100k", "vplus", "0")
-        .add("R3", "R", "100k", "vout", "vplus")
-        .add("XU1", "X", "OPCMP", "vplus", "vin", "vout", "vcc", "0")
-        .add_model(".subckt OPCMP 1 2 6 4 5")
-        .add_model("E1 6 0 1 2 1e6")
-        .add_model("R1i 1 0 1e9")
-        .add_model("R2i 2 0 1e9")
-        .add_model(".ends OPCMP")
-        .analyze("tran 10us 3ms")
-    )

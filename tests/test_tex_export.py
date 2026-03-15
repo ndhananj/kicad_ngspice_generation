@@ -98,6 +98,16 @@ def test_standalone_report_contains_expected_sections_and_starter_notes() -> Non
     assert "Replace these starter notes" in text
 
 
+def test_reference_summary_uses_instantiated_catalog_values() -> None:
+    text = export_example_report_tex(opamp_inverting())
+
+    assert "RIN &amp;" not in text
+    assert "RIN" in text
+    assert "100k" in text
+    assert "tran 0.1ms 10ms" in text
+    assert ".subckt OPAMP 1 2 6 4 5" in text
+
+
 def test_master_report_inputs_each_example_report() -> None:
     text = export_examples_master_report([rc_lowpass(), opamp_inverting(), cmos_inverter()])
 

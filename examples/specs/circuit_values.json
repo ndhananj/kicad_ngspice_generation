@@ -1,0 +1,112 @@
+{
+  "rc_lowpass": {
+    "components": {
+      "V1": {"value": "DC 5"},
+      "R1": {"value": "1k"},
+      "C1": {"value": "100n"}
+    },
+    "models": [],
+    "analyses": ["op", "ac dec 20 10 1e6"]
+  },
+  "rc_highpass": {
+    "components": {
+      "V1": {"value": "AC 1"},
+      "C1": {"value": "10n"},
+      "R1": {"value": "10k"}
+    },
+    "models": [],
+    "analyses": ["ac dec 20 10 1e6"]
+  },
+  "rlc_bandpass": {
+    "components": {
+      "V1": {"value": "AC 1"},
+      "R1": {"value": "50"},
+      "L1": {"value": "10m"},
+      "C1": {"value": "100n"},
+      "R2": {"value": "1k"}
+    },
+    "models": [],
+    "analyses": ["ac dec 40 10 100k"]
+  },
+  "diode_clipper": {
+    "components": {
+      "V1": {"value": "SIN(0 5 1k)"},
+      "R1": {"value": "1k"},
+      "D1": {"value": "D4148", "model": "D4148"}
+    },
+    "models": [
+      ".model D4148 D(Is=2.5e-9 N=1.75 Rs=0.6 Cjo=1.5p)"
+    ],
+    "analyses": ["tran 0.05ms 5ms"]
+  },
+  "bjt_common_emitter": {
+    "components": {
+      "VCC": {"value": "DC 12"},
+      "VS": {"value": "SIN(0 0.02 1k)"},
+      "CB": {"value": "10u"},
+      "R1": {"value": "100k"},
+      "R2": {"value": "22k"},
+      "RC": {"value": "2.2k"},
+      "RE": {"value": "1k"},
+      "CE": {"value": "100u"},
+      "CC": {"value": "10u"},
+      "RL": {"value": "10k"},
+      "Q1": {"value": "2N3904", "model": "Q2N3904"}
+    },
+    "models": [
+      ".model Q2N3904 NPN(Is=6.734f Bf=255.9 Vaf=74.03 Cje=4.493p Tf=301.2p)"
+    ],
+    "analyses": ["tran 10us 5ms"]
+  },
+  "opamp_inverting": {
+    "components": {
+      "VCC": {"value": "DC 12"},
+      "VEE": {"value": "DC -12"},
+      "VIN": {"value": "SIN(0 0.5 500)"},
+      "RIN": {"value": "10k"},
+      "RF": {"value": "100k"},
+      "R3": {"value": "10k"},
+      "XU1": {"value": "OPAMP"}
+    },
+    "models": [
+      ".subckt OPAMP 1 2 6 4 5",
+      "EGAIN 6 0 1 2 1e5",
+      "RINP 1 0 1e9",
+      "RINN 2 0 1e9",
+      ".ends OPAMP"
+    ],
+    "analyses": ["tran 0.1ms 10ms"]
+  },
+  "cmos_inverter": {
+    "components": {
+      "VDD": {"value": "DC 3.3"},
+      "VIN": {"value": "PULSE(0 3.3 0 1n 1n 10n 20n)"},
+      "MP1": {"value": "PM1", "model": "PM1"},
+      "MN1": {"value": "NM1", "model": "NM1"}
+    },
+    "models": [
+      ".model NM1 NMOS (Level=1 Vto=0.7 Kp=120u Lambda=0.03)",
+      ".model PM1 PMOS (Level=1 Vto=-0.7 Kp=60u Lambda=0.04)"
+    ],
+    "analyses": ["tran 0.1n 100n"]
+  },
+  "schmitt_trigger": {
+    "components": {
+      "VCC": {"value": "DC 5"},
+      "VIN": {"value": "PWL(0 0 1m 5 2m 0)"},
+      "VREF": {"value": "DC 2.5"},
+      "R1": {"value": "100k"},
+      "R2": {"value": "100k"},
+      "R3": {"value": "100k"},
+      "XU1": {"value": "OPCMP"}
+    },
+    "models": [
+      ".subckt OPCMP 1 2 6 4 5",
+      "E1 6 0 1 2 1e6",
+      "R1i 1 0 1e9",
+      "R2i 2 0 1e9",
+      ".ends OPCMP"
+    ],
+    "analyses": ["tran 10us 3ms"]
+  }
+}
