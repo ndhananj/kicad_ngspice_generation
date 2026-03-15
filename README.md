@@ -40,17 +40,23 @@ Export:
 
 ```python
 from mixedsig2cad import (
+    build_circuitikz_ir,
     build_schematic_intent,
+    build_tex_report,
     compile_schematic,
     export_circuitikz,
     export_example_report_tex,
     export_kicad_schematic,
     export_ngspice_netlist,
+    render_circuitikz_ir,
 )
 
 kicad_intent = build_schematic_intent(spec)
 kicad_geometry = compile_schematic(kicad_intent)
+kicad_circuitikz_ir = build_circuitikz_ir(spec)
+kicad_report_ir = build_tex_report(spec)
 kicad_circuitikz = export_circuitikz(spec)
+kicad_circuitikz_text = render_circuitikz_ir(kicad_circuitikz_ir)
 kicad_report = export_example_report_tex(spec)
 kicad_text = export_kicad_schematic(spec)
 ngspice_text = export_ngspice_netlist(spec)
@@ -62,6 +68,8 @@ The pipeline is now layered:
 - `build_schematic_intent(spec)`: schematic-semantic intent
 - `compile_schematic(intent)`: canonical compiled schematic
 - `project_geometry_to_kicad(geometry)`: KiCad-specific projection adapter
+- `build_circuitikz_ir(spec)`: staged TeX drawing IR for readable circuits
+- `build_tex_report(spec)`: staged TeX document IR for reports
 - `export_kicad_schematic(spec)`: full orchestration to KiCad text
 - `export_circuitikz(spec)`: readable TeX circuit rendering
 - `export_example_report_tex(spec)`: standalone TeX report with starter notes
