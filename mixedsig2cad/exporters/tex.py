@@ -397,13 +397,47 @@ def _render_circuitikz_wires(geometry: CompiledSchematic) -> list[str]:
 
 def _render_circuitikz_labels(geometry: CompiledSchematic) -> list[str]:
     lines: list[str] = []
-    for text in geometry.labels:
-        if text.role == "reference" and (text.text.startswith("#PWR") or text.owner_ref.startswith("#SUPPORT")):
-            continue
+    for text in _visible_readable_labels(geometry):
         anchor = text.anchor_position if text.anchor_position is not None else text.position
         label = _latex_escape(text.text)
         lines.append(rf"  \node[font=\scriptsize] at {_pt(anchor)} {{{label}}};")
     return lines
+
+
+def _visible_readable_labels(geometry: CompiledSchematic) -> list[TextPlacement]:
+    shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
+    visible: list[TextPlacement] = []
+    for text in geometry.labels:
+        if not _is_visible_readable_label(text, shape_by_ref):
+            continue
+        visible.append(text)
+    return visible
+
+
+def _is_visible_readable_label(text: TextPlacement, shape_by_ref: dict[str, PlacedShape]) -> bool:
+    owner = shape_by_ref.get(text.owner_ref)
+    if text.role == "net_label":
+        return text.text.strip().lower() != "gnd"
+    if owner is None:
+        return False
+    if owner.ref.startswith("#PWR") or owner.ref.startswith("#SUPPORT"):
+        return False
+    if owner.shape in {
+        "resistor",
+        "capacitor",
+        "inductor",
+        "diode",
+        "voltage_source",
+        "current_source",
+        "ground",
+        "power",
+        "opamp",
+        "npn_bjt",
+        "pmos",
+        "nmos",
+    }:
+        return False
+    return text.role in {"reference", "value"} and not owner.hidden_reference
 
 
 def _render_literal_shape(shape: PlacedShape) -> list[str]:

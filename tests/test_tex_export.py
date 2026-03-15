@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from examples.specs.catalog import cmos_inverter, opamp_inverting, rc_lowpass
+from examples.specs.catalog import all_examples, cmos_inverter, opamp_inverting, rc_lowpass
 from mixedsig2cad import (
     TexReportBundle,
     TexSvgInclude,
@@ -26,6 +26,26 @@ def test_circuitikz_export_contains_expected_environments_and_labels() -> None:
     assert "to[C" in text
     assert "vin" in text
     assert "vout" in text
+
+
+def test_circuitikz_export_prunes_duplicate_passive_and_ground_labels() -> None:
+    text = export_circuitikz(rc_lowpass())
+
+    assert r"to[V,l={DC 5},t={V1}]" in text
+    assert r"to[R,l={1k},t={R1}]" in text
+    assert r"to[C,l={100n},t={C1}]" in text
+    assert r"\node[font=\scriptsize] at (5.21,-7.75) {V1};" not in text
+    assert r"\node[font=\scriptsize] at (5.33,-9.53) {DC 5};" not in text
+    assert r"\node[font=\scriptsize] at (9.02,-7.37) {R1};" not in text
+    assert r"\node[font=\scriptsize] at (9.02,-8.13) {1k};" not in text
+    assert r"\node[font=\scriptsize] at (9.65,-9.27) {C1};" not in text
+    assert r"\node[font=\scriptsize] at (9.65,-10.03) {100n};" not in text
+    assert "GND" not in text
+
+
+def test_circuitikz_export_removes_ground_text_in_all_examples() -> None:
+    for example in all_examples():
+        assert "GND" not in export_circuitikz(example)
 
 
 def test_literal_tikz_export_contains_expected_draw_commands() -> None:

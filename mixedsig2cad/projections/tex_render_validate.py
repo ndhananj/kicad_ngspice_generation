@@ -12,7 +12,7 @@ import numpy as np
 
 from mixedsig2cad.compiled import compile_schematic
 from mixedsig2cad.design import ExampleDesign, circuit_of
-from mixedsig2cad.exporters.tex import DOCUMENT_PACKAGES
+from mixedsig2cad.exporters.tex import DOCUMENT_PACKAGES, _visible_readable_labels
 from mixedsig2cad.intent import build_schematic_intent
 from mixedsig2cad.models import BoundingBox, CompiledSchematic, TextPlacement
 from mixedsig2cad.spec import CircuitSpec
@@ -296,19 +296,7 @@ def _macro_body(text: str, macro_name: str) -> str:
 
 
 def _visible_example_labels(geometry: CompiledSchematic) -> list[TextPlacement]:
-    shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
-    visible: list[TextPlacement] = []
-    for label in geometry.labels:
-        if label.role == "reference":
-            owner = shape_by_ref.get(label.owner_ref)
-            if owner is not None and owner.hidden_reference:
-                continue
-            if owner is None or owner.shape not in {"opamp", "npn_bjt", "pmos", "nmos"}:
-                continue
-            visible.append(label)
-        elif label.role == "net_label":
-            visible.append(label)
-    return visible
+    return _visible_readable_labels(geometry)
 
 
 def _nearest_rendered_text(label: TextPlacement, observed_texts: list[RenderedPdfText]) -> RenderedPdfText | None:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from examples.specs.catalog import cmos_inverter
+from examples.specs.catalog import cmos_inverter, rc_lowpass
 from mixedsig2cad.exporters.tex import export_circuitikz
 from mixedsig2cad.importers.hybrid_parser import check_validation_runtime_dependencies
 from mixedsig2cad.projections.tex_render_validate import (
@@ -78,3 +78,15 @@ def test_tex_transistor_validation_rejects_rectangular_fallback() -> None:
     results = _compare_tex_transistors(geometry, text)
 
     assert any(not result.passed for result in results)
+
+
+def test_tex_label_validation_uses_pruned_readable_label_policy() -> None:
+    geometry = _compiled_geometry(rc_lowpass())
+    observed = [
+        RenderedPdfText("vin", BoundingBox(10.0, 10.0, 30.0, 24.0)),
+        RenderedPdfText("vout", BoundingBox(40.0, 10.0, 62.0, 24.0)),
+    ]
+
+    results = _compare_rendered_tex_labels(geometry, observed)
+
+    assert {result.label_text for result in results} == {"vin", "vout"}
