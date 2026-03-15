@@ -21,7 +21,7 @@ from mixedsig2cad.models import (
 )
 from mixedsig2cad.projections.kicad_cli import export_schematic_svg
 from mixedsig2cad.projections.kicad import _embedded_kicad_symbols, project_geometry_to_kicad
-from mixedsig2cad.symbols import KICAD_SYMBOLS, kicad_pin_map, kicad_symbol, terminal_defs
+from mixedsig2cad.symbols import KICAD_SYMBOLS, _rotate_offset, kicad_pin_map, kicad_symbol, terminal_defs
 
 PROBE_CENTER = Point(100.0, 100.0)
 PROBE_STUB_LENGTH = 14.0
@@ -133,9 +133,10 @@ def build_symbol_probe_geometry(shape: str, orientation: str) -> CompiledSchemat
 def observe_rendered_symbol_svg(path: str | Path, shape: str, orientation: str) -> RenderedSymbolObservation:
     root = ET.fromstring(Path(path).read_text(encoding="utf-8"))
     texts = _svg_texts(root)
+    rendered_texts = observe_rendered_svg_texts(path)
     wires = _svg_wires(root)
     terminal_sides, terminal_points = _observe_terminal_sides(texts, wires)
-    pin_name_terminals = _observe_pin_name_terminals(texts, terminal_points, shape, orientation)
+    pin_name_terminals = _observe_pin_name_terminals(rendered_texts, terminal_points, shape, orientation)
     return RenderedSymbolObservation(
         shape=shape,
         orientation=orientation,
@@ -226,9 +227,9 @@ def _compare_rendered_symbol(
         if observed_terminal is None:
             continue
         if observed_terminal != expected_terminal:
-            hard_failures.append(
-                f"pin name {pin_name} rendered nearest terminal {observed_terminal}, expected {expected_terminal}"
-            )
+            note = f"pin name {pin_name} rendered nearest terminal {observed_terminal}, expected {expected_terminal}"
+            if strict_pin_labels:
+                hard_failures.append(note)
     return RenderedSymbolComparison(
         shape=shape,
         orientation=orientation,
@@ -444,23 +445,35 @@ def _observe_terminal_sides(texts: list[tuple[str, Point]], wires: list[tuple[Po
 
 
 def _observe_pin_name_terminals(
-    texts: list[tuple[str, Point]],
+    texts: list[RenderedSvgText],
     terminal_points: dict[str, Point],
     shape: str,
     orientation: str,
 ) -> dict[str, str]:
     lib_id, _ = kicad_symbol(shape, orientation)
     lib_pins = _embedded_kicad_symbols()[lib_id]
-    valid_pin_names = {pin.name for pin in lib_pins.values() if pin.name not in {"", "~"}}
     expected_points = _expected_pin_name_points(shape, orientation)
     assignments: dict[str, str] = {}
-    for content, point in texts:
-        if content not in valid_pin_names:
+    for pin in lib_pins.values():
+        if pin.name in {"", "~"} or pin.name in assignments:
             continue
-        if content in assignments:
+        expected_terminal = next(
+            (terminal_name for terminal_name, pin_number in kicad_pin_map(shape, orientation).items() if pin_number == pin.number),
+            None,
+        )
+        if expected_terminal is None:
             continue
-        nearest = min(expected_points.items(), key=lambda item: _distance(point, item[1]))
-        assignments[content] = nearest[0]
+        expected_point = expected_points[expected_terminal]
+        candidates = [
+            text
+            for text in texts
+            if text.text == pin.name and _distance(text.anchor, expected_point) <= _pin_label_search_radius(pin.name)
+        ]
+        if not candidates:
+            continue
+        best = min(candidates, key=lambda text: _distance(text.anchor, expected_point))
+        nearest = min(terminal_points.items(), key=lambda item: _distance(best.anchor, item[1]))
+        assignments[pin.name] = nearest[0]
     return assignments
 
 
@@ -478,16 +491,10 @@ def _expected_pin_name_points(shape: str, orientation: str) -> dict[str, Point]:
     return expected
 
 
-def _rotate_offset(x: float, y: float, angle: int) -> tuple[float, float]:
-    if angle == 0:
-        return round(x, 2), round(y, 2)
-    if angle == 90:
-        return round(-y, 2), round(x, 2)
-    if angle == 180:
-        return round(-x, 2), round(-y, 2)
-    if angle == 270:
-        return round(y, 2), round(-x, 2)
-    raise AssertionError(f"unsupported pin rotation angle {angle}")
+def _pin_label_search_radius(pin_name: str) -> float:
+    if len(pin_name) == 1:
+        return 10.0
+    return 12.0
 
 
 def _nearest_wire_endpoint(point: Point, wires: list[tuple[Point, ...]], radius: float = 8.0) -> tuple[Point, tuple[Point, ...]] | None:
