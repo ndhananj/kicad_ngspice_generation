@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import math
-import os
 import re
 import shutil
-import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -21,6 +19,7 @@ from mixedsig2cad.models import (
     TextPlacement,
     WirePath,
 )
+from mixedsig2cad.projections.kicad_cli import export_schematic_svg
 from mixedsig2cad.projections.kicad import _embedded_kicad_symbols, project_geometry_to_kicad
 from mixedsig2cad.symbols import KICAD_SYMBOLS, kicad_pin_map, kicad_symbol, terminal_defs
 
@@ -158,7 +157,7 @@ def validate_rendered_kicad_symbols(*, strict_pin_labels: bool = True) -> list[R
             projection = project_geometry_to_kicad(geometry)
             schematic_path = tmp / f"{geometry.name}.kicad_sch"
             schematic_path.write_text(render_kicad_schematic(projection), encoding="utf-8")
-            svg_path = _export_svg(kicad_cli, schematic_path, tmp / geometry.name)
+            svg_path = export_schematic_svg(schematic_path, tmp / geometry.name, kicad_cli=kicad_cli)
             observation = observe_rendered_symbol_svg(svg_path, shape, orientation)
             results.append(_compare_rendered_symbol(shape, orientation, observation, strict_pin_labels=strict_pin_labels))
     failures = [result for result in results if not result.passed]
@@ -182,7 +181,7 @@ def validate_rendered_example_labels(paths: list[str | Path]) -> list[RenderedEx
         for raw_path in paths:
             path = Path(raw_path)
             geometry = import_kicad_schematic(path)
-            svg_path = _export_svg(kicad_cli, path, tmp / path.stem)
+            svg_path = export_schematic_svg(path, tmp / path.stem, kicad_cli=kicad_cli)
             rendered_texts = observe_rendered_svg_texts(svg_path)
             comparisons = _compare_rendered_example_labels(geometry, rendered_texts)
             results.extend(comparisons)
@@ -242,35 +241,6 @@ def _compare_rendered_symbol(
         passed=not hard_failures,
         notes=tuple(hard_failures),
     )
-
-
-def _export_svg(kicad_cli: str, schematic_path: Path, output_dir: Path) -> Path:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    env = dict(os.environ)
-    env["HOME"] = str(output_dir)
-    env["XDG_CONFIG_HOME"] = str(output_dir / ".config")
-    result = subprocess.run(
-        [
-            kicad_cli,
-            "sch",
-            "export",
-            "svg",
-            "--output",
-            str(output_dir),
-            str(schematic_path),
-        ],
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-    if result.returncode != 0:
-        raise AssertionError(
-            f"kicad-cli SVG export failed for {schematic_path}\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
-        )
-    svg_path = output_dir / f"{schematic_path.stem}.svg"
-    if not svg_path.exists():
-        raise AssertionError(f"expected SVG output for {schematic_path}")
-    return svg_path
 
 
 def observe_rendered_svg_texts(path: str | Path) -> list[RenderedSvgText]:

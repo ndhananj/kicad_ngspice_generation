@@ -1,0 +1,13 @@
+\begin{longtable}{p{0.16\linewidth}p{0.18\linewidth}p{0.30\linewidth}p{0.22\linewidth}}
+\textbf{Ref} & \textbf{Kind} & \textbf{Value / Model} & \textbf{Nodes}\\
+\hline
+VDD & V & DC 3.3 & vdd, 0\\
+VIN & V & PULSE(0 3.3 0 1n 1n 10n 20n) & vin, 0\\
+MP1 & M & PM1 & vout, vin, vdd, vdd\\
+MN1 & M & NM1 & vout, vin, 0, 0\\
+\end{longtable}
+
+\paragraph{Analyses}
+\begin{itemize}
+  \item \texttt{tran 0.1n 100n}
+\end{itemize}

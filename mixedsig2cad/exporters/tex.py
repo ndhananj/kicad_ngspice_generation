@@ -4,7 +4,16 @@ from dataclasses import dataclass
 
 from mixedsig2cad.compiled import compile_schematic
 from mixedsig2cad.design import ExampleDesign, circuit_of
-from mixedsig2cad.exporters.tex_ir import TexDocument, TexDocumentSection, TexDrawing, TexSymbolDefinition
+from mixedsig2cad.exporters.tex_ir import (
+    TexBundleFile,
+    TexDocument,
+    TexDocumentSection,
+    TexDrawing,
+    TexInput,
+    TexReportBundle,
+    TexSvgInclude,
+    TexSymbolDefinition,
+)
 from mixedsig2cad.intent import build_schematic_intent
 from mixedsig2cad.layout_compiler import compile_design
 from mixedsig2cad.models import CompiledSchematic, PlacedShape, Point, TextPlacement
@@ -17,17 +26,28 @@ SCALE = 0.1
 DOCUMENT_PACKAGES = (
     r"\usepackage[margin=1in]{geometry}",
     r"\usepackage[T1]{fontenc}",
+    r"\usepackage{graphicx}",
+    r"\usepackage{svg}",
     r"\usepackage{tikz}",
     r"\usepackage[american]{circuitikz}",
     r"\usepackage{longtable}",
     r"\usepackage{hyperref}",
 )
+SHARED_TEX_MACROS = (
+    r"\svgsetup{inkscape=false,inkscapeversion=1,inkscapelatex=false}",
+    r"\providecommand{\MixedSigIncludeKicadSvg}[2][\linewidth]{%",
+    r"  \begin{center}",
+    r"  \IfFileExists{#2.pdf}{\includegraphics[width=#1]{#2.pdf}}{\includesvg[width=#1]{#2}}",
+    r"  \end{center}",
+    r"}",
+)
+DEFAULT_REPORT_SVG_PATH = "../svg/{name}"
 
 
 @dataclass(frozen=True, slots=True)
 class ReportSections:
     circuitikz: TexDrawing
-    literal_tikz: TexDrawing
+    kicad_reference: TexSvgInclude
     summary: str
     starter_notes: str
 
@@ -59,6 +79,54 @@ def export_example_report_tex(spec: ExampleDesign | CircuitSpec) -> str:
 
 def export_examples_master_report(specs: list[ExampleDesign | CircuitSpec]) -> str:
     return render_tex_document(build_examples_master_report(specs))
+
+
+def build_example_report_bundle(
+    source: ExampleDesign | CircuitSpec,
+    *,
+    common_dir: str = "common",
+    fragments_dir: str = "fragments",
+    svg_dir: str = "../svg",
+) -> TexReportBundle:
+    geometry = _compiled_geometry(source)
+    spec = circuit_of(source)
+    fragment_root = f"{fragments_dir}/{geometry.name}"
+    sections = _report_sections(spec, geometry, kicad_svg_path=f"{svg_dir}/{geometry.name}")
+    files = (
+        TexBundleFile(path=f"{common_dir}/packages.tex", content=_shared_packages_tex()),
+        TexBundleFile(path=f"{common_dir}/macros.tex", content=_shared_macros_tex()),
+        TexBundleFile(path=f"{fragment_root}/readable.tex", content=render_circuitikz_ir(sections.circuitikz) + "\n"),
+        TexBundleFile(path=f"{fragment_root}/summary.tex", content=sections.summary + "\n"),
+        TexBundleFile(path=f"{fragment_root}/notes.tex", content=sections.starter_notes + "\n"),
+        TexBundleFile(path=f"{geometry.name}.tex", content=_render_example_bundle_entrypoint(geometry.name, common_dir, fragment_root, sections.kicad_reference)),
+    )
+    return TexReportBundle(entrypoint=f"{geometry.name}.tex", files=files)
+
+
+def build_examples_master_bundle(
+    specs: list[ExampleDesign | CircuitSpec],
+    *,
+    common_dir: str = "common",
+    fragments_dir: str = "fragments",
+    svg_dir: str = "../svg",
+) -> TexReportBundle:
+    files: dict[str, str] = {
+        f"{common_dir}/packages.tex": _shared_packages_tex(),
+        f"{common_dir}/macros.tex": _shared_macros_tex(),
+    }
+    section_blocks: list[str] = []
+    for source in specs:
+        geometry = _compiled_geometry(source)
+        spec = circuit_of(source)
+        fragment_root = f"{fragments_dir}/{geometry.name}"
+        sections = _report_sections(spec, geometry, kicad_svg_path=f"{svg_dir}/{geometry.name}")
+        files[f"{fragment_root}/readable.tex"] = render_circuitikz_ir(sections.circuitikz) + "\n"
+        files[f"{fragment_root}/summary.tex"] = sections.summary + "\n"
+        files[f"{fragment_root}/notes.tex"] = sections.starter_notes + "\n"
+        section_blocks.append(_render_master_example_block(geometry.name, fragment_root, sections.kicad_reference))
+    files["examples.tex"] = _render_master_bundle_entrypoint(common_dir, section_blocks)
+    rendered_files = tuple(TexBundleFile(path=path, content=content) for path, content in sorted(files.items()))
+    return TexReportBundle(entrypoint="examples.tex", files=rendered_files)
 
 
 def build_circuitikz_ir(source: ExampleDesign | CircuitSpec | CompiledSchematic) -> TexDrawing:
@@ -99,34 +167,46 @@ def build_literal_tikz_ir(source: ExampleDesign | CircuitSpec | CompiledSchemati
     )
 
 
-def build_tex_report(source: ExampleDesign | CircuitSpec) -> TexDocument:
+def build_tex_report(source: ExampleDesign | CircuitSpec, *, kicad_svg_path: str | None = None) -> TexDocument:
     geometry = _compiled_geometry(source)
     spec = circuit_of(source)
-    sections = _report_sections(spec, geometry)
+    sections = _report_sections(
+        spec,
+        geometry,
+        kicad_svg_path=kicad_svg_path or DEFAULT_REPORT_SVG_PATH.format(name=geometry.name),
+    )
     return TexDocument(
         title=geometry.name,
         packages=DOCUMENT_PACKAGES,
         sections=(
             TexDocumentSection(title="Readable Circuit", body=sections.circuitikz),
-            TexDocumentSection(title="Literal KiCad Reference", body=sections.literal_tikz),
+            TexDocumentSection(title="KiCad SVG Reference", body=sections.kicad_reference),
             TexDocumentSection(title="Reference Summary", body=sections.summary),
             TexDocumentSection(title="Design Notes", body=sections.starter_notes),
         ),
     )
 
 
-def build_examples_master_report(specs: list[ExampleDesign | CircuitSpec]) -> TexDocument:
+def build_examples_master_report(
+    specs: list[ExampleDesign | CircuitSpec],
+    *,
+    svg_path_template: str = DEFAULT_REPORT_SVG_PATH,
+) -> TexDocument:
     sections: list[TexDocumentSection] = []
     for spec in specs:
         circuit_spec = circuit_of(spec)
         geometry = _compiled_geometry(spec)
-        report_sections = _report_sections(circuit_spec, geometry)
+        report_sections = _report_sections(
+            circuit_spec,
+            geometry,
+            kicad_svg_path=svg_path_template.format(name=geometry.name),
+        )
         sections.append(
             TexDocumentSection(
                 title=_latex_escape(circuit_spec.name),
                 subsections=(
                     TexDocumentSection(title="Readable Circuit", body=report_sections.circuitikz),
-                    TexDocumentSection(title="Literal KiCad Reference", body=report_sections.literal_tikz),
+                    TexDocumentSection(title="KiCad SVG Reference", body=report_sections.kicad_reference),
                     TexDocumentSection(title="Reference Summary", body=report_sections.summary),
                     TexDocumentSection(title="Design Notes", body=report_sections.starter_notes + "\n\\clearpage"),
                 ),
@@ -141,7 +221,7 @@ def build_examples_master_report(specs: list[ExampleDesign | CircuitSpec]) -> Te
 
 
 def render_tex_document(document: TexDocument) -> str:
-    lines = [r"\documentclass[11pt]{article}", *document.packages]
+    lines = [r"\documentclass[11pt]{article}", *document.packages, *SHARED_TEX_MACROS]
     lines.extend(
         [
             r"\title{" + _latex_escape(document.title) + r"}",
@@ -193,13 +273,82 @@ def _compiled_geometry(source: ExampleDesign | CircuitSpec | CompiledSchematic) 
     return compile_schematic(intent)
 
 
-def _report_sections(spec: CircuitSpec, geometry: CompiledSchematic) -> ReportSections:
+def _report_sections(spec: CircuitSpec, geometry: CompiledSchematic, *, kicad_svg_path: str) -> ReportSections:
     return ReportSections(
         circuitikz=build_circuitikz_ir(geometry),
-        literal_tikz=build_literal_tikz_ir(geometry),
+        kicad_reference=TexSvgInclude(path=kicad_svg_path),
         summary=_reference_section(spec),
         starter_notes=_starter_notes(spec),
     )
+
+
+def _shared_packages_tex() -> str:
+    return "\n".join(DOCUMENT_PACKAGES) + "\n"
+
+
+def _shared_macros_tex() -> str:
+    return "\n".join(SHARED_TEX_MACROS) + "\n"
+
+
+def _render_example_bundle_entrypoint(
+    name: str,
+    common_dir: str,
+    fragment_root: str,
+    kicad_reference: TexSvgInclude,
+) -> str:
+    lines = [
+        r"\documentclass[11pt]{article}",
+        rf"\input{{{common_dir}/packages.tex}}",
+        rf"\input{{{common_dir}/macros.tex}}",
+        rf"\title{{{_latex_escape(name)}}}",
+        r"\author{Generated by mixedsig2cad}",
+        r"\date{\today}",
+        r"\begin{document}",
+        r"\maketitle",
+        r"\section{Readable Circuit}",
+        rf"\input{{{fragment_root}/readable.tex}}",
+        r"\section{KiCad SVG Reference}",
+        _render_svg_include(kicad_reference),
+        r"\section{Reference Summary}",
+        rf"\input{{{fragment_root}/summary.tex}}",
+        r"\section{Design Notes}",
+        rf"\input{{{fragment_root}/notes.tex}}",
+        r"\end{document}",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def _render_master_bundle_entrypoint(common_dir: str, section_blocks: list[str]) -> str:
+    lines = [
+        r"\documentclass[11pt]{article}",
+        rf"\input{{{common_dir}/packages.tex}}",
+        rf"\input{{{common_dir}/macros.tex}}",
+        r"\title{mixedsig2cad Example Reports}",
+        r"\author{Generated by mixedsig2cad}",
+        r"\date{\today}",
+        r"\begin{document}",
+        r"\maketitle",
+        r"\tableofcontents",
+        *section_blocks,
+        r"\end{document}",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def _render_master_example_block(name: str, fragment_root: str, kicad_reference: TexSvgInclude) -> str:
+    lines = [
+        rf"\section{{{_latex_escape(name)}}}",
+        r"\subsection{Readable Circuit}",
+        rf"\input{{{fragment_root}/readable.tex}}",
+        r"\subsection{KiCad SVG Reference}",
+        _render_svg_include(kicad_reference),
+        r"\subsection{Reference Summary}",
+        rf"\input{{{fragment_root}/summary.tex}}",
+        r"\subsection{Design Notes}",
+        rf"\input{{{fragment_root}/notes.tex}}",
+        r"\clearpage",
+    ]
+    return "\n".join(lines)
 
 
 def _render_circuitikz_shapes(geometry: CompiledSchematic) -> list[str]:
@@ -411,10 +560,18 @@ def _render_document_section(section: TexDocumentSection, *, level: int) -> list
     return lines
 
 
-def _render_section_body(body: str | TexDrawing) -> str:
+def _render_section_body(body: str | TexDrawing | TexSvgInclude | TexInput) -> str:
     if isinstance(body, TexDrawing):
         return render_tex_drawing(body)
+    if isinstance(body, TexSvgInclude):
+        return _render_svg_include(body)
+    if isinstance(body, TexInput):
+        return rf"\input{{{body.path}}}"
     return body
+
+
+def _render_svg_include(include: TexSvgInclude) -> str:
+    return rf"\MixedSigIncludeKicadSvg[{include.width}]{{{include.path}}}"
 
 
 def _reference_section(spec: CircuitSpec) -> str:
@@ -490,7 +647,7 @@ def _operating_notes(spec: CircuitSpec) -> list[str]:
         f"Primary simulation commands: {', '.join(analysis.command for analysis in spec.analyses) or 'none specified'}.",
         f"Component count: {len(spec.components)} active entries in the shared CircuitSpec.",
     ]
-    named_nodes = sorted({node for component in spec.components for node in component.nodes if node != "0"})
+    named_nodes = sorted({node for component in spec.components for node in component.nodes if node != '0'})
     if named_nodes:
         notes.append(f"Named nets to review during edits: {', '.join(named_nodes[:6])}.")
     if spec.models:
@@ -519,7 +676,7 @@ def _pt(point: Point) -> str:
 def _point_on_box(shape: PlacedShape, point: Point) -> Point:
     x = min(max(point.x, shape.body_box.left), shape.body_box.right)
     y = min(max(point.y, shape.body_box.top), shape.body_box.bottom)
-    return Point(x, y)
+    return Point(x=x, y=y)
 
 
 def _latex_escape(text: str) -> str:
@@ -532,8 +689,7 @@ def _latex_escape(text: str) -> str:
         "_": r"\_",
         "{": r"\{",
         "}": r"\}",
+        "~": r"\textasciitilde{}",
+        "^": r"\textasciicircum{}",
     }
-    escaped = []
-    for char in text:
-        escaped.append(replacements.get(char, char))
-    return "".join(escaped)
+    return "".join(replacements.get(char, char) for char in text)

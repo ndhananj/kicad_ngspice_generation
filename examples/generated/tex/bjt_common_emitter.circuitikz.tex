@@ -1,13 +1,18 @@
-\begin{circuitikz}[american voltages, scale=1, transform shape]
+\providecommand{\msCircuitMixedSigNpnBjtSymbol}[4]{%
+  \pgfmathsetmacro{\msx}{#1}
+  \pgfmathsetmacro{\msy}{#2}
+  \draw ({\msx + -0.25},{\msy + 0.38}) rectangle ({\msx + 0.45},{\msy + -0.45});
+  \node[font=\scriptsize,align=center] at (#1,#2) {#3\\#4};
+  \draw ({\msx + 0.38},{\msy + 0.89}) -- ({\msx + 0.38},{\msy + 0.38});
+  \draw ({\msx + -0.76},{\msy + 0.00}) -- ({\msx + -0.25},{\msy + 0.00});
+  \draw ({\msx + 0.38},{\msy + -0.89}) -- ({\msx + 0.38},{\msy + -0.45});
+  \draw ({\msx + -0.25},{\msy + -0.89}) -- ({\msx + -0.25},{\msy + -0.45});
+}
+\begin{circuitikz}[american voltages,scale=1,transform shape]
   \draw (19.94,-10.92) to[R,l={10k},t={RL}] (19.94,-12.19);
   \draw (6.98,-10.03) to[V,l={SIN(0 0.02 1k)},t={VS}] (6.98,-11.56);
   \draw (16.38,-10.92) to[R,l={1k},t={RE}] (16.38,-12.19);
-  \draw (15.75,-9.65) rectangle (16.45,-10.48);
-  \node[font=\scriptsize,align=center] at (16.00,-10.03) {Q1\\2N3904};
-  \draw (16.38,-9.14) -- (16.38,-9.65);
-  \draw (15.24,-10.03) -- (15.75,-10.03);
-  \draw (16.38,-10.92) -- (16.38,-10.48);
-  \draw (15.75,-10.92) -- (15.75,-10.48);
+  \msCircuitMixedSigNpnBjtSymbol{16.00}{-10.03}{Q1}{2N3904}
   \draw (12.57,-8.76) to[R,l={100k},t={R1}] (12.57,-10.03);
   \draw (17.78,-10.92) to[C,l={100u},t={CE}] (17.78,-12.19);
   \draw (21.97,-6.86) to[V,l={DC 12},t={VCC}] (21.97,-8.38);

@@ -33,12 +33,15 @@ from .importers import (
     parse_circuit_source,
 )
 from .projections.kicad_render_validate import validate_rendered_example_labels, validate_rendered_kicad_symbols
+from .projections.kicad_cli import export_schematic_pdf, export_schematic_svg
 from .spec import Analysis, CircuitSpec, Component
 from .exporters.kicad import export_kicad_schematic
 from .exporters.ngspice import export_ngspice_netlist
 from .exporters.tex import (
     build_circuitikz_ir,
+    build_example_report_bundle,
     build_examples_master_report,
+    build_examples_master_bundle,
     build_literal_tikz_ir,
     build_tex_report,
     export_circuitikz,
@@ -51,6 +54,7 @@ from .exporters.tex import (
     render_tex_drawing,
 )
 from .exporters.tex_ir import TexDocument, TexDocumentSection, TexDrawing, TexSymbolDefinition
+from .exporters.tex_ir import TexBundleFile, TexInput, TexReportBundle, TexSvgInclude
 
 __all__ = [
     "Analysis",
@@ -81,13 +85,17 @@ __all__ = [
     "RoundTripReport",
     "build_schematic_intent",
     "build_circuitikz_ir",
+    "build_example_report_bundle",
     "build_examples_master_report",
+    "build_examples_master_bundle",
     "build_literal_tikz_ir",
     "build_tex_report",
     "derive_topology_layout",
     "extract_geometry_from_image",
     "export_kicad_schematic",
     "export_ngspice_netlist",
+    "export_schematic_pdf",
+    "export_schematic_svg",
     "export_circuitikz",
     "export_example_report_tex",
     "export_examples_master_report",
@@ -102,7 +110,11 @@ __all__ = [
     "render_tex_drawing",
     "TexDocument",
     "TexDocumentSection",
+    "TexBundleFile",
     "TexDrawing",
+    "TexInput",
+    "TexReportBundle",
+    "TexSvgInclude",
     "TexSymbolDefinition",
     "validate_kicad_connectivity",
     "validate_rendered_example_labels",

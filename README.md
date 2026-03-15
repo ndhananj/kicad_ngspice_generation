@@ -41,6 +41,7 @@ Export:
 ```python
 from mixedsig2cad import (
     build_circuitikz_ir,
+    build_example_report_bundle,
     build_schematic_intent,
     build_tex_report,
     compile_schematic,
@@ -54,6 +55,7 @@ from mixedsig2cad import (
 kicad_intent = build_schematic_intent(spec)
 kicad_geometry = compile_schematic(kicad_intent)
 kicad_circuitikz_ir = build_circuitikz_ir(spec)
+kicad_report_bundle = build_example_report_bundle(spec)
 kicad_report_ir = build_tex_report(spec)
 kicad_circuitikz = export_circuitikz(spec)
 kicad_circuitikz_text = render_circuitikz_ir(kicad_circuitikz_ir)
@@ -69,6 +71,7 @@ The pipeline is now layered:
 - `compile_schematic(intent)`: canonical compiled schematic
 - `project_geometry_to_kicad(geometry)`: KiCad-specific projection adapter
 - `build_circuitikz_ir(spec)`: staged TeX drawing IR for readable circuits
+- `build_example_report_bundle(spec)`: modular TeX report bundle with shared includes and external KiCad image assets
 - `build_tex_report(spec)`: staged TeX document IR for reports
 - `export_kicad_schematic(spec)`: full orchestration to KiCad text
 - `export_circuitikz(spec)`: readable TeX circuit rendering
@@ -153,11 +156,14 @@ Open `examples/generated/kicad/examples.kicad_pro` in KiCad to browse every gene
 Running `python3 scripts/generate_examples.py` also writes:
 
 - `<name>.circuitikz.tex`: readable circuit-only source for later manual editing.
-- `<name>.literal.tex`: a more literal TikZ rendering derived from the KiCad-aligned geometry.
-- `<name>.tex`: a standalone report with both renderings, a generated summary, and starter design-note sections.
+- `<name>.tex`: a standalone report assembled from shared TeX includes and per-example fragments.
+- `common/*.tex`: shared TeX package and macro includes used by all reports.
+- `fragments/<name>/*.tex`: modular readable/summary/notes TeX fragments for each example.
+- `../svg/<name>.svg`: KiCad-rendered reference view kept as a separate asset.
+- `../svg/<name>.pdf`: TeX-friendly companion for the same KiCad-rendered reference view.
 - `examples.tex`: a master document covering the whole example corpus.
 
-`python3 scripts/validate_examples.py` compiles the generated report files with `pdflatex`, so a local TeX install with `circuitikz` is expected when running the full validator.
+`python3 scripts/validate_examples.py` compiles the generated report files with `pdflatex -shell-escape`, so a local TeX install with `circuitikz` and `svg` support is expected when running the full validator.
 
 ## Notes on compatibility
 

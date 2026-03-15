@@ -1,0 +1,16 @@
+\begin{longtable}{p{0.16\linewidth}p{0.18\linewidth}p{0.30\linewidth}p{0.22\linewidth}}
+\textbf{Ref} & \textbf{Kind} & \textbf{Value / Model} & \textbf{Nodes}\\
+\hline
+VCC & V & DC 12 & vcc, 0\\
+VEE & V & DC -12 & vee, 0\\
+VIN & V & SIN(0 0.5 500) & vin, 0\\
+RIN & R & 10k & vin, vminus\\
+RF & R & 100k & vout, vminus\\
+R3 & R & 10k & vplus\_ref, 0\\
+XU1 & X & OPAMP & vplus\_ref, vminus, vout, vcc, vee\\
+\end{longtable}
+
+\paragraph{Analyses}
+\begin{itemize}
+  \item \texttt{tran 0.1ms 10ms}
+\end{itemize}

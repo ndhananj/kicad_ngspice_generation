@@ -1,0 +1,69 @@
+\providecommand{\msCircuitMixedSigNpnBjtSymbol}[4]{%
+  \pgfmathsetmacro{\msx}{#1}
+  \pgfmathsetmacro{\msy}{#2}
+  \draw ({\msx + -0.25},{\msy + 0.38}) rectangle ({\msx + 0.45},{\msy + -0.45});
+  \node[font=\scriptsize,align=center] at (#1,#2) {#3\\#4};
+  \draw ({\msx + 0.38},{\msy + 0.89}) -- ({\msx + 0.38},{\msy + 0.38});
+  \draw ({\msx + -0.76},{\msy + 0.00}) -- ({\msx + -0.25},{\msy + 0.00});
+  \draw ({\msx + 0.38},{\msy + -0.89}) -- ({\msx + 0.38},{\msy + -0.45});
+  \draw ({\msx + -0.25},{\msy + -0.89}) -- ({\msx + -0.25},{\msy + -0.45});
+}
+\begin{circuitikz}[american voltages,scale=1,transform shape]
+  \draw (19.94,-10.92) to[R,l={10k},t={RL}] (19.94,-12.19);
+  \draw (6.98,-10.03) to[V,l={SIN(0 0.02 1k)},t={VS}] (6.98,-11.56);
+  \draw (16.38,-10.92) to[R,l={1k},t={RE}] (16.38,-12.19);
+  \msCircuitMixedSigNpnBjtSymbol{16.00}{-10.03}{Q1}{2N3904}
+  \draw (12.57,-8.76) to[R,l={100k},t={R1}] (12.57,-10.03);
+  \draw (17.78,-10.92) to[C,l={100u},t={CE}] (17.78,-12.19);
+  \draw (21.97,-6.86) to[V,l={DC 12},t={VCC}] (21.97,-8.38);
+  \draw (12.57,-10.92) to[R,l={22k},t={R2}] (12.57,-12.19);
+  \draw (16.38,-7.87) to[R,l={2.2k},t={RC}] (16.38,-9.14);
+  \draw (9.40,-10.03) to[C,l={10u},t={CB}] (10.67,-10.03);
+  \draw (18.67,-9.14) to[C,l={10u},t={CC}] (19.94,-9.14);
+  \draw (15.75,-10.92) -- (15.75,-12.19);
+  \draw (6.98,-11.56) -- (6.98,-12.19);
+  \draw (6.98,-12.19) -- (15.75,-12.19);
+  \draw (15.75,-12.19) -- (21.97,-12.19);
+  \draw (21.97,-8.38) -- (21.97,-12.19);
+  \draw (10.67,-10.03) -- (12.57,-10.03);
+  \draw (12.57,-10.92) -- (12.57,-10.03);
+  \draw (15.24,-10.03) -- (12.57,-10.03);
+  \draw (16.38,-7.87) -- (16.38,-6.86);
+  \draw (18.67,-9.14) -- (16.38,-9.14);
+  \draw (17.78,-10.92) -- (16.38,-10.92);
+  \draw (12.57,-8.76) -- (12.57,-6.86);
+  \draw (12.57,-6.86) -- (21.97,-6.86);
+  \draw (6.98,-10.03) -- (9.40,-10.03);
+  \draw (19.94,-9.14) -- (19.94,-10.92);
+  \fill (15.75,-12.19) circle (1.2pt);
+  \fill (12.57,-10.03) circle (1.2pt);
+  \fill (16.38,-9.14) circle (1.2pt);
+  \fill (16.38,-10.92) circle (1.2pt);
+  \node[font=\scriptsize] at (19.43,-11.30) {RL};
+  \node[font=\scriptsize] at (19.43,-11.81) {10k};
+  \node[font=\scriptsize] at (6.60,-9.91) {VS};
+  \node[font=\scriptsize] at (5.46,-11.30) {SIN(0 0.02 1k)};
+  \node[font=\scriptsize] at (16.89,-11.30) {RE};
+  \node[font=\scriptsize] at (16.89,-11.81) {1k};
+  \node[font=\scriptsize] at (16.13,-9.40) {Q1};
+  \node[font=\scriptsize] at (15.11,-10.41) {2N3904};
+  \node[font=\scriptsize] at (13.08,-9.14) {R1};
+  \node[font=\scriptsize] at (13.08,-9.65) {100k};
+  \node[font=\scriptsize] at (17.78,-11.18) {CE};
+  \node[font=\scriptsize] at (17.78,-11.94) {100u};
+  \node[font=\scriptsize] at (21.59,-8.51) {VCC};
+  \node[font=\scriptsize] at (20.96,-8.13) {DC 12};
+  \node[font=\scriptsize] at (13.08,-11.30) {R2};
+  \node[font=\scriptsize] at (12.07,-11.30) {22k};
+  \node[font=\scriptsize] at (16.89,-8.26) {RC};
+  \node[font=\scriptsize] at (16.89,-8.76) {2.2k};
+  \node[font=\scriptsize] at (10.03,-9.40) {CB};
+  \node[font=\scriptsize] at (10.03,-10.67) {10u};
+  \node[font=\scriptsize] at (19.30,-8.51) {CC};
+  \node[font=\scriptsize] at (19.30,-9.78) {10u};
+  \node[font=\scriptsize] at (12.57,-10.03) {base};
+  \node[font=\scriptsize] at (16.38,-9.14) {collector};
+  \node[font=\scriptsize] at (19.94,-9.14) {vout};
+  \node[font=\scriptsize] at (6.98,-10.03) {vin\_src};
+  \node[font=\scriptsize] at (16.38,-10.92) {emitter};
+\end{circuitikz}

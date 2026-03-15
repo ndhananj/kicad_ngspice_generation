@@ -1,0 +1,20 @@
+\begin{longtable}{p{0.16\linewidth}p{0.18\linewidth}p{0.30\linewidth}p{0.22\linewidth}}
+\textbf{Ref} & \textbf{Kind} & \textbf{Value / Model} & \textbf{Nodes}\\
+\hline
+VCC & V & DC 12 & vcc, 0\\
+VS & V & SIN(0 0.02 1k) & vin\_src, 0\\
+CB & C & 10u & vin\_src, base\\
+R1 & R & 100k & vcc, base\\
+R2 & R & 22k & base, 0\\
+RC & R & 2.2k & vcc, collector\\
+RE & R & 1k & emitter, 0\\
+CE & C & 100u & emitter, 0\\
+CC & C & 10u & collector, vout\\
+RL & R & 10k & vout, 0\\
+Q1 & Q & Q2N3904 & collector, base, emitter\\
+\end{longtable}
+
+\paragraph{Analyses}
+\begin{itemize}
+  \item \texttt{tran 10us 5ms}
+\end{itemize}

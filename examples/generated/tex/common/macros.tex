@@ -1,0 +1,6 @@
+\svgsetup{inkscape=false,inkscapeversion=1,inkscapelatex=false}
+\providecommand{\MixedSigIncludeKicadSvg}[2][\linewidth]{%
+  \begin{center}
+  \IfFileExists{#2.pdf}{\includegraphics[width=#1]{#2.pdf}}{\includesvg[width=#1]{#2}}
+  \end{center}
+}

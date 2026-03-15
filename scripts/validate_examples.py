@@ -28,6 +28,7 @@ from mixedsig2cad import (
 from mixedsig2cad.exporters.tex import export_example_report_tex
 from mixedsig2cad.geometry import PAGE_BOTTOM, PAGE_LEFT, PAGE_RIGHT, PAGE_TOP
 from mixedsig2cad.importers.raster_extract import observe_kicad_svg
+from mixedsig2cad.projections.kicad_cli import export_schematic_svg
 from mixedsig2cad.projections.kicad import project_geometry_to_kicad
 from mixedsig2cad.symbols import KICAD_SYMBOLS
 
@@ -183,20 +184,34 @@ def validate_rendered_example_label_positions() -> None:
 
 def validate_tex_outputs() -> None:
     tex_dir = ROOT / "examples" / "generated" / "tex"
+    svg_dir = ROOT / "examples" / "generated" / "svg"
     assert tex_dir.exists(), "expected generated TeX directory"
+    assert svg_dir.exists(), "expected generated SVG directory"
+    assert (tex_dir / "common" / "packages.tex").exists(), "missing shared TeX packages include"
+    assert (tex_dir / "common" / "macros.tex").exists(), "missing shared TeX macros include"
     for spec in all_examples():
         standalone = tex_dir / f"{spec.name}.tex"
         readable = tex_dir / f"{spec.name}.circuitikz.tex"
-        literal = tex_dir / f"{spec.name}.literal.tex"
-        for path in (standalone, readable, literal):
+        fragment_dir = tex_dir / "fragments" / spec.name
+        svg_path = svg_dir / f"{spec.name}.svg"
+        svg_pdf_path = svg_dir / f"{spec.name}.pdf"
+        for path in (standalone, readable, fragment_dir / "readable.tex", fragment_dir / "summary.tex", fragment_dir / "notes.tex"):
             assert path.exists(), f"missing generated TeX file: {path.name}"
             text = path.read_text(encoding="utf-8")
             assert text.strip(), f"empty generated TeX file: {path.name}"
-        assert "\\section{Readable Circuit}" in standalone.read_text(encoding="utf-8")
+        assert svg_path.exists(), f"missing generated SVG file: {svg_path.name}"
+        assert svg_pdf_path.exists(), f"missing generated SVG companion PDF file: {svg_pdf_path.name}"
+        standalone_text = standalone.read_text(encoding="utf-8")
+        assert "\\section{Readable Circuit}" in standalone_text
+        assert "\\section{KiCad SVG Reference}" in standalone_text
+        assert "\\MixedSigIncludeKicadSvg" in standalone_text
         assert export_example_report_tex(spec).startswith("\\documentclass")
         _pdflatex(standalone)
     master = tex_dir / "examples.tex"
     assert master.exists(), "missing master TeX report"
+    master_text = master.read_text(encoding="utf-8")
+    assert "\\tableofcontents" in master_text
+    assert "\\subsection{KiCad SVG Reference}" in master_text
     _pdflatex(master)
 
 
@@ -249,41 +264,13 @@ def _kicad_cli_parse(path: Path) -> None:
         )
 
 
-def _export_svg(path: Path, output_dir: Path) -> Path:
-    kicad_cli = shutil.which("kicad-cli")
-    if not kicad_cli:
-        raise AssertionError("kicad-cli is required for SVG orientation validation")
-    env = dict(os.environ)
-    env["HOME"] = str(output_dir)
-    env["XDG_CONFIG_HOME"] = str(output_dir / ".config")
-    result = subprocess.run(
-        [
-            kicad_cli,
-            "sch",
-            "export",
-            "svg",
-            "--output",
-            str(output_dir),
-            str(path),
-        ],
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-    assert result.returncode == 0, (
-        f"kicad-cli SVG export failed for {path}\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
-    )
-    svg_path = output_dir / f"{path.stem}.svg"
-    assert svg_path.exists(), f"expected SVG output for {path}"
-    return svg_path
-
-
 def _pdflatex(path: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="tex-validate-") as tmp_dir:
         tmp_path = Path(tmp_dir)
         result = subprocess.run(
             [
                 "pdflatex",
+                "-shell-escape",
                 "-interaction=nonstopmode",
                 "-halt-on-error",
                 f"-output-directory={tmp_path}",
@@ -300,7 +287,7 @@ def _pdflatex(path: Path) -> None:
 
 def _validate_common_emitter_svg_orientation(path: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="kicad-svg-") as tmp_home:
-        svg_path = _export_svg(path, Path(tmp_home))
+        svg_path = export_schematic_svg(path, Path(tmp_home))
         observation = observe_kicad_svg(svg_path)
         q1 = next((symbol for symbol in observation.symbols if symbol.ref_text == "Q1"), None)
         assert q1 is not None, "expected to observe Q1 in common-emitter SVG"

@@ -1,0 +1,12 @@
+\begin{longtable}{p{0.16\linewidth}p{0.18\linewidth}p{0.30\linewidth}p{0.22\linewidth}}
+\textbf{Ref} & \textbf{Kind} & \textbf{Value / Model} & \textbf{Nodes}\\
+\hline
+V1 & V & SIN(0 5 1k) & vin, 0\\
+R1 & R & 1k & vin, vout\\
+D1 & D & D4148 & vout, 0\\
+\end{longtable}
+
+\paragraph{Analyses}
+\begin{itemize}
+  \item \texttt{tran 0.05ms 5ms}
+\end{itemize}

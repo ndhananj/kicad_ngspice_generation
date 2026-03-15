@@ -1,18 +1,28 @@
-\begin{circuitikz}[american voltages, scale=1, transform shape]
+\providecommand{\msCircuitMixedSigNmosSymbol}[4]{%
+  \pgfmathsetmacro{\msx}{#1}
+  \pgfmathsetmacro{\msy}{#2}
+  \draw ({\msx + -0.13},{\msy + 0.25}) rectangle ({\msx + 0.51},{\msy + -0.25});
+  \node[font=\scriptsize,align=center] at (#1,#2) {#3\\#4};
+  \draw ({\msx + 0.25},{\msy + 0.51}) -- ({\msx + 0.25},{\msy + 0.25});
+  \draw ({\msx + -0.51},{\msy + 0.00}) -- ({\msx + -0.13},{\msy + 0.00});
+  \draw ({\msx + 0.25},{\msy + -0.51}) -- ({\msx + 0.25},{\msy + -0.25});
+  \draw ({\msx + 0.51},{\msy + -0.51}) -- ({\msx + 0.51},{\msy + -0.25});
+}
+\providecommand{\msCircuitMixedSigPmosSymbol}[4]{%
+  \pgfmathsetmacro{\msx}{#1}
+  \pgfmathsetmacro{\msy}{#2}
+  \draw ({\msx + -0.13},{\msy + 0.25}) rectangle ({\msx + 0.51},{\msy + -0.25});
+  \node[font=\scriptsize,align=center] at (#1,#2) {#3\\#4};
+  \draw ({\msx + 0.25},{\msy + -0.51}) -- ({\msx + 0.25},{\msy + -0.25});
+  \draw ({\msx + -0.51},{\msy + 0.00}) -- ({\msx + -0.13},{\msy + 0.00});
+  \draw ({\msx + 0.25},{\msy + 0.51}) -- ({\msx + 0.25},{\msy + 0.25});
+  \draw ({\msx + 0.51},{\msy + 0.51}) -- ({\msx + 0.51},{\msy + 0.25});
+}
+\begin{circuitikz}[american voltages,scale=1,transform shape]
   \draw (6.22,-6.10) to[V,l={DC 3.3},t={VDD}] (6.22,-7.62);
   \draw (8.38,-11.56) to[V,l={PULSE(0 3.3 0 1n 1n 10n 20n)},t={VIN}] (8.38,-13.08);
-  \draw (15.88,-13.46) rectangle (16.51,-13.97);
-  \node[font=\scriptsize,align=center] at (16.00,-13.72) {MN1\\NM1};
-  \draw (16.26,-13.21) -- (16.26,-13.46);
-  \draw (15.49,-13.72) -- (15.88,-13.72);
-  \draw (16.26,-14.22) -- (16.26,-13.97);
-  \draw (16.51,-14.22) -- (16.51,-13.97);
-  \draw (15.88,-8.64) rectangle (16.51,-9.14);
-  \node[font=\scriptsize,align=center] at (16.00,-8.89) {MP1\\PM1};
-  \draw (16.26,-9.40) -- (16.26,-9.14);
-  \draw (15.49,-8.89) -- (15.88,-8.89);
-  \draw (16.26,-8.38) -- (16.26,-8.64);
-  \draw (16.51,-8.38) -- (16.51,-8.64);
+  \msCircuitMixedSigNmosSymbol{16.00}{-13.72}{MN1}{NM1}
+  \msCircuitMixedSigPmosSymbol{16.00}{-8.89}{MP1}{PM1}
   \draw (16.38,-15.49) node[ground] {};
   \draw (8.38,-14.22) node[ground] {};
   \draw (6.22,-8.76) node[ground] {};
