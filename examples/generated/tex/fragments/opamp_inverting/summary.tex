@@ -10,6 +10,15 @@ R3 & R & 10k & vplus\_ref, 0\\
 XU1 & X & OPAMP & vplus\_ref, vminus, vout, vcc, vee\\
 \end{longtable}
 
+\paragraph{Model Statements}
+\begin{itemize}
+  \item \texttt{.subckt OPAMP 1 2 6 4 5}
+  \item \texttt{EGAIN 6 0 1 2 1e5}
+  \item \texttt{RINP 1 0 1e9}
+  \item \texttt{RINN 2 0 1e9}
+  \item \texttt{.ends OPAMP}
+\end{itemize}
+
 \paragraph{Analyses}
 \begin{itemize}
   \item \texttt{tran 0.1ms 10ms}

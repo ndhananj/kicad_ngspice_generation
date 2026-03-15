@@ -7,6 +7,12 @@ MP1 & M & PM1 & vout, vin, vdd, vdd\\
 MN1 & M & NM1 & vout, vin, 0, 0\\
 \end{longtable}
 
+\paragraph{Model Statements}
+\begin{itemize}
+  \item \texttt{.model NM1 NMOS (Level=1 Vto=0.7 Kp=120u Lambda=0.03)}
+  \item \texttt{.model PM1 PMOS (Level=1 Vto=-0.7 Kp=60u Lambda=0.04)}
+\end{itemize}
+
 \paragraph{Analyses}
 \begin{itemize}
   \item \texttt{tran 0.1n 100n}

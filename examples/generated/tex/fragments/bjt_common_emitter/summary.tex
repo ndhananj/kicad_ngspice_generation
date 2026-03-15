@@ -14,6 +14,11 @@ RL & R & 10k & vout, 0\\
 Q1 & Q & Q2N3904 & collector, base, emitter\\
 \end{longtable}
 
+\paragraph{Model Statements}
+\begin{itemize}
+  \item \texttt{.model Q2N3904 NPN(Is=6.734f Bf=255.9 Vaf=74.03 Cje=4.493p Tf=301.2p)}
+\end{itemize}
+
 \paragraph{Analyses}
 \begin{itemize}
   \item \texttt{tran 10us 5ms}
