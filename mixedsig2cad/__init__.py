@@ -36,6 +36,12 @@ from .projections.kicad_render_validate import validate_rendered_example_labels,
 from .spec import Analysis, CircuitSpec, Component
 from .exporters.kicad import export_kicad_schematic
 from .exporters.ngspice import export_ngspice_netlist
+from .exporters.tex import (
+    export_circuitikz,
+    export_example_report_tex,
+    export_examples_master_report,
+    export_literal_tikz,
+)
 
 __all__ = [
     "Analysis",
@@ -69,6 +75,10 @@ __all__ = [
     "extract_geometry_from_image",
     "export_kicad_schematic",
     "export_ngspice_netlist",
+    "export_circuitikz",
+    "export_example_report_tex",
+    "export_examples_master_report",
+    "export_literal_tikz",
     "import_kicad_schematic",
     "parse_circuit_source",
     "roundtrip_image",

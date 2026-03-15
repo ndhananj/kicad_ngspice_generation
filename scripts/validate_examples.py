@@ -25,6 +25,7 @@ from mixedsig2cad import (
     validate_rendered_example_labels,
     validate_rendered_kicad_symbols,
 )
+from mixedsig2cad.exporters.tex import export_example_report_tex
 from mixedsig2cad.geometry import PAGE_BOTTOM, PAGE_LEFT, PAGE_RIGHT, PAGE_TOP
 from mixedsig2cad.importers.raster_extract import observe_kicad_svg
 from mixedsig2cad.projections.kicad import project_geometry_to_kicad
@@ -180,6 +181,25 @@ def validate_rendered_example_label_positions() -> None:
     assert results or shutil.which("kicad-cli") is None, "expected rendered label validation results when kicad-cli is installed"
 
 
+def validate_tex_outputs() -> None:
+    tex_dir = ROOT / "examples" / "generated" / "tex"
+    assert tex_dir.exists(), "expected generated TeX directory"
+    for spec in all_examples():
+        standalone = tex_dir / f"{spec.name}.tex"
+        readable = tex_dir / f"{spec.name}.circuitikz.tex"
+        literal = tex_dir / f"{spec.name}.literal.tex"
+        for path in (standalone, readable, literal):
+            assert path.exists(), f"missing generated TeX file: {path.name}"
+            text = path.read_text(encoding="utf-8")
+            assert text.strip(), f"empty generated TeX file: {path.name}"
+        assert "\\section{Readable Circuit}" in standalone.read_text(encoding="utf-8")
+        assert export_example_report_tex(spec).startswith("\\documentclass")
+        _pdflatex(standalone)
+    master = tex_dir / "examples.tex"
+    assert master.exists(), "missing master TeX report"
+    _pdflatex(master)
+
+
 def _geometry_bounds(geometry) -> tuple[float, float, float, float] | None:
     xs: list[float] = []
     ys: list[float] = []
@@ -258,6 +278,26 @@ def _export_svg(path: Path, output_dir: Path) -> Path:
     return svg_path
 
 
+def _pdflatex(path: Path) -> None:
+    with tempfile.TemporaryDirectory(prefix="tex-validate-") as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        result = subprocess.run(
+            [
+                "pdflatex",
+                "-interaction=nonstopmode",
+                "-halt-on-error",
+                f"-output-directory={tmp_path}",
+                path.name,
+            ],
+            cwd=path.parent,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, (
+            f"pdflatex failed for {path}\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+        )
+
+
 def _validate_common_emitter_svg_orientation(path: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="kicad-svg-") as tmp_home:
         svg_path = _export_svg(path, Path(tmp_home))
@@ -293,13 +333,14 @@ def main() -> None:
     validate_geometry()
     validate_rendered_symbols()
     validate_rendered_example_label_positions()
-    for kicad in (ROOT / "examples" / "generated" / "kicad").glob("*.kicad_sch"):
+    for kicad in sorted((ROOT / "examples" / "generated" / "kicad").glob("*.kicad_sch")):
         validate_kicad(kicad)
         _kicad_cli_parse(kicad)
     validate_connectivity()
-    for cir in (ROOT / "examples" / "generated" / "ngspice").glob("*.cir"):
+    for cir in sorted((ROOT / "examples" / "generated" / "ngspice").glob("*.cir")):
         validate_ngspice(cir)
-    print("all generated examples passed structural + kicad-cli validation")
+    validate_tex_outputs()
+    print("all generated examples passed structural, kicad-cli, and TeX validation")
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ The setup script verifies the parser stack is present. For OCR-backed parsing wi
 - `examples/generated/kicad/*.kicad_sch`: generated KiCad schematic examples.
 - `examples/generated/kicad/examples.kicad_pro`: KiCad project that opens all generated schematics as hierarchical sheets.
 - `examples/generated/ngspice/*.cir`: generated ngspice netlist examples.
+- `examples/generated/tex/*.tex`: generated TeX circuit reports and the master report.
 - `scripts/generate_examples.py`: regenerates all example outputs.
 - `scripts/validate_examples.py`: structural validator for generated outputs.
 
@@ -41,12 +42,16 @@ Export:
 from mixedsig2cad import (
     build_schematic_intent,
     compile_schematic,
+    export_circuitikz,
+    export_example_report_tex,
     export_kicad_schematic,
     export_ngspice_netlist,
 )
 
 kicad_intent = build_schematic_intent(spec)
 kicad_geometry = compile_schematic(kicad_intent)
+kicad_circuitikz = export_circuitikz(spec)
+kicad_report = export_example_report_tex(spec)
 kicad_text = export_kicad_schematic(spec)
 ngspice_text = export_ngspice_netlist(spec)
 ```
@@ -58,6 +63,8 @@ The pipeline is now layered:
 - `compile_schematic(intent)`: canonical compiled schematic
 - `project_geometry_to_kicad(geometry)`: KiCad-specific projection adapter
 - `export_kicad_schematic(spec)`: full orchestration to KiCad text
+- `export_circuitikz(spec)`: readable TeX circuit rendering
+- `export_example_report_tex(spec)`: standalone TeX report with starter notes
 
 `compile_schematic()` is the single supported forward compilation path.
 
@@ -118,7 +125,8 @@ Internal code is split so most maintenance tasks only need one focused area:
 Each entry has:
 1) programmatic source in `examples/specs/catalog.py`,
 2) generated KiCad file in `examples/generated/kicad/`, and
-3) generated ngspice file in `examples/generated/ngspice/`.
+3) generated ngspice file in `examples/generated/ngspice/`, and
+4) generated TeX report files in `examples/generated/tex/`.
 
 - `rc_lowpass`
 - `rc_highpass`
@@ -131,6 +139,17 @@ Each entry has:
 
 
 Open `examples/generated/kicad/examples.kicad_pro` in KiCad to browse every generated example from a single project window.
+
+## TeX reports
+
+Running `python3 scripts/generate_examples.py` also writes:
+
+- `<name>.circuitikz.tex`: readable circuit-only source for later manual editing.
+- `<name>.literal.tex`: a more literal TikZ rendering derived from the KiCad-aligned geometry.
+- `<name>.tex`: a standalone report with both renderings, a generated summary, and starter design-note sections.
+- `examples.tex`: a master document covering the whole example corpus.
+
+`python3 scripts/validate_examples.py` compiles the generated report files with `pdflatex`, so a local TeX install with `circuitikz` is expected when running the full validator.
 
 ## Notes on compatibility
 

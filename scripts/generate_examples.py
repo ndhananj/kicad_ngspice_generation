@@ -10,11 +10,19 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from examples.specs.catalog import all_examples
-from mixedsig2cad import export_kicad_schematic, export_ngspice_netlist
+from mixedsig2cad import (
+    export_circuitikz,
+    export_example_report_tex,
+    export_examples_master_report,
+    export_kicad_schematic,
+    export_literal_tikz,
+    export_ngspice_netlist,
+)
 from mixedsig2cad.kicad_symbols import PROJECT_LIB_SYMBOLS, extract_project_symbol_block
 
 KICAD_DIR = ROOT / "examples" / "generated" / "kicad"
 NGSPICE_DIR = ROOT / "examples" / "generated" / "ngspice"
+TEX_DIR = ROOT / "examples" / "generated" / "tex"
 PROJECT_NAME = "examples"
 
 
@@ -137,11 +145,15 @@ def _project_symbol_library_file() -> str:
 def main() -> None:
     KICAD_DIR.mkdir(parents=True, exist_ok=True)
     NGSPICE_DIR.mkdir(parents=True, exist_ok=True)
+    TEX_DIR.mkdir(parents=True, exist_ok=True)
 
     specs = all_examples()
     for spec in specs:
         (KICAD_DIR / f"{spec.name}.kicad_sch").write_text(export_kicad_schematic(spec), encoding="utf-8")
         (NGSPICE_DIR / f"{spec.name}.cir").write_text(export_ngspice_netlist(spec), encoding="utf-8")
+        (TEX_DIR / f"{spec.name}.circuitikz.tex").write_text(export_circuitikz(spec), encoding="utf-8")
+        (TEX_DIR / f"{spec.name}.literal.tex").write_text(export_literal_tikz(spec), encoding="utf-8")
+        (TEX_DIR / f"{spec.name}.tex").write_text(export_example_report_tex(spec), encoding="utf-8")
         print(f"generated: {spec.name}")
 
     example_names = [spec.name for spec in specs]
@@ -155,6 +167,7 @@ def main() -> None:
     else:
         print(f"preserved existing project file: {project_path.name}")
     (KICAD_DIR / f"{PROJECT_NAME}.kicad_sym").write_text(_project_symbol_library_file(), encoding="utf-8")
+    (TEX_DIR / f"{PROJECT_NAME}.tex").write_text(export_examples_master_report(specs), encoding="utf-8")
     print(f"generated: {PROJECT_NAME}.kicad_pro")
 
 
