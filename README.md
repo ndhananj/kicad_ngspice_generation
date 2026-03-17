@@ -77,9 +77,13 @@ Example:
 
 ```python
 from examples.specs.catalog import (
+    block_named,
     build_rc_lowpass_topology,
+    instantiate_block,
+    instantiate_circuit_block,
     example_instance_values,
     instantiate_topology,
+    merge_designs,
     rc_lowpass,
 )
 
@@ -87,9 +91,32 @@ topology = build_rc_lowpass_topology()
 values = example_instance_values("rc_lowpass")
 spec = instantiate_topology(topology, values)
 design = rc_lowpass()
+
+lowpass_block = block_named("rc_lowpass")
+stage_a = instantiate_block(
+    lowpass_block,
+    parameters={"components": {"R1": {"value": "4.7k"}}},
+    pin_map={"vin": "sensor_in", "vout": "filtered_a"},
+    ref_prefix="A_",
+    instance_name="stage_a",
+)
+stage_b = instantiate_circuit_block(
+    lowpass_block,
+    pin_map={"vin": "filtered_a", "vout": "filtered_b"},
+    ref_prefix="B_",
+    instance_name="stage_b",
+)
+stacked = merge_designs("two_stage_filter", [stage_a, rc_lowpass()])
 ```
 
 This keeps the main architectures free of hard-coded numbers and ensures the TeX, KiCad, and ngspice outputs all draw their example-specific values from the same source.
+
+The same catalog can now be used as a reusable Python block library:
+
+- `block_named(name)`: fetch a reusable full-design block definition
+- `instantiate_circuit_block(...)`: flatten a block directly into a `CircuitSpec`
+- `instantiate_block(...)`: flatten a block into an `ExampleDesign` with reusable layout intent
+- `merge_designs(...)`: combine prefixed block instances into a larger flat design
 
 The pipeline is now layered:
 
