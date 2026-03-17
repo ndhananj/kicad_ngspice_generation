@@ -1,14 +1,6 @@
-\begin{circuitikz}[american voltages,scale=1,transform shape]
-  \draw (5.59,-7.87) to[V,l={V1},t={V1}] (5.59,-9.40);
-  \draw (8.38,-7.75) to[C,l={C1},t={C1}] (9.65,-7.75);
-  \draw (9.65,-9.02) to[R,l={R1},t={R1}] (9.65,-10.29);
-  \draw (9.65,-11.43) node[ground] {};
-  \draw (5.59,-10.54) node[ground] {};
-  \draw (5.59,-9.40) -- (5.59,-10.54);
-  \draw (9.65,-10.29) -- (9.65,-11.43);
-  \draw (5.59,-7.87) -- (5.59,-7.75);
-  \draw (5.59,-7.75) -- (8.38,-7.75);
-  \draw (9.65,-9.02) -- (9.65,-7.75);
-  \node[font=\scriptsize] at (5.59,-7.75) {vin};
-  \node[font=\scriptsize] at (9.65,-7.75) {vmid};
-\end{circuitikz}
+\begingroup
+\renewcommand{\MixedSigReadableValueLabel}[2]{#1}
+\renewcommand{\MixedSigReadableDeviceText}[2]{#1}
+\renewcommand{\MixedSigReadableTransistorSecondary}[2]{}
+\input{fragments/rc_highpass/readable_base.tex}
+\endgroup

@@ -41,9 +41,12 @@ SHARED_TEX_MACROS = (
     r"  \IfFileExists{#2.pdf}{\includegraphics[width=#1]{#2.pdf}}{\includesvg[width=#1]{#2}}",
     r"  \end{center}",
     r"}",
+    r"\providecommand{\MixedSigReadableValueLabel}[2]{#2}",
+    r"\providecommand{\MixedSigReadableDeviceText}[2]{#1\\#2}",
+    r"\providecommand{\MixedSigReadableTransistorSecondary}[2]{#2}",
 )
 DEFAULT_REPORT_SVG_PATH = "../svg/{name}"
-ReadableLabelMode = Literal["specific", "general"]
+ReadableLabelMode = Literal["specific", "general", "templated"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,12 +102,16 @@ def build_example_report_bundle(
         TexBundleFile(path=f"{common_dir}/packages.tex", content=_shared_packages_tex()),
         TexBundleFile(path=f"{common_dir}/macros.tex", content=_shared_macros_tex()),
         TexBundleFile(
+            path=f"{fragment_root}/readable_base.tex",
+            content=render_circuitikz_ir(build_circuitikz_ir(geometry, label_mode="templated")) + "\n",
+        ),
+        TexBundleFile(
             path=f"{fragment_root}/readable_general.tex",
-            content=render_circuitikz_ir(sections.general_circuitikz) + "\n",
+            content=_readable_variant_wrapper_tex(fragment_root, label_mode="general"),
         ),
         TexBundleFile(
             path=f"{fragment_root}/readable_specific.tex",
-            content=render_circuitikz_ir(sections.specific_circuitikz) + "\n",
+            content=_readable_variant_wrapper_tex(fragment_root, label_mode="specific"),
         ),
         TexBundleFile(path=f"{fragment_root}/summary.tex", content=sections.summary + "\n"),
         TexBundleFile(path=f"{fragment_root}/notes.tex", content=sections.starter_notes + "\n"),
@@ -130,8 +137,17 @@ def build_examples_master_bundle(
         spec = circuit_of(source)
         fragment_root = f"{fragments_dir}/{geometry.name}"
         sections = _report_sections(spec, geometry, kicad_svg_path=f"{svg_dir}/{geometry.name}")
-        files[f"{fragment_root}/readable_general.tex"] = render_circuitikz_ir(sections.general_circuitikz) + "\n"
-        files[f"{fragment_root}/readable_specific.tex"] = render_circuitikz_ir(sections.specific_circuitikz) + "\n"
+        files[f"{fragment_root}/readable_base.tex"] = (
+            render_circuitikz_ir(build_circuitikz_ir(geometry, label_mode="templated")) + "\n"
+        )
+        files[f"{fragment_root}/readable_general.tex"] = _readable_variant_wrapper_tex(
+            fragment_root,
+            label_mode="general",
+        )
+        files[f"{fragment_root}/readable_specific.tex"] = _readable_variant_wrapper_tex(
+            fragment_root,
+            label_mode="specific",
+        )
         files[f"{fragment_root}/summary.tex"] = sections.summary + "\n"
         files[f"{fragment_root}/notes.tex"] = sections.starter_notes + "\n"
         section_blocks.append(_render_master_example_block(geometry.name, fragment_root, sections.kicad_reference))
@@ -322,6 +338,27 @@ def _shared_packages_tex() -> str:
 
 def _shared_macros_tex() -> str:
     return "\n".join(SHARED_TEX_MACROS) + "\n"
+
+
+def _readable_variant_wrapper_tex(fragment_root: str, *, label_mode: ReadableLabelMode) -> str:
+    if label_mode == "general":
+        lines = [
+            r"\begingroup",
+            r"\renewcommand{\MixedSigReadableValueLabel}[2]{#1}",
+            r"\renewcommand{\MixedSigReadableDeviceText}[2]{#1}",
+            r"\renewcommand{\MixedSigReadableTransistorSecondary}[2]{}",
+            rf"\input{{{fragment_root}/readable_base.tex}}",
+            r"\endgroup",
+        ]
+        return "\n".join(lines) + "\n"
+    if label_mode == "specific":
+        lines = [
+            r"\begingroup",
+            rf"\input{{{fragment_root}/readable_base.tex}}",
+            r"\endgroup",
+        ]
+        return "\n".join(lines) + "\n"
+    raise AssertionError(f"unsupported readable variant wrapper mode {label_mode}")
 
 
 def _render_example_bundle_entrypoint(
@@ -521,7 +558,10 @@ def _render_literal_text(text: TextPlacement) -> str:
 
 def _two_terminal(shape: PlacedShape, element: str, *, label_mode: ReadableLabelMode) -> str:
     a, b = shape.terminals[:2]
-    options = [f"l={{{_latex_escape(_displayed_component_value(shape, label_mode=label_mode))}}}"]
+    if label_mode == "templated":
+        options = [f"l={{{_templated_component_value(shape)}}}"]
+    else:
+        options = [f"l={{{_latex_escape(_displayed_component_value(shape, label_mode=label_mode))}}}"]
     if not shape.hidden_reference:
         options.append(f"t={{{_latex_escape(shape.ref)}}}")
     return rf"  \draw {_pt(a.point)} to[{element},{','.join(options)}] {_pt(b.point)};"
@@ -645,9 +685,15 @@ def _transistor_symbol_call(
     spec = TRANSISTOR_SYMBOLS[shape.shape]
     x, y = _tex_point_values(shape.center, dialect=dialect)
     primary_label, secondary_label = _transistor_symbol_labels(shape, label_mode=label_mode)
+    if label_mode == "templated":
+        rendered_primary = primary_label
+        rendered_secondary = secondary_label
+    else:
+        rendered_primary = _latex_escape(primary_label)
+        rendered_secondary = _latex_escape(secondary_label)
     return (
         rf"  \{_transistor_macro_name(spec, dialect=dialect)}"
-        rf"{{{x:.2f}}}{{{y:.2f}}}{{{_latex_escape(primary_label)}}}{{{_latex_escape(secondary_label)}}}"
+        rf"{{{x:.2f}}}{{{y:.2f}}}{{{rendered_primary}}}{{{rendered_secondary}}}"
     )
 
 
@@ -844,19 +890,36 @@ def _pt(point: Point) -> str:
 def _displayed_component_value(shape: PlacedShape, *, label_mode: ReadableLabelMode) -> str:
     if label_mode == "general":
         return shape.ref
+    if label_mode == "templated":
+        return _templated_component_value(shape)
     return shape.value
 
 
 def _transistor_symbol_labels(shape: PlacedShape, *, label_mode: ReadableLabelMode) -> tuple[str, str]:
     if label_mode == "general":
         return (shape.ref, "")
+    if label_mode == "templated":
+        return (
+            _latex_escape(shape.ref),
+            rf"\MixedSigReadableTransistorSecondary{{{_latex_escape(shape.ref)}}}{{{_latex_escape(shape.value)}}}",
+        )
     return (shape.ref, shape.value)
 
 
 def _device_box_text(shape: PlacedShape, *, label_mode: ReadableLabelMode) -> str:
     if label_mode == "general":
         return "{" + _latex_escape(shape.ref) + "}"
+    if label_mode == "templated":
+        return (
+            "{"
+            + rf"\MixedSigReadableDeviceText{{{_latex_escape(shape.ref)}}}{{{_latex_escape(shape.value)}}}"
+            + "}"
+        )
     return "{" + _latex_escape(shape.ref) + r"\\" + _latex_escape(shape.value) + "}"
+
+
+def _templated_component_value(shape: PlacedShape) -> str:
+    return rf"\MixedSigReadableValueLabel{{{_latex_escape(shape.ref)}}}{{{_latex_escape(shape.value)}}}"
 
 
 def _point_on_box(shape: PlacedShape, point: Point) -> Point:

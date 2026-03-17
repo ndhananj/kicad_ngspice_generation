@@ -1,24 +1,3 @@
-\begin{circuitikz}[american voltages,scale=1,transform shape]
-  \draw (8.38,-7.75) to[R,l={50},t={R1}] (9.65,-7.75);
-  \draw (13.59,-9.02) to[R,l={1k},t={R2}] (13.59,-10.29);
-  \draw (11.68,-9.02) to[C,l={100n},t={C1}] (11.68,-10.29);
-  \draw (11.30,-7.75) to[L,l={10m},t={L1}] (12.57,-7.75);
-  \draw (5.59,-7.87) to[V,l={AC 1},t={V1}] (5.59,-9.40);
-  \draw (13.59,-11.43) node[ground] {};
-  \draw (5.59,-10.54) node[ground] {};
-  \draw (11.68,-11.43) node[ground] {};
-  \draw (11.68,-10.29) -- (11.68,-11.43);
-  \draw (5.59,-9.40) -- (5.59,-10.54);
-  \draw (13.59,-10.29) -- (13.59,-11.43);
-  \draw (11.30,-7.75) -- (9.65,-7.75);
-  \draw (11.68,-9.02) -- (12.57,-9.02);
-  \draw (13.59,-7.75) -- (12.57,-7.75);
-  \draw (13.59,-9.02) -- (13.59,-7.75);
-  \draw (12.57,-9.02) -- (12.57,-7.75);
-  \draw (5.59,-7.75) -- (8.38,-7.75);
-  \draw (5.59,-7.87) -- (5.59,-7.75);
-  \fill (12.57,-7.75) circle (1.2pt);
-  \node[font=\scriptsize] at (5.59,-7.75) {vin};
-  \node[font=\scriptsize] at (12.57,-7.75) {n2};
-  \node[font=\scriptsize] at (9.65,-7.75) {n1};
-\end{circuitikz}
+\begingroup
+\input{fragments/rlc_bandpass/readable_base.tex}
+\endgroup

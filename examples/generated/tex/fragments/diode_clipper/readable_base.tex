@@ -1,0 +1,14 @@
+\begin{circuitikz}[american voltages,scale=1,transform shape]
+  \draw (8.38,-7.75) to[R,l={\MixedSigReadableValueLabel{R1}{1k}},t={R1}] (9.65,-7.75);
+  \draw (5.59,-7.87) to[V,l={\MixedSigReadableValueLabel{V1}{SIN(0 5 1k)}},t={V1}] (5.59,-9.40);
+  \draw (9.65,-9.02) to[Do,l={\MixedSigReadableValueLabel{D1}{D4148}},t={D1}] (9.65,-10.03);
+  \draw (5.59,-10.54) node[ground] {};
+  \draw (9.65,-11.18) node[ground] {};
+  \draw (5.59,-9.40) -- (5.59,-10.54);
+  \draw (9.65,-10.03) -- (9.65,-11.18);
+  \draw (5.59,-7.75) -- (8.38,-7.75);
+  \draw (5.59,-7.87) -- (5.59,-7.75);
+  \draw (9.65,-9.02) -- (9.65,-7.75);
+  \node[font=\scriptsize] at (5.59,-7.75) {vin};
+  \node[font=\scriptsize] at (9.65,-7.75) {vout};
+\end{circuitikz}

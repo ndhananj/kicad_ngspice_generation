@@ -160,10 +160,31 @@ def test_example_report_bundle_writes_modular_files() -> None:
     assert bundle.entrypoint == "cmos_inverter.tex"
     assert "common/packages.tex" in paths
     assert "common/macros.tex" in paths
+    assert "fragments/cmos_inverter/readable_base.tex" in paths
     assert "fragments/cmos_inverter/readable_general.tex" in paths
     assert "fragments/cmos_inverter/readable_specific.tex" in paths
     assert "fragments/cmos_inverter/summary.tex" in paths
     assert "fragments/cmos_inverter/notes.tex" in paths
+    readable_base = next(
+        file.content for file in bundle.files if file.path == "fragments/cmos_inverter/readable_base.tex"
+    )
+    readable_general = next(
+        file.content
+        for file in bundle.files
+        if file.path == "fragments/cmos_inverter/readable_general.tex"
+    )
+    readable_specific = next(
+        file.content
+        for file in bundle.files
+        if file.path == "fragments/cmos_inverter/readable_specific.tex"
+    )
+    assert r"\MixedSigReadableValueLabel{VDD}{DC 3.3}" in readable_base
+    assert r"\MixedSigReadableTransistorSecondary{MN1}{NM1}" in readable_base
+    assert r"\renewcommand{\MixedSigReadableValueLabel}[2]{#1}" in readable_general
+    assert r"\renewcommand{\MixedSigReadableDeviceText}[2]{#1}" in readable_general
+    assert r"\input{fragments/cmos_inverter/readable_base.tex}" in readable_general
+    assert r"\input{fragments/cmos_inverter/readable_base.tex}" in readable_specific
+    assert r"\renewcommand{\MixedSigReadableValueLabel}[2]{#1}" not in readable_specific
     entrypoint = next(file.content for file in bundle.files if file.path == bundle.entrypoint)
     assert r"\input{common/packages.tex}" in entrypoint
     assert r"\input{fragments/cmos_inverter/readable_general.tex}" in entrypoint
@@ -178,6 +199,7 @@ def test_master_report_bundle_reuses_common_files() -> None:
     assert bundle.entrypoint == "examples.tex"
     assert "common/packages.tex" in paths
     assert "common/macros.tex" in paths
+    assert "fragments/rc_lowpass/readable_base.tex" in paths
     assert "fragments/rc_lowpass/readable_general.tex" in paths
     assert "fragments/rc_lowpass/readable_specific.tex" in paths
     assert "fragments/cmos_inverter/notes.tex" in paths
