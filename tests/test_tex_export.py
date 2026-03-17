@@ -43,6 +43,19 @@ def test_circuitikz_export_prunes_duplicate_passive_and_ground_labels() -> None:
     assert "GND" not in text
 
 
+def test_general_circuitikz_export_uses_component_refs_for_component_labels() -> None:
+    text = render_circuitikz_ir(build_circuitikz_ir(rc_lowpass(), label_mode="general"))
+
+    assert r"to[V,l={V1},t={V1}]" in text
+    assert r"to[R,l={R1},t={R1}]" in text
+    assert r"to[C,l={C1},t={C1}]" in text
+    assert "DC 5" not in text
+    assert "1k" not in text
+    assert "100n" not in text
+    assert "vin" in text
+    assert "vout" in text
+
+
 def test_circuitikz_export_removes_ground_text_in_all_examples() -> None:
     for example in all_examples():
         assert "GND" not in export_circuitikz(example)
@@ -72,13 +85,29 @@ def test_circuitikz_ir_exposes_reusable_transistor_symbol_definitions() -> None:
     assert r"\msCircuitMixedSigPmosSymbol" in rendered
 
 
+def test_general_circuitikz_export_uses_refs_for_active_device_labels() -> None:
+    cmos_text = render_circuitikz_ir(build_circuitikz_ir(cmos_inverter(), label_mode="general"))
+    opamp_text = render_circuitikz_ir(build_circuitikz_ir(opamp_inverting(), label_mode="general"))
+
+    assert r"\msCircuitMixedSigPmosSymbol{16.00}{-8.89}{MP1}{}" in cmos_text
+    assert r"\msCircuitMixedSigNmosSymbol{16.00}{-13.72}{MN1}{}" in cmos_text
+    assert "PM1" not in cmos_text
+    assert "NM1" not in cmos_text
+    assert "{XU1}" in opamp_text
+    assert "OPAMP" not in opamp_text
+
+
 def test_tex_report_builder_returns_document_ir_with_drawings() -> None:
     document = build_tex_report(cmos_inverter())
 
     assert isinstance(document, TexDocument)
     assert document.title == "cmos_inverter"
     assert document.sections[0].title == "Readable Circuit"
-    assert isinstance(document.sections[0].body, TexDrawing)
+    assert document.sections[0].body is None
+    assert document.sections[0].subsections[0].title == "General Readable Circuit"
+    assert isinstance(document.sections[0].subsections[0].body, TexDrawing)
+    assert document.sections[0].subsections[1].title == "Specific Readable Circuit"
+    assert isinstance(document.sections[0].subsections[1].body, TexDrawing)
     assert document.sections[1].title == "KiCad SVG Reference"
     assert isinstance(document.sections[1].body, TexSvgInclude)
     assert document.sections[1].body.path.endswith("cmos_inverter")
@@ -89,6 +118,8 @@ def test_standalone_report_contains_expected_sections_and_starter_notes() -> Non
 
     assert text.startswith(r"\documentclass")
     assert r"\section{Readable Circuit}" in text
+    assert r"\subsection{General Readable Circuit}" in text
+    assert r"\subsection{Specific Readable Circuit}" in text
     assert r"\section{KiCad SVG Reference}" in text
     assert r"\section{Reference Summary}" in text
     assert r"\section{Design Notes}" in text
@@ -116,6 +147,8 @@ def test_master_report_inputs_each_example_report() -> None:
     assert r"\section{opamp\_inverting}" in text
     assert r"\section{cmos\_inverter}" in text
     assert r"\providecommand{\msCircuitMixedSigNmosSymbol}[4]" in text
+    assert text.count(r"\subsubsection{General Readable Circuit}") == 3
+    assert text.count(r"\subsubsection{Specific Readable Circuit}") == 3
     assert text.count(r"\subsection{KiCad SVG Reference}") == 3
 
 
@@ -127,12 +160,14 @@ def test_example_report_bundle_writes_modular_files() -> None:
     assert bundle.entrypoint == "cmos_inverter.tex"
     assert "common/packages.tex" in paths
     assert "common/macros.tex" in paths
-    assert "fragments/cmos_inverter/readable.tex" in paths
+    assert "fragments/cmos_inverter/readable_general.tex" in paths
+    assert "fragments/cmos_inverter/readable_specific.tex" in paths
     assert "fragments/cmos_inverter/summary.tex" in paths
     assert "fragments/cmos_inverter/notes.tex" in paths
     entrypoint = next(file.content for file in bundle.files if file.path == bundle.entrypoint)
     assert r"\input{common/packages.tex}" in entrypoint
-    assert r"\input{fragments/cmos_inverter/readable.tex}" in entrypoint
+    assert r"\input{fragments/cmos_inverter/readable_general.tex}" in entrypoint
+    assert r"\input{fragments/cmos_inverter/readable_specific.tex}" in entrypoint
     assert r"\MixedSigIncludeKicadSvg[\linewidth]{../svg/cmos_inverter}" in entrypoint
 
 
@@ -143,9 +178,11 @@ def test_master_report_bundle_reuses_common_files() -> None:
     assert bundle.entrypoint == "examples.tex"
     assert "common/packages.tex" in paths
     assert "common/macros.tex" in paths
-    assert "fragments/rc_lowpass/readable.tex" in paths
+    assert "fragments/rc_lowpass/readable_general.tex" in paths
+    assert "fragments/rc_lowpass/readable_specific.tex" in paths
     assert "fragments/cmos_inverter/notes.tex" in paths
     entrypoint = next(file.content for file in bundle.files if file.path == bundle.entrypoint)
     assert r"\tableofcontents" in entrypoint
-    assert r"\input{fragments/rc_lowpass/readable.tex}" in entrypoint
+    assert r"\input{fragments/rc_lowpass/readable_general.tex}" in entrypoint
+    assert r"\input{fragments/rc_lowpass/readable_specific.tex}" in entrypoint
     assert r"\MixedSigIncludeKicadSvg[\linewidth]{../svg/rc_lowpass}" in entrypoint

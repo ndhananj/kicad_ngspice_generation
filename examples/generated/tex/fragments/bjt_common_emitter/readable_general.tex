@@ -1,0 +1,50 @@
+\providecommand{\msCircuitMixedSigNpnBjtSymbol}[4]{%
+  \pgfmathsetmacro{\msx}{#1}
+  \pgfmathsetmacro{\msy}{#2}
+  \draw ({\msx + -0.51},{\msy + -0.00}) -- ({\msx + -0.16},{\msy + -0.00});
+  \draw ({\msx + -0.16},{\msy + 0.40}) -- ({\msx + -0.16},{\msy + -0.40});
+  \draw ({\msx + -0.16},{\msy + 0.12}) -- ({\msx + 0.30},{\msy + 0.50});
+  \draw ({\msx + -0.16},{\msy + -0.12}) -- ({\msx + 0.20},{\msy + -0.48});
+  \draw ({\msx + 0.08},{\msy + -0.36}) -- ({\msx + 0.20},{\msy + -0.48});
+  \draw ({\msx + 0.14},{\msy + -0.21}) -- ({\msx + 0.20},{\msy + -0.48});
+  \draw ({\msx + 0.08},{\msy + 0.82}) -- ({\msx + 0.30},{\msy + 0.50});
+  \draw ({\msx + 0.48},{\msy + -0.00}) -- ({\msx + 0.20},{\msy + -0.48});
+  \node[font=\scriptsize,align=center] at ({\msx + 0.00},{\msy + -1.05}) {#3\\#4};
+}
+\begin{circuitikz}[american voltages,scale=1,transform shape]
+  \draw (19.94,-10.92) to[R,l={RL},t={RL}] (19.94,-12.19);
+  \draw (6.98,-10.03) to[V,l={VS},t={VS}] (6.98,-11.56);
+  \draw (16.38,-10.92) to[R,l={RE},t={RE}] (16.38,-12.19);
+  \msCircuitMixedSigNpnBjtSymbol{16.00}{-10.03}{Q1}{}
+  \draw (12.57,-8.76) to[R,l={R1},t={R1}] (12.57,-10.03);
+  \draw (17.78,-10.92) to[C,l={CE},t={CE}] (17.78,-12.19);
+  \draw (21.97,-6.86) to[V,l={VCC},t={VCC}] (21.97,-8.38);
+  \draw (12.57,-10.92) to[R,l={R2},t={R2}] (12.57,-12.19);
+  \draw (16.38,-7.87) to[R,l={RC},t={RC}] (16.38,-9.14);
+  \draw (9.40,-10.03) to[C,l={CB},t={CB}] (10.67,-10.03);
+  \draw (18.67,-9.14) to[C,l={CC},t={CC}] (19.94,-9.14);
+  \draw (15.75,-10.92) -- (15.75,-12.19);
+  \draw (6.98,-11.56) -- (6.98,-12.19);
+  \draw (6.98,-12.19) -- (15.75,-12.19);
+  \draw (15.75,-12.19) -- (21.97,-12.19);
+  \draw (21.97,-8.38) -- (21.97,-12.19);
+  \draw (10.67,-10.03) -- (12.57,-10.03);
+  \draw (12.57,-10.92) -- (12.57,-10.03);
+  \draw (15.24,-10.03) -- (12.57,-10.03);
+  \draw (16.38,-7.87) -- (16.38,-6.86);
+  \draw (18.67,-9.14) -- (16.38,-9.14);
+  \draw (17.78,-10.92) -- (16.38,-10.92);
+  \draw (12.57,-8.76) -- (12.57,-6.86);
+  \draw (12.57,-6.86) -- (21.97,-6.86);
+  \draw (6.98,-10.03) -- (9.40,-10.03);
+  \draw (19.94,-9.14) -- (19.94,-10.92);
+  \fill (15.75,-12.19) circle (1.2pt);
+  \fill (12.57,-10.03) circle (1.2pt);
+  \fill (16.38,-9.14) circle (1.2pt);
+  \fill (16.38,-10.92) circle (1.2pt);
+  \node[font=\scriptsize] at (12.57,-10.03) {base};
+  \node[font=\scriptsize] at (16.38,-9.14) {collector};
+  \node[font=\scriptsize] at (19.94,-9.14) {vout};
+  \node[font=\scriptsize] at (6.98,-10.03) {vin\_src};
+  \node[font=\scriptsize] at (16.38,-10.92) {emitter};
+\end{circuitikz}

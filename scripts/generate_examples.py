@@ -162,6 +162,9 @@ def main() -> None:
             target = TEX_DIR / file.path
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(file.content, encoding="utf-8")
+        legacy_readable = TEX_DIR / "fragments" / spec.name / "readable.tex"
+        if legacy_readable.exists():
+            legacy_readable.unlink()
         (TEX_DIR / f"{spec.name}.circuitikz.tex").write_text(export_circuitikz(spec), encoding="utf-8")
         print(f"generated: {spec.name}")
 

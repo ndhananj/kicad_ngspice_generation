@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 from mixedsig2cad.compiled import compile_schematic
 from mixedsig2cad.design import ExampleDesign, circuit_of
@@ -42,11 +43,13 @@ SHARED_TEX_MACROS = (
     r"}",
 )
 DEFAULT_REPORT_SVG_PATH = "../svg/{name}"
+ReadableLabelMode = Literal["specific", "general"]
 
 
 @dataclass(frozen=True, slots=True)
 class ReportSections:
-    circuitikz: TexDrawing
+    general_circuitikz: TexDrawing
+    specific_circuitikz: TexDrawing
     kicad_reference: TexSvgInclude
     summary: str
     starter_notes: str
@@ -95,7 +98,14 @@ def build_example_report_bundle(
     files = (
         TexBundleFile(path=f"{common_dir}/packages.tex", content=_shared_packages_tex()),
         TexBundleFile(path=f"{common_dir}/macros.tex", content=_shared_macros_tex()),
-        TexBundleFile(path=f"{fragment_root}/readable.tex", content=render_circuitikz_ir(sections.circuitikz) + "\n"),
+        TexBundleFile(
+            path=f"{fragment_root}/readable_general.tex",
+            content=render_circuitikz_ir(sections.general_circuitikz) + "\n",
+        ),
+        TexBundleFile(
+            path=f"{fragment_root}/readable_specific.tex",
+            content=render_circuitikz_ir(sections.specific_circuitikz) + "\n",
+        ),
         TexBundleFile(path=f"{fragment_root}/summary.tex", content=sections.summary + "\n"),
         TexBundleFile(path=f"{fragment_root}/notes.tex", content=sections.starter_notes + "\n"),
         TexBundleFile(path=f"{geometry.name}.tex", content=_render_example_bundle_entrypoint(geometry.name, common_dir, fragment_root, sections.kicad_reference)),
@@ -120,7 +130,8 @@ def build_examples_master_bundle(
         spec = circuit_of(source)
         fragment_root = f"{fragments_dir}/{geometry.name}"
         sections = _report_sections(spec, geometry, kicad_svg_path=f"{svg_dir}/{geometry.name}")
-        files[f"{fragment_root}/readable.tex"] = render_circuitikz_ir(sections.circuitikz) + "\n"
+        files[f"{fragment_root}/readable_general.tex"] = render_circuitikz_ir(sections.general_circuitikz) + "\n"
+        files[f"{fragment_root}/readable_specific.tex"] = render_circuitikz_ir(sections.specific_circuitikz) + "\n"
         files[f"{fragment_root}/summary.tex"] = sections.summary + "\n"
         files[f"{fragment_root}/notes.tex"] = sections.starter_notes + "\n"
         section_blocks.append(_render_master_example_block(geometry.name, fragment_root, sections.kicad_reference))
@@ -129,7 +140,11 @@ def build_examples_master_bundle(
     return TexReportBundle(entrypoint="examples.tex", files=rendered_files)
 
 
-def build_circuitikz_ir(source: ExampleDesign | CircuitSpec | CompiledSchematic) -> TexDrawing:
+def build_circuitikz_ir(
+    source: ExampleDesign | CircuitSpec | CompiledSchematic,
+    *,
+    label_mode: ReadableLabelMode = "specific",
+) -> TexDrawing:
     geometry = _compiled_geometry(source)
     return TexDrawing(
         environment="circuitikz",
@@ -137,7 +152,7 @@ def build_circuitikz_ir(source: ExampleDesign | CircuitSpec | CompiledSchematic)
         symbol_definitions=_transistor_symbol_definitions(geometry, dialect="circuitikz"),
         body_lines=tuple(
             [
-                *_render_circuitikz_shapes(geometry),
+                *_render_circuitikz_shapes(geometry, label_mode=label_mode),
                 *_render_circuitikz_wires(geometry),
                 *_render_circuitikz_labels(geometry),
             ]
@@ -179,7 +194,13 @@ def build_tex_report(source: ExampleDesign | CircuitSpec, *, kicad_svg_path: str
         title=geometry.name,
         packages=DOCUMENT_PACKAGES,
         sections=(
-            TexDocumentSection(title="Readable Circuit", body=sections.circuitikz),
+            TexDocumentSection(
+                title="Readable Circuit",
+                subsections=(
+                    TexDocumentSection(title="General Readable Circuit", body=sections.general_circuitikz),
+                    TexDocumentSection(title="Specific Readable Circuit", body=sections.specific_circuitikz),
+                ),
+            ),
             TexDocumentSection(title="KiCad SVG Reference", body=sections.kicad_reference),
             TexDocumentSection(title="Reference Summary", body=sections.summary),
             TexDocumentSection(title="Design Notes", body=sections.starter_notes),
@@ -205,7 +226,19 @@ def build_examples_master_report(
             TexDocumentSection(
                 title=_latex_escape(circuit_spec.name),
                 subsections=(
-                    TexDocumentSection(title="Readable Circuit", body=report_sections.circuitikz),
+                    TexDocumentSection(
+                        title="Readable Circuit",
+                        subsections=(
+                            TexDocumentSection(
+                                title="General Readable Circuit",
+                                body=report_sections.general_circuitikz,
+                            ),
+                            TexDocumentSection(
+                                title="Specific Readable Circuit",
+                                body=report_sections.specific_circuitikz,
+                            ),
+                        ),
+                    ),
                     TexDocumentSection(title="KiCad SVG Reference", body=report_sections.kicad_reference),
                     TexDocumentSection(title="Reference Summary", body=report_sections.summary),
                     TexDocumentSection(title="Design Notes", body=report_sections.starter_notes + "\n\\clearpage"),
@@ -275,7 +308,8 @@ def _compiled_geometry(source: ExampleDesign | CircuitSpec | CompiledSchematic) 
 
 def _report_sections(spec: CircuitSpec, geometry: CompiledSchematic, *, kicad_svg_path: str) -> ReportSections:
     return ReportSections(
-        circuitikz=build_circuitikz_ir(geometry),
+        general_circuitikz=build_circuitikz_ir(geometry, label_mode="general"),
+        specific_circuitikz=build_circuitikz_ir(geometry, label_mode="specific"),
         kicad_reference=TexSvgInclude(path=kicad_svg_path),
         summary=_reference_section(spec),
         starter_notes=_starter_notes(spec),
@@ -306,7 +340,10 @@ def _render_example_bundle_entrypoint(
         r"\begin{document}",
         r"\maketitle",
         r"\section{Readable Circuit}",
-        rf"\input{{{fragment_root}/readable.tex}}",
+        r"\subsection{General Readable Circuit}",
+        rf"\input{{{fragment_root}/readable_general.tex}}",
+        r"\subsection{Specific Readable Circuit}",
+        rf"\input{{{fragment_root}/readable_specific.tex}}",
         r"\section{KiCad SVG Reference}",
         _render_svg_include(kicad_reference),
         r"\section{Reference Summary}",
@@ -339,7 +376,10 @@ def _render_master_example_block(name: str, fragment_root: str, kicad_reference:
     lines = [
         rf"\section{{{_latex_escape(name)}}}",
         r"\subsection{Readable Circuit}",
-        rf"\input{{{fragment_root}/readable.tex}}",
+        r"\subsubsection{General Readable Circuit}",
+        rf"\input{{{fragment_root}/readable_general.tex}}",
+        r"\subsubsection{Specific Readable Circuit}",
+        rf"\input{{{fragment_root}/readable_specific.tex}}",
         r"\subsection{KiCad SVG Reference}",
         _render_svg_include(kicad_reference),
         r"\subsection{Reference Summary}",
@@ -351,35 +391,35 @@ def _render_master_example_block(name: str, fragment_root: str, kicad_reference:
     return "\n".join(lines)
 
 
-def _render_circuitikz_shapes(geometry: CompiledSchematic) -> list[str]:
+def _render_circuitikz_shapes(geometry: CompiledSchematic, *, label_mode: ReadableLabelMode) -> list[str]:
     lines: list[str] = []
     for shape in geometry.shapes:
         if shape.shape == "resistor":
-            lines.append(_two_terminal(shape, "R"))
+            lines.append(_two_terminal(shape, "R", label_mode=label_mode))
         elif shape.shape == "capacitor":
-            lines.append(_two_terminal(shape, "C"))
+            lines.append(_two_terminal(shape, "C", label_mode=label_mode))
         elif shape.shape == "inductor":
-            lines.append(_two_terminal(shape, "L"))
+            lines.append(_two_terminal(shape, "L", label_mode=label_mode))
         elif shape.shape == "diode":
-            lines.append(_two_terminal(shape, "Do"))
+            lines.append(_two_terminal(shape, "Do", label_mode=label_mode))
         elif shape.shape == "voltage_source":
-            lines.append(_two_terminal(shape, "V"))
+            lines.append(_two_terminal(shape, "V", label_mode=label_mode))
         elif shape.shape == "current_source":
-            lines.append(_two_terminal(shape, "I"))
+            lines.append(_two_terminal(shape, "I", label_mode=label_mode))
         elif shape.shape == "ground":
             lines.append(_ground(shape))
         elif shape.shape == "power":
             lines.append(_power(shape))
         elif shape.shape == "opamp":
-            lines.extend(_device_box(shape))
+            lines.extend(_device_box(shape, label_mode=label_mode))
         elif shape.shape == "npn_bjt":
-            lines.append(_transistor_symbol_call(shape, dialect="circuitikz"))
+            lines.append(_transistor_symbol_call(shape, dialect="circuitikz", label_mode=label_mode))
         elif shape.shape == "pmos":
-            lines.append(_transistor_symbol_call(shape, dialect="circuitikz"))
+            lines.append(_transistor_symbol_call(shape, dialect="circuitikz", label_mode=label_mode))
         elif shape.shape == "nmos":
-            lines.append(_transistor_symbol_call(shape, dialect="circuitikz"))
+            lines.append(_transistor_symbol_call(shape, dialect="circuitikz", label_mode=label_mode))
         else:
-            lines.extend(_device_box(shape))
+            lines.extend(_device_box(shape, label_mode=label_mode))
     return lines
 
 
@@ -479,9 +519,9 @@ def _render_literal_text(text: TextPlacement) -> str:
     return rf"  \node[font=\scriptsize] at ({text.position.x:.2f},{text.position.y:.2f}) {{{_latex_escape(text.text)}}};"
 
 
-def _two_terminal(shape: PlacedShape, element: str) -> str:
+def _two_terminal(shape: PlacedShape, element: str, *, label_mode: ReadableLabelMode) -> str:
     a, b = shape.terminals[:2]
-    options = [f"l={{{_latex_escape(shape.value)}}}"]
+    options = [f"l={{{_latex_escape(_displayed_component_value(shape, label_mode=label_mode))}}}"]
     if not shape.hidden_reference:
         options.append(f"t={{{_latex_escape(shape.ref)}}}")
     return rf"  \draw {_pt(a.point)} to[{element},{','.join(options)}] {_pt(b.point)};"
@@ -497,10 +537,10 @@ def _power(shape: PlacedShape) -> str:
     return rf"  \node[font=\scriptsize,anchor=south] at {_pt(terminal.point)} {{{_latex_escape(shape.value)}}};"
 
 
-def _device_box(shape: PlacedShape) -> list[str]:
+def _device_box(shape: PlacedShape, *, label_mode: ReadableLabelMode) -> list[str]:
     lines = [
         rf"  \draw ({shape.body_box.left * SCALE:.2f},{-shape.body_box.top * SCALE:.2f}) rectangle ({shape.body_box.right * SCALE:.2f},{-shape.body_box.bottom * SCALE:.2f});",
-        rf"  \node[font=\scriptsize,align=center] at {_pt(shape.center)} {{{_latex_escape(shape.ref)}\\{_latex_escape(shape.value)}}};",
+        rf"  \node[font=\scriptsize,align=center] at {_pt(shape.center)} {_device_box_text(shape, label_mode=label_mode)};",
     ]
     for terminal in shape.terminals:
         edge = _point_on_box(shape, terminal.point)
@@ -596,12 +636,18 @@ def _build_transistor_symbol_definition(shape_name: str, *, dialect: str) -> Tex
     )
 
 
-def _transistor_symbol_call(shape: PlacedShape, *, dialect: str) -> str:
+def _transistor_symbol_call(
+    shape: PlacedShape,
+    *,
+    dialect: str,
+    label_mode: ReadableLabelMode = "specific",
+) -> str:
     spec = TRANSISTOR_SYMBOLS[shape.shape]
     x, y = _tex_point_values(shape.center, dialect=dialect)
+    primary_label, secondary_label = _transistor_symbol_labels(shape, label_mode=label_mode)
     return (
         rf"  \{_transistor_macro_name(spec, dialect=dialect)}"
-        rf"{{{x:.2f}}}{{{y:.2f}}}{{{_latex_escape(shape.ref)}}}{{{_latex_escape(shape.value)}}}"
+        rf"{{{x:.2f}}}{{{y:.2f}}}{{{_latex_escape(primary_label)}}}{{{_latex_escape(secondary_label)}}}"
     )
 
 
@@ -793,6 +839,24 @@ def _kind_display_name(kind: str) -> str:
 
 def _pt(point: Point) -> str:
     return f"({point.x * SCALE:.2f},{-point.y * SCALE:.2f})"
+
+
+def _displayed_component_value(shape: PlacedShape, *, label_mode: ReadableLabelMode) -> str:
+    if label_mode == "general":
+        return shape.ref
+    return shape.value
+
+
+def _transistor_symbol_labels(shape: PlacedShape, *, label_mode: ReadableLabelMode) -> tuple[str, str]:
+    if label_mode == "general":
+        return (shape.ref, "")
+    return (shape.ref, shape.value)
+
+
+def _device_box_text(shape: PlacedShape, *, label_mode: ReadableLabelMode) -> str:
+    if label_mode == "general":
+        return "{" + _latex_escape(shape.ref) + "}"
+    return "{" + _latex_escape(shape.ref) + r"\\" + _latex_escape(shape.value) + "}"
 
 
 def _point_on_box(shape: PlacedShape, point: Point) -> Point:
