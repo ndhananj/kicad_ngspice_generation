@@ -194,11 +194,19 @@ def validate_tex_outputs() -> None:
     assert (tex_dir / "common" / "macros.tex").exists(), "missing shared TeX macros include"
     for spec in all_examples():
         standalone = tex_dir / f"{spec.name}.tex"
-        readable = tex_dir / f"{spec.name}.circuitikz.tex"
+        circuitikz_tex = tex_dir / f"{spec.name}.circuitikz.tex"
         fragment_dir = tex_dir / "fragments" / spec.name
         svg_path = svg_dir / f"{spec.name}.svg"
         svg_pdf_path = svg_dir / f"{spec.name}.pdf"
-        for path in (standalone, readable, fragment_dir / "readable.tex", fragment_dir / "summary.tex", fragment_dir / "notes.tex"):
+        for path in (
+            standalone,
+            circuitikz_tex,
+            fragment_dir / "readable_base.tex",
+            fragment_dir / "readable_general.tex",
+            fragment_dir / "readable_specific.tex",
+            fragment_dir / "summary.tex",
+            fragment_dir / "notes.tex",
+        ):
             assert path.exists(), f"missing generated TeX file: {path.name}"
             text = path.read_text(encoding="utf-8")
             assert text.strip(), f"empty generated TeX file: {path.name}"
