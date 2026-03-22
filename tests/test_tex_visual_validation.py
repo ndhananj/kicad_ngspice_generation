@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import cv2
 import numpy as np
 
 from examples.specs.catalog import cmos_inverter, rc_lowpass
-from mixedsig2cad.exporters.tex import export_circuitikz
+from mixedsig2cad.exporters.tex import build_circuitikz_ir, export_circuitikz, render_circuitikz_ir
 from mixedsig2cad.importers.hybrid_parser import check_validation_runtime_dependencies
 from mixedsig2cad.projections.tex_render_validate import (
     DEFAULT_TEX_SYMBOL_GOLDEN_DIR,
@@ -11,10 +12,15 @@ from mixedsig2cad.projections.tex_render_validate import (
     _compare_rendered_tex_labels,
     _compare_tex_page_clipping,
     _compare_tex_transistors,
+    _compile_tex_snippet_pdf,
     _compiled_geometry,
+    _extract_pdf_texts,
+    _pdf_page_to_image,
+    render_tex_symbol_probe_image,
     validate_rendered_tex_symbol_goldens,
 )
 from mixedsig2cad.models import BoundingBox
+from mixedsig2cad.projections.kicad_render_validate import build_symbol_probe_geometry
 
 
 def test_validation_dependency_status_reports_tooling_fields() -> None:
@@ -99,6 +105,35 @@ def test_tex_symbol_goldens_exist_for_supported_components() -> None:
 
     assert fixtures
     assert any(path.name == "npn_bjt__right.png" for path in fixtures)
+
+
+def test_symbol_probe_render_contains_visible_content_for_vertical_capacitor() -> None:
+    image = render_tex_symbol_probe_image("capacitor", "vertical")
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+
+    assert int((gray < 245).sum()) > 0
+
+
+def test_symbol_probe_pdf_contains_drawings_for_npn_bjt() -> None:
+    pdf_path = _compile_tex_snippet_pdf(
+        render_circuitikz_ir(build_circuitikz_ir(build_symbol_probe_geometry("npn_bjt", "right"))),
+        stem="probe_npn_bjt_right",
+    )
+
+    assert _extract_pdf_texts(pdf_path)
+    image = _pdf_page_to_image(pdf_path, dpi=300)
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    assert int((gray < 245).sum()) > 0
+
+
+def test_tex_symbol_golden_fixtures_are_not_blank() -> None:
+    fixtures = sorted(DEFAULT_TEX_SYMBOL_GOLDEN_DIR.glob("*.png"))
+
+    assert fixtures
+    for path in fixtures:
+        image = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
+        assert image is not None
+        assert int((image < 220).sum()) > 0, f"blank golden fixture: {path.name}"
 
 
 def test_tex_symbol_golden_validation_passes_for_checked_in_fixtures() -> None:

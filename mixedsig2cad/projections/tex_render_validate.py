@@ -234,11 +234,7 @@ def _standalone_tex_document(snippet: str) -> str:
         r"\pagestyle{empty}",
         r"\begin{document}",
         r"\thispagestyle{empty}",
-        r"\begin{center}",
-        r"\resizebox{\linewidth}{!}{%",
         snippet.strip(),
-        r"}",
-        r"\end{center}",
         r"\end{document}",
     ]
     return "\n".join(lines) + "\n"
