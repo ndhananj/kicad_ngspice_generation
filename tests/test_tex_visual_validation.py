@@ -6,11 +6,13 @@ from examples.specs.catalog import cmos_inverter, rc_lowpass
 from mixedsig2cad.exporters.tex import export_circuitikz
 from mixedsig2cad.importers.hybrid_parser import check_validation_runtime_dependencies
 from mixedsig2cad.projections.tex_render_validate import (
+    DEFAULT_TEX_SYMBOL_GOLDEN_DIR,
     RenderedPdfText,
     _compare_rendered_tex_labels,
     _compare_tex_page_clipping,
     _compare_tex_transistors,
     _compiled_geometry,
+    validate_rendered_tex_symbol_goldens,
 )
 from mixedsig2cad.models import BoundingBox
 
@@ -90,3 +92,22 @@ def test_tex_label_validation_uses_pruned_readable_label_policy() -> None:
     results = _compare_rendered_tex_labels(geometry, observed)
 
     assert {result.label_text for result in results} == {"vin", "vout"}
+
+
+def test_tex_symbol_goldens_exist_for_supported_components() -> None:
+    fixtures = sorted(DEFAULT_TEX_SYMBOL_GOLDEN_DIR.glob("*.png"))
+
+    assert fixtures
+    assert any(path.name == "npn_bjt__right.png" for path in fixtures)
+
+
+def test_tex_symbol_golden_validation_passes_for_checked_in_fixtures() -> None:
+    status = check_validation_runtime_dependencies()
+
+    assert status.pdflatex_available
+    assert status.pdf_raster_available
+
+    results = validate_rendered_tex_symbol_goldens()
+
+    assert results
+    assert all(result.passed for result in results)

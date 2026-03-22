@@ -35,7 +35,9 @@ from .importers import (
 )
 from .projections.kicad_render_validate import validate_rendered_example_labels, validate_rendered_kicad_symbols
 from .projections.tex_render_validate import (
+    refresh_rendered_tex_symbol_goldens,
     validate_rendered_tex_examples,
+    validate_rendered_tex_symbol_goldens,
     validate_rendered_tex_transistors,
 )
 from .projections.kicad_cli import export_schematic_pdf, export_schematic_svg
@@ -110,6 +112,7 @@ __all__ = [
     "parse_circuit_source",
     "roundtrip_image",
     "roundtrip_kicad_schematic",
+    "refresh_rendered_tex_symbol_goldens",
     "render_circuitikz_ir",
     "render_literal_tikz_ir",
     "render_tex_document",
@@ -126,5 +129,6 @@ __all__ = [
     "validate_rendered_example_labels",
     "validate_rendered_kicad_symbols",
     "validate_rendered_tex_examples",
+    "validate_rendered_tex_symbol_goldens",
     "validate_rendered_tex_transistors",
 ]

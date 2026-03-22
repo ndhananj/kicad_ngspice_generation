@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from examples.specs.catalog import all_examples, cmos_inverter, opamp_inverting, rc_lowpass
+from examples.specs.catalog import all_examples, bjt_common_emitter, cmos_inverter, opamp_inverting, rc_lowpass
 from mixedsig2cad import (
     TexReportBundle,
     TexSvgInclude,
@@ -95,6 +95,14 @@ def test_general_circuitikz_export_uses_refs_for_active_device_labels() -> None:
     assert "NM1" not in cmos_text
     assert "{XU1}" in opamp_text
     assert "OPAMP" not in opamp_text
+
+
+def test_bjt_circuitikz_export_uses_native_npn_node() -> None:
+    text = render_circuitikz_ir(build_circuitikz_ir(bjt_common_emitter(), label_mode="general"))
+
+    assert r"\node[npn]" in text
+    assert r"\providecommand{\msCircuitMixedSigNpnBjtSymbol}[4]" not in text
+    assert r"\msCircuitMixedSigNpnBjtSymbol" not in text
 
 
 def test_tex_report_builder_returns_document_ir_with_drawings() -> None:

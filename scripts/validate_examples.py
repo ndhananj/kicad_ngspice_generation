@@ -26,6 +26,7 @@ from mixedsig2cad import (
     validate_rendered_example_labels,
     validate_rendered_kicad_symbols,
     validate_rendered_tex_examples,
+    validate_rendered_tex_symbol_goldens,
     validate_rendered_tex_transistors,
 )
 from mixedsig2cad.exporters.tex import export_example_report_tex
@@ -231,9 +232,11 @@ def validate_rendered_tex() -> None:
     tex_dir = ROOT / "examples" / "generated" / "tex"
     label_results, clip_results = validate_rendered_tex_examples(specs, tex_dir=tex_dir)
     transistor_results = validate_rendered_tex_transistors(specs, tex_dir=tex_dir)
+    symbol_results = validate_rendered_tex_symbol_goldens()
     assert label_results, "expected rendered TeX label validation results"
     assert clip_results, "expected rendered TeX clipping validation results"
     assert transistor_results, "expected rendered TeX transistor validation results"
+    assert symbol_results, "expected rendered TeX symbol golden validation results"
 
 
 def _geometry_bounds(geometry) -> tuple[float, float, float, float] | None:

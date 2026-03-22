@@ -450,7 +450,7 @@ def _render_circuitikz_shapes(geometry: CompiledSchematic, *, label_mode: Readab
         elif shape.shape == "opamp":
             lines.extend(_device_box(shape, label_mode=label_mode))
         elif shape.shape == "npn_bjt":
-            lines.append(_transistor_symbol_call(shape, dialect="circuitikz", label_mode=label_mode))
+            lines.extend(_native_circuitikz_npn_symbol(shape, label_mode=label_mode))
         elif shape.shape == "pmos":
             lines.append(_transistor_symbol_call(shape, dialect="circuitikz", label_mode=label_mode))
         elif shape.shape == "nmos":
@@ -594,6 +594,8 @@ def _transistor_symbol_definitions(geometry: CompiledSchematic, *, dialect: str)
     for shape in geometry.shapes:
         if shape.shape not in TRANSISTOR_SYMBOLS or shape.shape in seen_shapes:
             continue
+        if dialect == "circuitikz" and shape.shape == "npn_bjt":
+            continue
         seen_shapes.add(shape.shape)
         definitions.append(_build_transistor_symbol_definition(shape.shape, dialect=dialect))
     return tuple(definitions)
@@ -682,6 +684,8 @@ def _transistor_symbol_call(
     dialect: str,
     label_mode: ReadableLabelMode = "specific",
 ) -> str:
+    if dialect == "circuitikz" and shape.shape == "npn_bjt":
+        raise AssertionError("npn_bjt circuitikz export uses native node rendering")
     spec = TRANSISTOR_SYMBOLS[shape.shape]
     x, y = _tex_point_values(shape.center, dialect=dialect)
     primary_label, secondary_label = _transistor_symbol_labels(shape, label_mode=label_mode)
@@ -700,6 +704,43 @@ def _transistor_symbol_call(
 def _transistor_macro_name(spec: TransistorSymbolSpec, *, dialect: str) -> str:
     prefix = "msCircuit" if dialect == "circuitikz" else "msLiteral"
     return f"{prefix}{spec.macro_stem}Symbol"
+
+
+def _native_circuitikz_npn_symbol(shape: PlacedShape, *, label_mode: ReadableLabelMode) -> list[str]:
+    by_name = {terminal.name: terminal.point for terminal in shape.terminals}
+    collector = by_name["collector"]
+    emitter = by_name["emitter"]
+    base = by_name["base"]
+    node_center = Point(
+        x=(collector.x + emitter.x) / 2.0,
+        y=(collector.y + emitter.y) / 2.0,
+    )
+    node_name = _tikz_safe_name(shape.ref)
+    primary_label, secondary_label = _transistor_symbol_labels(shape, label_mode=label_mode)
+    if label_mode == "templated":
+        rendered_primary = primary_label
+        rendered_secondary = secondary_label
+    else:
+        rendered_primary = _latex_escape(primary_label)
+        rendered_secondary = _latex_escape(secondary_label)
+    rendered_label = (
+        "{" + rendered_primary + "}"
+        if not rendered_secondary
+        else "{" + rendered_primary + r"\\" + rendered_secondary + "}"
+    )
+    lines = [
+        rf"  \node[npn] ({node_name}) at {_pt(node_center)} {{}};",
+        rf"  \draw {_pt(base)} -- ({node_name}.B);",
+        rf"  \draw {_pt(collector)} -- ({node_name}.C);",
+        rf"  \draw {_pt(emitter)} -- ({node_name}.E);",
+        rf"  \node[font=\scriptsize,align=center] at ({node_name}.text) {rendered_label};",
+    ]
+    return lines
+
+
+def _tikz_safe_name(text: str) -> str:
+    sanitized = "".join(char if char.isalnum() else "_" for char in text)
+    return f"msNode{sanitized or 'unnamed'}"
 
 
 def _tex_point_values(point: Point, *, dialect: str) -> tuple[float, float]:

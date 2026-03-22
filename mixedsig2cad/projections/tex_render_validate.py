@@ -12,10 +12,14 @@ import numpy as np
 
 from mixedsig2cad.compiled import compile_schematic
 from mixedsig2cad.design import ExampleDesign, circuit_of
-from mixedsig2cad.exporters.tex import DOCUMENT_PACKAGES, _visible_readable_labels
+from mixedsig2cad.exporters.tex import DOCUMENT_PACKAGES, _visible_readable_labels, export_circuitikz
 from mixedsig2cad.intent import build_schematic_intent
 from mixedsig2cad.models import BoundingBox, CompiledSchematic, TextPlacement
+from mixedsig2cad.projections.kicad_render_validate import build_symbol_probe_geometry
 from mixedsig2cad.spec import CircuitSpec
+
+ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_TEX_SYMBOL_GOLDEN_DIR = ROOT / "tests" / "fixtures" / "tex_symbol_goldens"
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +53,16 @@ class RenderedTexTransistorComparison:
     ref: str
     shape: str
     macro_name: str
+    passed: bool
+    notes: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RenderedTexSymbolGoldenComparison:
+    shape: str
+    orientation: str
+    fixture_path: Path
+    mismatch_ratio: float | None
     passed: bool
     notes: tuple[str, ...]
 
@@ -93,6 +107,84 @@ def validate_rendered_tex_transistors(
     return results
 
 
+def validate_rendered_tex_symbol_goldens(
+    *,
+    fixtures_dir: str | Path = DEFAULT_TEX_SYMBOL_GOLDEN_DIR,
+    mismatch_threshold: float = 0.012,
+) -> list[RenderedTexSymbolGoldenComparison]:
+    fixture_root = Path(fixtures_dir)
+    expected_pairs = set(_supported_tex_symbol_goldens())
+    actual_pairs = {_parse_fixture_name(path) for path in fixture_root.glob("*.png")}
+    results: list[RenderedTexSymbolGoldenComparison] = []
+    missing_pairs = sorted(expected_pairs - actual_pairs)
+    for shape, orientation in missing_pairs:
+        results.append(
+            RenderedTexSymbolGoldenComparison(
+                shape=shape,
+                orientation=orientation,
+                fixture_path=fixture_root / _fixture_name(shape, orientation),
+                mismatch_ratio=None,
+                passed=False,
+                notes=("missing golden image fixture",),
+            )
+        )
+    for fixture_path in sorted(fixture_root.glob("*.png")):
+        shape, orientation = _parse_fixture_name(fixture_path)
+        rendered = render_tex_symbol_probe_image(shape, orientation)
+        expected = cv2.imread(str(fixture_path), cv2.IMREAD_GRAYSCALE)
+        if expected is None:
+            results.append(
+                RenderedTexSymbolGoldenComparison(
+                    shape=shape,
+                    orientation=orientation,
+                    fixture_path=fixture_path,
+                    mismatch_ratio=None,
+                    passed=False,
+                    notes=("failed to load golden image",),
+                )
+            )
+            continue
+        normalized_rendered = _normalize_symbol_image(rendered)
+        normalized_expected = _normalize_symbol_image(expected)
+        mismatch_ratio = _binary_image_mismatch_ratio(normalized_rendered, normalized_expected)
+        notes: list[str] = []
+        if mismatch_ratio > mismatch_threshold:
+            notes.append(
+                f"rendered symbol drifted from golden image ({mismatch_ratio:.4f} > {mismatch_threshold:.4f})"
+            )
+        results.append(
+            RenderedTexSymbolGoldenComparison(
+                shape=shape,
+                orientation=orientation,
+                fixture_path=fixture_path,
+                mismatch_ratio=mismatch_ratio,
+                passed=not notes,
+                notes=tuple(notes),
+            )
+        )
+    failures = [result for result in results if not result.passed]
+    if failures:
+        details = "\n".join(_failure_note(result) for result in failures)
+        raise AssertionError(f"rendered TeX symbol golden validation failed:\n{details}")
+    return results
+
+
+def refresh_rendered_tex_symbol_goldens(
+    *,
+    output_dir: str | Path = DEFAULT_TEX_SYMBOL_GOLDEN_DIR,
+) -> list[Path]:
+    destination = Path(output_dir)
+    destination.mkdir(parents=True, exist_ok=True)
+    written: list[Path] = []
+    for shape, orientation in _supported_tex_symbol_goldens():
+        image = render_tex_symbol_probe_image(shape, orientation)
+        normalized = _normalize_symbol_image(image)
+        target = destination / _fixture_name(shape, orientation)
+        cv2.imwrite(str(target), normalized)
+        written.append(target)
+    return written
+
+
 def _compiled_geometry(source: ExampleDesign | CircuitSpec) -> CompiledSchematic:
     if isinstance(source, CircuitSpec):
         return compile_schematic(build_schematic_intent(source))
@@ -101,7 +193,11 @@ def _compiled_geometry(source: ExampleDesign | CircuitSpec) -> CompiledSchematic
 
 def _compile_readable_tex_pdf(tex_path: Path) -> Path:
     snippet = tex_path.read_text(encoding="utf-8")
-    with tempfile.TemporaryDirectory(prefix=f"mixedsig2cad-tex-{tex_path.stem}-") as tmp_dir:
+    return _compile_tex_snippet_pdf(snippet, stem=tex_path.stem)
+
+
+def _compile_tex_snippet_pdf(snippet: str, *, stem: str) -> Path:
+    with tempfile.TemporaryDirectory(prefix=f"mixedsig2cad-tex-{stem}-") as tmp_dir:
         tmp = Path(tmp_dir)
         wrapper = tmp / "snippet.tex"
         wrapper.write_text(_standalone_tex_document(snippet), encoding="utf-8")
@@ -119,10 +215,10 @@ def _compile_readable_tex_pdf(tex_path: Path) -> Path:
         )
         if result.returncode != 0:
             raise AssertionError(
-                f"pdflatex failed for {tex_path}\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+                f"pdflatex failed for {stem}\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
             )
         pdf_path = tmp / "snippet.pdf"
-        handle = tempfile.NamedTemporaryFile(prefix=f"{tex_path.stem}-", suffix=".pdf", delete=False)
+        handle = tempfile.NamedTemporaryFile(prefix=f"{stem}-", suffix=".pdf", delete=False)
         try:
             stable_pdf = Path(handle.name)
         finally:
@@ -263,12 +359,18 @@ def _compare_tex_transistors(
         if macro_name is None:
             continue
         notes: list[str] = []
-        if rf"\providecommand{{\{macro_name}}}[4]" not in text:
-            notes.append("missing canonical transistor macro definition")
-        if rf"\{macro_name}" not in text:
-            notes.append("missing canonical transistor macro call")
-        if _has_rectangular_transistor_macro(text, macro_name):
-            notes.append("transistor macro regressed to rectangular fallback")
+        if shape.shape == "npn_bjt":
+            if r"\node[npn]" not in text:
+                notes.append("missing native circuitikz npn node")
+            if rf"\providecommand{{\{macro_name}}}[4]" in text:
+                notes.append("legacy custom BJT macro should not be emitted")
+        else:
+            if rf"\providecommand{{\{macro_name}}}[4]" not in text:
+                notes.append("missing canonical transistor macro definition")
+            if rf"\{macro_name}" not in text:
+                notes.append("missing canonical transistor macro call")
+            if _has_rectangular_transistor_macro(text, macro_name):
+                notes.append("transistor macro regressed to rectangular fallback")
         if shape.shape == "pmos" and "circle" not in _macro_body(text, macro_name):
             notes.append("pmos TeX macro is missing the gate bubble")
         results.append(
@@ -320,9 +422,92 @@ def _boxes_overlap(first: BoundingBox, second: BoundingBox) -> bool:
     return overlap_area / min(first_area, second_area) >= 0.5
 
 
-def _failure_note(result: RenderedTexLabelComparison | RenderedTexClipComparison | RenderedTexTransistorComparison) -> str:
+def _failure_note(
+    result: RenderedTexLabelComparison | RenderedTexClipComparison | RenderedTexTransistorComparison | RenderedTexSymbolGoldenComparison,
+) -> str:
     if isinstance(result, RenderedTexClipComparison):
         return f"{result.schematic_name}:clip: {'; '.join(result.notes)}"
     if isinstance(result, RenderedTexTransistorComparison):
         return f"{result.schematic_name}:{result.ref}:{result.shape}: {'; '.join(result.notes)}"
+    if isinstance(result, RenderedTexSymbolGoldenComparison):
+        return f"{result.shape}/{result.orientation}: {'; '.join(result.notes)}"
     return f"{result.schematic_name}:{result.role}:{result.label_text}: {'; '.join(result.notes)}"
+
+
+def render_tex_symbol_probe_image(shape: str, orientation: str, *, dpi: int = 300) -> np.ndarray:
+    geometry = build_symbol_probe_geometry(shape, orientation)
+    snippet = export_circuitikz(geometry)
+    pdf_path = _compile_tex_snippet_pdf(snippet, stem=f"probe_{shape}_{orientation}")
+    return _pdf_page_to_image(pdf_path, dpi=dpi)
+
+
+def _supported_tex_symbol_goldens() -> list[tuple[str, str]]:
+    return [
+        ("capacitor", "horizontal"),
+        ("capacitor", "vertical"),
+        ("current_source", "vertical_up"),
+        ("diode", "horizontal"),
+        ("diode", "vertical"),
+        ("ground", "down"),
+        ("inductor", "horizontal"),
+        ("nmos", "right"),
+        ("npn_bjt", "right"),
+        ("opamp", "right"),
+        ("pmos", "right"),
+        ("power", "down"),
+        ("power", "left"),
+        ("power", "right"),
+        ("power", "up"),
+        ("resistor", "horizontal"),
+        ("resistor", "horizontal_flipped"),
+        ("resistor", "vertical"),
+        ("voltage_source", "vertical_up"),
+    ]
+
+
+def _fixture_name(shape: str, orientation: str) -> str:
+    return f"{shape}__{orientation}.png"
+
+
+def _parse_fixture_name(path: Path) -> tuple[str, str]:
+    stem = path.stem
+    if "__" not in stem:
+        raise AssertionError(f"invalid TeX symbol golden fixture name: {path.name}")
+    shape, orientation = stem.split("__", 1)
+    return shape, orientation
+
+
+def _normalize_symbol_image(image: np.ndarray, *, side: int = 256, pad: int = 12) -> np.ndarray:
+    if image.ndim == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    else:
+        gray = image.copy()
+    cropped = _crop_rendered_content(gray)
+    _, binary = cv2.threshold(cropped, 220, 255, cv2.THRESH_BINARY)
+    height, width = binary.shape
+    scale = (side - (pad * 2)) / max(height, width)
+    scaled_width = max(1, int(round(width * scale)))
+    scaled_height = max(1, int(round(height * scale)))
+    resized = cv2.resize(binary, (scaled_width, scaled_height), interpolation=cv2.INTER_AREA)
+    canvas = np.full((side, side), 255, dtype=np.uint8)
+    top = (side - scaled_height) // 2
+    left = (side - scaled_width) // 2
+    canvas[top : top + scaled_height, left : left + scaled_width] = resized
+    return canvas
+
+
+def _crop_rendered_content(image: np.ndarray) -> np.ndarray:
+    _, mask = cv2.threshold(image, 245, 255, cv2.THRESH_BINARY_INV)
+    coords = cv2.findNonZero(mask)
+    if coords is None:
+        return image
+    x, y, w, h = cv2.boundingRect(coords)
+    return image[y : y + h, x : x + w]
+
+
+def _binary_image_mismatch_ratio(first: np.ndarray, second: np.ndarray) -> float:
+    if first.shape != second.shape:
+        raise AssertionError(f"image shapes differ: {first.shape} != {second.shape}")
+    first_mask = first < 220
+    second_mask = second < 220
+    return float(np.count_nonzero(first_mask != second_mask)) / float(first_mask.size)
