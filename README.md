@@ -171,6 +171,17 @@ python3 scripts/generate_examples.py
 python3 scripts/validate_examples.py
 ```
 
+
+## Editorial Circuitry frontend
+
+A lightweight static frontend is included in `frontend/` for browsing the generated circuit corpus with the Editorial Circuitry design system.
+
+```bash
+python3 scripts/serve_frontend.py
+```
+
+Then open `http://127.0.0.1:8000/frontend/` to browse SVG previews and jump directly to generated KiCad, ngspice, and TeX artifacts.
+
 ## Architecture
 
 The supported layering is:
