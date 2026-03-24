@@ -7,14 +7,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="app-shell">
-      <aside class="sidebar panel">
+      <aside class="sidebar panel library-panel glass-panel">
         <div class="brand-block">
           <p class="eyebrow">Generated corpus</p>
           <h1>Editorial Circuitry</h1>
@@ -40,8 +40,8 @@
         </section>
       </aside>
 
-      <main class="workbench">
-        <section class="hero panel">
+      <main class="workbench workspace">
+        <section class="hero panel hero-card glass-panel">
           <div class="hero-copy">
             <p class="eyebrow">TeX workbench</p>
             <h2 id="hero-title">Circuit workspace</h2>
@@ -52,7 +52,7 @@
           </div>
         </section>
 
-        <section class="editor panel" aria-label="Artifact source viewer">
+        <section class="editor panel glass-panel" aria-label="Artifact source viewer">
           <div class="panel-topbar">
             <div>
               <p class="section-label">Source tabs</p>
@@ -72,8 +72,8 @@
         </section>
       </main>
 
-      <aside class="inspector panel">
-        <section class="preview-card">
+      <aside class="inspector panel inspector-panel glass-panel">
+        <section class="preview-card recessed-card">
           <div class="panel-topbar">
             <div>
               <p class="section-label">Preview</p>
@@ -85,6 +85,7 @@
           </div>
 
           <div id="visual-preview" class="visual-preview">
+            <div class="grid-backdrop" aria-hidden="true"></div>
             <img id="preview-image" alt="Selected circuit schematic preview" />
           </div>
 
@@ -93,7 +94,7 @@
           </div>
         </section>
 
-        <section class="metadata-card">
+        <section class="metadata-card recessed-card">
           <div class="section-heading">
             <p class="section-label">Inspector</p>
             <span id="inspector-title" class="section-meta">Select a circuit</span>
@@ -102,7 +103,7 @@
           <div id="tag-list" class="tag-list"></div>
         </section>
 
-        <section class="metadata-card">
+        <section class="metadata-card recessed-card">
           <div class="section-heading">
             <p class="section-label">Outputs</p>
             <span class="section-meta">Direct links</span>
