@@ -3,90 +3,126 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Editorial Circuitry Explorer</title>
+    <title>Editorial Circuitry Workbench</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="app-shell">
-      <aside class="panel library-panel glass-panel">
-        <div class="panel-header">
+      <aside class="sidebar panel">
+        <div class="brand-block">
           <p class="eyebrow">Generated corpus</p>
           <h1>Editorial Circuitry</h1>
           <p class="panel-copy">
-            Explore generated KiCad schematics and simulation-ready netlists in a premium neon laboratory workspace.
+            Browse the generated corpus in a TeX-first workbench with source tabs, preview panes, and direct artifact access.
           </p>
         </div>
 
-        <div class="library-section">
-          <p class="section-label">Examples</p>
-          <div id="example-list" class="chip-grid" aria-label="Circuit examples"></div>
-        </div>
+        <section class="panel-section">
+          <div class="section-heading">
+            <p class="section-label">Examples</p>
+            <span class="section-meta">8 circuits</span>
+          </div>
+          <div id="example-list" class="example-list" aria-label="Circuit examples"></div>
+        </section>
 
-        <div class="library-section recessed-card">
-          <p class="section-label">Workspace notes</p>
-          <ul class="note-list">
-            <li>Glow-based hierarchy replaces divider lines.</li>
-            <li>SVG previews are loaded directly from generated assets.</li>
-            <li>Download actions point at KiCad, ngspice, and TeX outputs.</li>
-          </ul>
-        </div>
+        <section class="panel-section">
+          <div class="section-heading">
+            <p class="section-label">Files</p>
+            <span class="section-meta">Selected example</span>
+          </div>
+          <div id="artifact-list" class="artifact-list" aria-label="Example artifacts"></div>
+        </section>
       </aside>
 
-      <main class="workspace">
-        <section class="hero-card glass-panel">
-          <div>
-            <p class="eyebrow">Neon laboratory</p>
+      <main class="workbench">
+        <section class="hero panel">
+          <div class="hero-copy">
+            <p class="eyebrow">TeX workbench</p>
             <h2 id="hero-title">Circuit workspace</h2>
             <p id="hero-summary" class="hero-summary"></p>
           </div>
-          <button id="focus-button" class="primary-button" type="button">Open artifact bundle</button>
+          <div class="hero-actions">
+            <button id="focus-button" class="primary-button" type="button">Open primary artifact</button>
+          </div>
         </section>
 
-        <section class="canvas-stage" aria-label="Circuit preview">
-          <div class="grid-backdrop"></div>
-          <div id="preview-frame" class="preview-frame glass-panel">
-            <img id="preview-image" alt="Selected circuit schematic preview" />
+        <section class="editor panel" aria-label="Artifact source viewer">
+          <div class="panel-topbar">
+            <div>
+              <p class="section-label">Source tabs</p>
+              <p id="active-file-label" class="topbar-copy">circuitikz.tex</p>
+            </div>
+            <div class="topbar-actions">
+              <a id="open-raw-link" class="ghost-button" href="#" target="_blank" rel="noopener">Open raw</a>
+            </div>
           </div>
-          <div class="floating-controls glass-panel" aria-label="Artifact shortcuts">
-            <a id="view-kicad" class="secondary-button" href="#">KiCad</a>
-            <a id="view-ngspice" class="secondary-button" href="#">ngspice</a>
-            <a id="view-tex" class="secondary-button" href="#">TeX report</a>
+
+          <div id="source-tab-list" class="tab-list" role="tablist" aria-label="Source artifacts"></div>
+
+          <div class="editor-pane">
+            <pre id="source-viewer" class="source-viewer"><code id="source-code"></code></pre>
+            <div id="source-status" class="source-status" hidden></div>
           </div>
         </section>
       </main>
 
-      <aside class="panel inspector-panel glass-panel">
-        <div class="panel-header">
-          <p class="section-label">Inspector</p>
-          <h3 id="inspector-title">Select a circuit</h3>
-        </div>
-
-        <div class="metadata-stack">
-          <section class="recessed-card metadata-card">
-            <p class="section-label">Topology</p>
-            <p id="inspector-description" class="body-copy"></p>
-          </section>
-
-          <section class="recessed-card metadata-card">
-            <p class="section-label">Highlights</p>
-            <div id="tag-list" class="tag-list"></div>
-          </section>
-
-          <section class="recessed-card metadata-card">
-            <p class="section-label">Outputs</p>
-            <div class="output-grid">
-              <a id="download-svg" class="secondary-button" href="#">SVG preview</a>
-              <a id="download-pdf" class="secondary-button" href="#">PDF render</a>
-              <a id="download-project" class="secondary-button" href="../examples/generated/kicad/examples.kicad_pro">KiCad project</a>
+      <aside class="inspector panel">
+        <section class="preview-card">
+          <div class="panel-topbar">
+            <div>
+              <p class="section-label">Preview</p>
+              <p id="preview-caption" class="topbar-copy">Schematic SVG companion</p>
             </div>
-          </section>
-        </div>
+            <div class="topbar-actions">
+              <a id="preview-open-link" class="ghost-button" href="#" target="_blank" rel="noopener">Open preview</a>
+            </div>
+          </div>
+
+          <div id="visual-preview" class="visual-preview">
+            <img id="preview-image" alt="Selected circuit schematic preview" />
+          </div>
+
+          <div id="document-preview" class="document-preview" hidden>
+            <iframe id="preview-frame" title="Selected report preview"></iframe>
+          </div>
+        </section>
+
+        <section class="metadata-card">
+          <div class="section-heading">
+            <p class="section-label">Inspector</p>
+            <span id="inspector-title" class="section-meta">Select a circuit</span>
+          </div>
+          <p id="inspector-description" class="body-copy"></p>
+          <div id="tag-list" class="tag-list"></div>
+        </section>
+
+        <section class="metadata-card">
+          <div class="section-heading">
+            <p class="section-label">Outputs</p>
+            <span class="section-meta">Direct links</span>
+          </div>
+          <div class="output-grid">
+            <a id="view-circuitikz" class="secondary-button" href="#" target="_blank" rel="noopener">Circuitikz TeX</a>
+            <a id="view-report-tex" class="secondary-button" href="#" target="_blank" rel="noopener">Report TeX</a>
+            <a id="view-ngspice" class="secondary-button" href="#" target="_blank" rel="noopener">ngspice</a>
+            <a id="view-kicad" class="secondary-button" href="#" target="_blank" rel="noopener">KiCad</a>
+            <a id="download-svg" class="secondary-button" href="#" target="_blank" rel="noopener">SVG preview</a>
+            <a id="download-pdf" class="secondary-button" href="#" target="_blank" rel="noopener">PDF render</a>
+            <a
+              id="download-project"
+              class="secondary-button"
+              href="../examples/generated/kicad/examples.kicad_pro"
+              target="_blank"
+              rel="noopener"
+            >KiCad project</a>
+          </div>
+        </section>
       </aside>
     </div>
 
