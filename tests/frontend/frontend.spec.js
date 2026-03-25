@@ -12,7 +12,7 @@ async function openWorkbench(page) {
   await expect(page.locator("#source-code")).toContainText("\\draw");
 }
 
-test("renders the fixture corpus and switches source tabs", async ({ page }) => {
+test("preserves the active tab and updates the preview when switching examples", async ({ page }) => {
   await openWorkbench(page);
 
   await expect(page.locator("#example-list .example-card")).toHaveCount(3);
@@ -23,11 +23,13 @@ test("renders the fixture corpus and switches source tabs", async ({ page }) => 
   await expect(page.locator("#preview-caption")).toContainText("report preview");
 
   await page.locator('[data-example-id="rc_highpass"]').click();
-  await page.getByRole("tab", { name: "report.tex" }).click();
+  await expect(page.getByRole("tab", { name: "report.tex" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#active-file-label")).toHaveText("report.tex");
   await expect(page.locator("#source-status")).toContainText("Unable to load report.tex.");
   await expect(page.locator("#document-state")).toBeVisible();
   await expect(page.locator("#document-state-title")).toHaveText("Report preview unavailable");
   await expect(page.locator("#document-state-copy")).toContainText("does not include report.pdf");
+  await expect(page.locator("#preview-frame")).toBeHidden();
 });
 
 test("shows owned fallback states for missing visual previews", async ({ page }) => {
@@ -38,6 +40,18 @@ test("shows owned fallback states for missing visual previews", async ({ page })
   await expect(page.locator("#preview-state-title")).toHaveText("Preview unavailable");
   await expect(page.locator("#preview-state-copy")).toContainText("No SVG preview is available");
   await expect(page.locator("#preview-open-link")).toHaveAttribute("aria-disabled", "true");
+});
+
+test("clears stale preview fallback when switching to an example with a real preview", async ({ page }) => {
+  await openWorkbench(page);
+
+  await page.locator('[data-example-id="diode_clipper"]').click();
+  await expect(page.locator("#preview-state")).toBeVisible();
+
+  await page.locator('[data-example-id="rc_lowpass"]').click();
+  await expect(page.locator("#preview-state")).toBeHidden();
+  await expect(page.locator("#preview-image")).toBeVisible();
+  await expect(page.locator("#preview-image")).toHaveAttribute("src", /rc_lowpass\.svg$/);
 });
 
 test("matches the desktop workbench visual baseline", async ({ page }) => {

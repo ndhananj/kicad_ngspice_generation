@@ -362,6 +362,10 @@ h2 {
   color: #ffc9c9;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .visual-preview,
 .document-preview {
   position: relative;

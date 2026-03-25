@@ -330,6 +330,15 @@ function hideVisualFallback() {
   previewState.hidden = true;
 }
 
+function resetVisualPreview() {
+  previewImage.hidden = true;
+  previewImage.onload = null;
+  previewImage.onerror = null;
+  previewImage.removeAttribute("src");
+  previewImage.alt = "";
+  hideVisualFallback();
+}
+
 function showDocumentState(title, copy) {
   documentPreview.hidden = false;
   documentState.hidden = false;
@@ -346,6 +355,12 @@ function showDocumentFrame(url) {
   previewFrame.src = url;
 }
 
+function resetDocumentPreview() {
+  documentState.hidden = true;
+  previewFrame.hidden = true;
+  previewFrame.removeAttribute("src");
+}
+
 function renderPreview(sourceText = sourceCode.textContent) {
   const example = getActiveExample();
   const activeTab = getActiveTab();
@@ -356,6 +371,7 @@ function renderPreview(sourceText = sourceCode.textContent) {
   if (activeTab.previewMode === "document") {
     visualPreview.hidden = true;
     documentPreview.hidden = false;
+    resetVisualPreview();
 
     if (reportPdfArtifact.available) {
       showDocumentFrame(reportPdfArtifact.url);
@@ -375,6 +391,7 @@ function renderPreview(sourceText = sourceCode.textContent) {
     return;
   }
 
+  resetDocumentPreview();
   documentPreview.hidden = true;
   visualPreview.hidden = false;
   previewCaption.textContent = `${example.name} schematic companion`;
@@ -386,6 +403,7 @@ function renderPreview(sourceText = sourceCode.textContent) {
   }
 
   previewImage.hidden = false;
+  hideVisualFallback();
   previewImage.alt = `${example.name} schematic preview`;
   previewImage.onload = () => hideVisualFallback();
   previewImage.onerror = () => {
@@ -493,7 +511,6 @@ function setActiveExample(exampleId) {
     return;
   }
   state.activeExampleId = exampleId;
-  state.activeTabId = "circuitikz";
   renderAll();
   void loadSourceText();
 }
