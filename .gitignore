@@ -216,3 +216,7 @@ examples/generated/tex/*.out
 examples/generated/tex/*.pdf
 examples/generated/tex/*.synctex.gz
 examples/generated/tex/*.toc
+
+# Frontend test artifacts
+node_modules/
+test-results/

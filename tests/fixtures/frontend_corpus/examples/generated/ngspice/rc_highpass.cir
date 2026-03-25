@@ -1,0 +1,3 @@
+* Fixture RC high-pass
+C1 in out 100n
+R1 out 0 1k

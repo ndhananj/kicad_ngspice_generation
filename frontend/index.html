@@ -26,7 +26,7 @@
         <section class="panel-section">
           <div class="section-heading">
             <p class="section-label">Examples</p>
-            <span class="section-meta">8 circuits</span>
+            <span id="example-count" class="section-meta">0 circuits</span>
           </div>
           <div id="example-list" class="example-list" aria-label="Circuit examples"></div>
         </section>
@@ -87,10 +87,19 @@
           <div id="visual-preview" class="visual-preview">
             <div class="grid-backdrop" aria-hidden="true"></div>
             <img id="preview-image" alt="Selected circuit schematic preview" />
+            <div id="preview-state" class="preview-state" hidden>
+              <p id="preview-state-title" class="fallback-title">Preview unavailable</p>
+              <p id="preview-state-copy" class="fallback-copy"></p>
+            </div>
           </div>
 
           <div id="document-preview" class="document-preview" hidden>
-            <iframe id="preview-frame" title="Selected report preview"></iframe>
+            <iframe id="preview-frame" title="Selected report preview" hidden></iframe>
+            <div id="document-fallback" class="document-fallback" hidden>
+              <p id="document-fallback-title" class="fallback-title">Report preview unavailable</p>
+              <p id="document-fallback-copy" class="fallback-copy"></p>
+              <pre id="document-fallback-code" class="document-fallback-code" hidden></pre>
+            </div>
           </div>
         </section>
 

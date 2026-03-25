@@ -236,3 +236,21 @@ Running `python3 scripts/generate_examples.py` also writes:
 - ngspice outputs are standard SPICE deck files (`.cir`).
 - KiCad outputs are `kicad_sch` schematic files with deterministic UUIDs.
 - This repository validates generated files structurally in CI-friendly Python checks.
+
+## Frontend testing
+
+The frontend now exposes a manifest-driven fixture mode so UI behavior can be validated even when the generated example corpus is incomplete.
+
+Run the browser suite:
+
+```bash
+npm run test:frontend
+```
+
+Refresh the visual baselines after intentional UI changes:
+
+```bash
+npm run test:frontend:update
+```
+
+The Playwright config starts `scripts/serve_frontend.py` against `tests/fixtures/frontend_corpus`, which includes success and missing-artifact cases for `report.tex` and SVG previews.
