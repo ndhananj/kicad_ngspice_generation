@@ -12,15 +12,56 @@ async function openWorkbench(page) {
   await expect(page.locator("#source-code")).toContainText("\\draw");
 }
 
+const smokeExamples = [
+  {
+    id: "rc_lowpass",
+    name: "RC Low-pass",
+    availableTabs: ["circuitikz.tex", "report.tex", "ngspice.cir"],
+    availableLinks: ["preview.svg", "circuitikz.tex", "report.tex", "ngspice.cir", "schematic.kicad_sch"],
+    unavailableLinks: ["report.pdf"],
+  },
+  {
+    id: "rc_highpass",
+    name: "RC High-pass",
+    availableTabs: ["circuitikz.tex", "ngspice.cir"],
+    availableLinks: ["circuitikz.tex", "ngspice.cir", "schematic.kicad_sch"],
+    unavailableLinks: ["preview.svg", "report.tex", "report.pdf"],
+  },
+  {
+    id: "diode_clipper",
+    name: "Diode Clipper",
+    availableTabs: ["circuitikz.tex", "report.tex", "ngspice.cir"],
+    availableLinks: ["circuitikz.tex", "report.tex", "ngspice.cir", "schematic.kicad_sch"],
+    unavailableLinks: ["preview.svg", "report.pdf"],
+  },
+];
+
+async function expectArtifactAvailability(page, labels, available) {
+  for (const label of labels) {
+    const target = page.locator("#artifact-list").getByText(label, { exact: true }).locator("..");
+    if (available) {
+      await expect(target).not.toHaveClass(/unavailable/);
+      continue;
+    }
+    await expect(target).toHaveClass(/unavailable/);
+  }
+}
+
+async function selectExample(page, example) {
+  await page.locator('[data-example-id="' + example.id + '"]').click();
+  await expect(page.locator("#hero-title")).toHaveText(example.name);
+}
+
 test("preserves the active tab and updates the preview when switching examples", async ({ page }) => {
   await openWorkbench(page);
 
   await expect(page.locator("#example-list .example-card")).toHaveCount(3);
 
   await page.getByRole("tab", { name: "report.tex" }).click();
-  await expect(page.locator("#preview-frame")).toBeVisible();
-  await expect(page.locator("#preview-open-link")).toHaveAttribute("href", /rc_lowpass\.pdf$/);
   await expect(page.locator("#preview-caption")).toContainText("report preview");
+  await expect(page.locator("#document-state")).toBeVisible();
+  await expect(page.locator("#document-state-copy")).toContainText("rendered report PDF is missing");
+  await expect(page.locator("#preview-frame")).toBeHidden();
 
   await page.locator('[data-example-id="rc_highpass"]').click();
   await expect(page.getByRole("tab", { name: "report.tex" })).toHaveAttribute("aria-selected", "true");
@@ -52,6 +93,24 @@ test("clears stale preview fallback when switching to an example with a real pre
   await expect(page.locator("#preview-state")).toBeHidden();
   await expect(page.locator("#preview-image")).toBeVisible();
   await expect(page.locator("#preview-image")).toHaveAttribute("src", /rc_lowpass\.svg$/);
+});
+
+test("shows the declared artifact surface for each smoke example", async ({ page }) => {
+  await openWorkbench(page);
+
+  for (const example of smokeExamples) {
+    await selectExample(page, example);
+    await expectArtifactAvailability(page, example.availableLinks, true);
+    await expectArtifactAvailability(page, example.unavailableLinks, false);
+    for (const tab of example.availableTabs) {
+      await expect(page.getByRole("tab", { name: tab })).not.toHaveClass(/unavailable/);
+    }
+    for (const tab of ["circuitikz.tex", "report.tex", "ngspice.cir"]) {
+      if (!example.availableTabs.includes(tab)) {
+        await expect(page.getByRole("tab", { name: tab })).toHaveClass(/unavailable/);
+      }
+    }
+  }
 });
 
 test("matches the desktop workbench visual baseline", async ({ page }) => {

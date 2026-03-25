@@ -23,7 +23,7 @@ module.exports = defineConfig({
     },
   },
   webServer: {
-    command: "python3 scripts/serve_frontend.py --port 4173 --fixture-root tests/fixtures/frontend_corpus",
+    command: "python3 scripts/serve_frontend_fixture_corpus.py --port 4173",
     url: "http://127.0.0.1:4173/frontend/",
     reuseExistingServer: true,
     timeout: 30000,
