@@ -3,7 +3,10 @@ from __future__ import annotations
 from datetime import date
 import os
 from pathlib import Path
+import shutil
+import subprocess
 import sys
+import tempfile
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +29,37 @@ NGSPICE_DIR = ROOT / "examples" / "generated" / "ngspice"
 TEX_DIR = ROOT / "examples" / "generated" / "tex"
 SVG_DIR = ROOT / "examples" / "generated" / "svg"
 PROJECT_NAME = "examples"
+
+
+def _compile_report_pdf(path: Path) -> None:
+    pdflatex = shutil.which("pdflatex")
+    if not pdflatex:
+        print(f"skipped report PDF build for {path.name}: pdflatex not installed")
+        return
+
+    with tempfile.TemporaryDirectory(prefix="mixedsig2cad-pdf-") as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        result = subprocess.run(
+            [
+                pdflatex,
+                "-shell-escape",
+                "-interaction=nonstopmode",
+                "-halt-on-error",
+                f"-output-directory={tmp_path}",
+                path.name,
+            ],
+            cwd=path.parent,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"pdflatex failed for {path}\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+            )
+        output_pdf = tmp_path / f"{path.stem}.pdf"
+        if not output_pdf.exists():
+            raise RuntimeError(f"pdflatex did not produce {output_pdf.name} for {path}")
+        (path.parent / output_pdf.name).write_bytes(output_pdf.read_bytes())
 
 
 def _aggregate_schematic(example_names: list[str]) -> str:
@@ -166,6 +200,7 @@ def main() -> None:
         if legacy_readable.exists():
             legacy_readable.unlink()
         (TEX_DIR / f"{spec.name}.circuitikz.tex").write_text(export_circuitikz(spec), encoding="utf-8")
+        _compile_report_pdf(TEX_DIR / f"{spec.name}.tex")
         print(f"generated: {spec.name}")
 
     example_names = [spec.name for spec in specs]
@@ -184,6 +219,7 @@ def main() -> None:
         target = TEX_DIR / file.path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(file.content, encoding="utf-8")
+    _compile_report_pdf(TEX_DIR / f"{PROJECT_NAME}.tex")
     print(f"generated: {PROJECT_NAME}.kicad_pro")
 
 

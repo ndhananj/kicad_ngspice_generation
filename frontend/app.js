@@ -130,10 +130,9 @@ const previewStateTitle = document.querySelector("#preview-state-title");
 const previewStateCopy = document.querySelector("#preview-state-copy");
 const documentPreview = document.querySelector("#document-preview");
 const previewFrame = document.querySelector("#preview-frame");
-const documentFallback = document.querySelector("#document-fallback");
-const documentFallbackTitle = document.querySelector("#document-fallback-title");
-const documentFallbackCopy = document.querySelector("#document-fallback-copy");
-const documentFallbackCode = document.querySelector("#document-fallback-code");
+const documentState = document.querySelector("#document-state");
+const documentStateTitle = document.querySelector("#document-state-title");
+const documentStateCopy = document.querySelector("#document-state-copy");
 const inspectorTitle = document.querySelector("#inspector-title");
 const inspectorDescription = document.querySelector("#inspector-description");
 const tagList = document.querySelector("#tag-list");
@@ -331,23 +330,19 @@ function hideVisualFallback() {
   previewState.hidden = true;
 }
 
-function showDocumentFallback(title, copy, code = "") {
+function showDocumentState(title, copy) {
   documentPreview.hidden = false;
-  documentFallback.hidden = false;
+  documentState.hidden = false;
   previewFrame.hidden = true;
   previewFrame.removeAttribute("src");
-  previewFrame.srcdoc = "";
-  documentFallbackTitle.textContent = title;
-  documentFallbackCopy.textContent = copy;
-  documentFallbackCode.hidden = !code;
-  documentFallbackCode.textContent = code;
+  documentStateTitle.textContent = title;
+  documentStateCopy.textContent = copy;
 }
 
 function showDocumentFrame(url) {
   documentPreview.hidden = false;
-  documentFallback.hidden = true;
+  documentState.hidden = true;
   previewFrame.hidden = false;
-  previewFrame.srcdoc = "";
   previewFrame.src = url;
 }
 
@@ -369,20 +364,13 @@ function renderPreview(sourceText = sourceCode.textContent) {
       return;
     }
 
-    setLinkState(previewOpenLink, reportTexArtifact);
-    previewCaption.textContent = `${example.name} report source preview`;
-    if (reportTexArtifact.available) {
-      showDocumentFallback(
-        "Inline report preview",
-        "Showing report.tex because no rendered report PDF is available for this example.",
-        sourceText || "Loading report.tex...",
-      );
-      return;
-    }
-
-    showDocumentFallback(
+    setLinkState(previewOpenLink, reportPdfArtifact);
+    previewCaption.textContent = `${example.name} report preview`;
+    showDocumentState(
       "Report preview unavailable",
-      "This example does not include report.tex or report.pdf in the current corpus.",
+      reportTexArtifact.available
+        ? "This example includes report.tex, but the rendered report PDF is missing from the current corpus."
+        : "This example does not include report.pdf in the current corpus.",
     );
     return;
   }
