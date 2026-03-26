@@ -172,9 +172,9 @@ python3 scripts/validate_examples.py
 ```
 
 
-## Editorial Circuitry frontend
+## Circuit Editor frontend
 
-A lightweight static frontend is included in `frontend/` for browsing the generated circuit corpus with the Editorial Circuitry design system.
+A lightweight static frontend is included in `frontend/` for browsing the generated circuit corpus with the circuit editor design system.
 
 ```bash
 python3 scripts/serve_frontend.py

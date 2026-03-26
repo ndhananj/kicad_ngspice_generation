@@ -1,4 +1,4 @@
-"""Serve the static Editorial Circuitry frontend for local exploration and testing."""
+"""Serve the static circuit editor frontend for local exploration and testing."""
 
 from __future__ import annotations
 
@@ -103,7 +103,7 @@ def main() -> None:
 
     handler = functools.partial(FrontendHandler, directory=str(ROOT))
     server = ThreadingHTTPServer(("127.0.0.1", args.port), handler)
-    print(f"Serving Editorial Circuitry frontend at http://127.0.0.1:{args.port}/frontend/")
+    print(f"Serving circuit editor frontend at http://127.0.0.1:{args.port}/frontend/")
     if fixture_root:
         print(f"Using fixture corpus from {fixture_root}")
     try:
