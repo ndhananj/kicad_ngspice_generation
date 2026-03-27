@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-import re
 import subprocess
 import tempfile
 
@@ -12,7 +11,7 @@ import numpy as np
 
 from mixedsig2cad.compiled import compile_schematic
 from mixedsig2cad.design import ExampleDesign, circuit_of
-from mixedsig2cad.exporters.tex import DOCUMENT_PACKAGES, _visible_readable_labels, export_circuitikz
+from mixedsig2cad.exporters.tex import DOCUMENT_PACKAGES, _pt, _tikz_safe_name, _visible_readable_labels, export_circuitikz
 from mixedsig2cad.intent import build_schematic_intent
 from mixedsig2cad.models import BoundingBox, CompiledSchematic, TextPlacement
 from mixedsig2cad.projections.kicad_render_validate import build_symbol_probe_geometry
@@ -344,53 +343,61 @@ def _compare_tex_transistors(
     geometry: CompiledSchematic,
     text: str,
 ) -> list[RenderedTexTransistorComparison]:
-    by_shape = {
+    symbol_by_shape = {
+        "npn_bjt": "npn",
+        "nmos": "nmos",
+        "pmos": "pmos",
+    }
+    legacy_macro_by_shape = {
         "npn_bjt": "msCircuitMixedSigNpnBjtSymbol",
         "nmos": "msCircuitMixedSigNmosSymbol",
         "pmos": "msCircuitMixedSigPmosSymbol",
     }
     results: list[RenderedTexTransistorComparison] = []
     for shape in geometry.shapes:
-        macro_name = by_shape.get(shape.shape)
-        if macro_name is None:
+        symbol_name = symbol_by_shape.get(shape.shape)
+        if symbol_name is None:
             continue
+        legacy_macro_name = legacy_macro_by_shape[shape.shape]
         notes: list[str] = []
+        node_name = _tikz_safe_name(shape.ref)
+        if rf"\node[{symbol_name}] ({node_name})" not in text:
+            notes.append(f"missing native circuitikz {symbol_name} node")
+        if rf"\providecommand{{\{legacy_macro_name}}}[4]" in text:
+            notes.append("legacy custom transistor macro should not be emitted")
         if shape.shape == "npn_bjt":
-            if r"\node[npn]" not in text:
-                notes.append("missing native circuitikz npn node")
-            if rf"\providecommand{{\{macro_name}}}[4]" in text:
-                notes.append("legacy custom BJT macro should not be emitted")
+            expected_anchors = {
+                "base": "B",
+                "collector": "C",
+                "emitter": "E",
+            }
         else:
-            if rf"\providecommand{{\{macro_name}}}[4]" not in text:
-                notes.append("missing canonical transistor macro definition")
-            if rf"\{macro_name}" not in text:
-                notes.append("missing canonical transistor macro call")
-            if _has_rectangular_transistor_macro(text, macro_name):
-                notes.append("transistor macro regressed to rectangular fallback")
-        if shape.shape == "pmos" and "circle" not in _macro_body(text, macro_name):
-            notes.append("pmos TeX macro is missing the gate bubble")
+            expected_anchors = {
+                "gate": "G",
+                "drain": "D",
+                "source": "S",
+                "body": "B",
+            }
+        for terminal in shape.terminals:
+            anchor = expected_anchors.get(terminal.name)
+            if anchor is None:
+                continue
+            expected_wire = rf"\draw {_pt(terminal.point)} -- ({node_name}.{anchor});"
+            if expected_wire not in text:
+                notes.append(f"missing transistor terminal wire for {terminal.name}")
+        if rf"\node[font=\scriptsize,align=center] at ({node_name}.text)" not in text:
+            notes.append("missing transistor label at native node text anchor")
         results.append(
             RenderedTexTransistorComparison(
                 schematic_name=geometry.name,
                 ref=shape.ref,
                 shape=shape.shape,
-                macro_name=macro_name,
+                macro_name=symbol_name,
                 passed=not notes,
                 notes=tuple(notes),
             )
         )
     return results
-
-
-def _has_rectangular_transistor_macro(text: str, macro_name: str) -> bool:
-    body = _macro_body(text, macro_name)
-    return "rectangle" in body
-
-
-def _macro_body(text: str, macro_name: str) -> str:
-    pattern = re.compile(rf"\\providecommand\{{\\{macro_name}\}}\[4\]\{{%(.*?)\n\}}", re.DOTALL)
-    match = pattern.search(text)
-    return match.group(1) if match is not None else ""
 
 
 def _visible_example_labels(geometry: CompiledSchematic) -> list[TextPlacement]:

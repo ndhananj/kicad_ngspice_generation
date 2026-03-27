@@ -75,22 +75,32 @@ def test_circuitikz_ir_exposes_reusable_transistor_symbol_definitions() -> None:
 
     assert isinstance(drawing, TexDrawing)
     names = {definition.name for definition in drawing.symbol_definitions}
-    assert "msCircuitMixedSigNmosSymbol" in names
-    assert "msCircuitMixedSigPmosSymbol" in names
+    assert "msCircuitMixedSigNmosSymbol" not in names
+    assert "msCircuitMixedSigPmosSymbol" not in names
 
     rendered = render_circuitikz_ir(drawing)
-    assert r"\providecommand{\msCircuitMixedSigNmosSymbol}[4]" in rendered
-    assert r"\msCircuitMixedSigNmosSymbol" in rendered
-    assert r"\providecommand{\msCircuitMixedSigPmosSymbol}[4]" in rendered
-    assert r"\msCircuitMixedSigPmosSymbol" in rendered
+    assert r"\providecommand{\msCircuitMixedSigNmosSymbol}[4]" not in rendered
+    assert r"\providecommand{\msCircuitMixedSigPmosSymbol}[4]" not in rendered
+    assert r"\node[nmos]" in rendered
+    assert r"\node[pmos]" in rendered
 
 
 def test_general_circuitikz_export_uses_refs_for_active_device_labels() -> None:
     cmos_text = render_circuitikz_ir(build_circuitikz_ir(cmos_inverter(), label_mode="general"))
     opamp_text = render_circuitikz_ir(build_circuitikz_ir(opamp_inverting(), label_mode="general"))
 
-    assert r"\msCircuitMixedSigPmosSymbol{16.00}{-8.89}{MP1}{}" in cmos_text
-    assert r"\msCircuitMixedSigNmosSymbol{16.00}{-13.72}{MN1}{}" in cmos_text
+    assert r"\node[nmos] (msNodeMN1) at (16.00,-13.72) {};" in cmos_text
+    assert r"\draw (16.26,-13.21) -- (msNodeMN1.D);" in cmos_text
+    assert r"\draw (15.49,-13.72) -- (msNodeMN1.G);" in cmos_text
+    assert r"\draw (16.26,-14.22) -- (msNodeMN1.S);" in cmos_text
+    assert r"\draw (16.51,-14.22) -- (msNodeMN1.B);" in cmos_text
+    assert r"\node[pmos] (msNodeMP1) at (16.00,-8.89) {};" in cmos_text
+    assert r"\draw (16.26,-9.40) -- (msNodeMP1.D);" in cmos_text
+    assert r"\draw (15.49,-8.89) -- (msNodeMP1.G);" in cmos_text
+    assert r"\draw (16.26,-8.38) -- (msNodeMP1.S);" in cmos_text
+    assert r"\draw (16.51,-8.38) -- (msNodeMP1.B);" in cmos_text
+    assert r"\node[font=\scriptsize,align=center] at (msNodeMN1.text) {MN1};" in cmos_text
+    assert r"\node[font=\scriptsize,align=center] at (msNodeMP1.text) {MP1};" in cmos_text
     assert "PM1" not in cmos_text
     assert "NM1" not in cmos_text
     assert "{XU1}" in opamp_text
@@ -131,8 +141,10 @@ def test_standalone_report_contains_expected_sections_and_starter_notes() -> Non
     assert r"\section{KiCad SVG Reference}" in text
     assert r"\section{Reference Summary}" in text
     assert r"\section{Design Notes}" in text
-    assert r"\providecommand{\msCircuitMixedSigNmosSymbol}[4]" in text
+    assert r"\providecommand{\msCircuitMixedSigNmosSymbol}[4]" not in text
     assert r"\providecommand{\MixedSigIncludeKicadSvg}[2]" in text
+    assert r"\node[nmos]" in text
+    assert r"\node[pmos]" in text
     assert r"\MixedSigIncludeKicadSvg[\linewidth]{../svg/cmos_inverter}" in text
     assert "Replace these starter notes" in text
 
@@ -154,7 +166,8 @@ def test_master_report_inputs_each_example_report() -> None:
     assert r"\section{rc\_lowpass}" in text
     assert r"\section{opamp\_inverting}" in text
     assert r"\section{cmos\_inverter}" in text
-    assert r"\providecommand{\msCircuitMixedSigNmosSymbol}[4]" in text
+    assert r"\providecommand{\msCircuitMixedSigNmosSymbol}[4]" not in text
+    assert r"\node[nmos]" in text
     assert text.count(r"\subsubsection{General Readable Circuit}") == 3
     assert text.count(r"\subsubsection{Specific Readable Circuit}") == 3
     assert text.count(r"\subsection{KiCad SVG Reference}") == 3

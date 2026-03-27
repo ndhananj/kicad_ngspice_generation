@@ -451,10 +451,8 @@ def _render_circuitikz_shapes(geometry: CompiledSchematic, *, label_mode: Readab
             lines.extend(_device_box(shape, label_mode=label_mode))
         elif shape.shape == "npn_bjt":
             lines.extend(_native_circuitikz_npn_symbol(shape, label_mode=label_mode))
-        elif shape.shape == "pmos":
-            lines.append(_transistor_symbol_call(shape, dialect="circuitikz", label_mode=label_mode))
-        elif shape.shape == "nmos":
-            lines.append(_transistor_symbol_call(shape, dialect="circuitikz", label_mode=label_mode))
+        elif shape.shape in {"pmos", "nmos"}:
+            lines.extend(_native_circuitikz_mos_symbol(shape, label_mode=label_mode))
         else:
             lines.extend(_device_box(shape, label_mode=label_mode))
     return lines
@@ -594,7 +592,7 @@ def _transistor_symbol_definitions(geometry: CompiledSchematic, *, dialect: str)
     for shape in geometry.shapes:
         if shape.shape not in TRANSISTOR_SYMBOLS or shape.shape in seen_shapes:
             continue
-        if dialect == "circuitikz" and shape.shape == "npn_bjt":
+        if dialect == "circuitikz" and shape.shape in {"npn_bjt", "nmos", "pmos"}:
             continue
         seen_shapes.add(shape.shape)
         definitions.append(_build_transistor_symbol_definition(shape.shape, dialect=dialect))
@@ -706,6 +704,21 @@ def _transistor_macro_name(spec: TransistorSymbolSpec, *, dialect: str) -> str:
     return f"{prefix}{spec.macro_stem}Symbol"
 
 
+def _render_transistor_label(shape: PlacedShape, *, label_mode: ReadableLabelMode) -> str:
+    primary_label, secondary_label = _transistor_symbol_labels(shape, label_mode=label_mode)
+    if label_mode == "templated":
+        rendered_primary = primary_label
+        rendered_secondary = secondary_label
+    else:
+        rendered_primary = _latex_escape(primary_label)
+        rendered_secondary = _latex_escape(secondary_label)
+    return (
+        "{" + rendered_primary + "}"
+        if not rendered_secondary
+        else "{" + rendered_primary + r"\\" + rendered_secondary + "}"
+    )
+
+
 def _native_circuitikz_npn_symbol(shape: PlacedShape, *, label_mode: ReadableLabelMode) -> list[str]:
     by_name = {terminal.name: terminal.point for terminal in shape.terminals}
     collector = by_name["collector"]
@@ -716,18 +729,7 @@ def _native_circuitikz_npn_symbol(shape: PlacedShape, *, label_mode: ReadableLab
         y=(collector.y + emitter.y) / 2.0,
     )
     node_name = _tikz_safe_name(shape.ref)
-    primary_label, secondary_label = _transistor_symbol_labels(shape, label_mode=label_mode)
-    if label_mode == "templated":
-        rendered_primary = primary_label
-        rendered_secondary = secondary_label
-    else:
-        rendered_primary = _latex_escape(primary_label)
-        rendered_secondary = _latex_escape(secondary_label)
-    rendered_label = (
-        "{" + rendered_primary + "}"
-        if not rendered_secondary
-        else "{" + rendered_primary + r"\\" + rendered_secondary + "}"
-    )
+    rendered_label = _render_transistor_label(shape, label_mode=label_mode)
     lines = [
         rf"  \node[npn] ({node_name}) at {_pt(node_center)} {{}};",
         rf"  \draw {_pt(base)} -- ({node_name}.B);",
@@ -735,6 +737,26 @@ def _native_circuitikz_npn_symbol(shape: PlacedShape, *, label_mode: ReadableLab
         rf"  \draw {_pt(emitter)} -- ({node_name}.E);",
         rf"  \node[font=\scriptsize,align=center] at ({node_name}.text) {rendered_label};",
     ]
+    return lines
+
+
+def _native_circuitikz_mos_symbol(shape: PlacedShape, *, label_mode: ReadableLabelMode) -> list[str]:
+    node_name = _tikz_safe_name(shape.ref)
+    anchor_by_terminal = {
+        "gate": "G",
+        "drain": "D",
+        "source": "S",
+        "body": "B",
+    }
+    lines = [
+        rf"  \node[{shape.shape}] ({node_name}) at {_pt(shape.center)} {{}};",
+    ]
+    for terminal in shape.terminals:
+        anchor = anchor_by_terminal.get(terminal.name)
+        if anchor is None:
+            continue
+        lines.append(rf"  \draw {_pt(terminal.point)} -- ({node_name}.{anchor});")
+    lines.append(rf"  \node[font=\scriptsize,align=center] at ({node_name}.text) {_render_transistor_label(shape, label_mode=label_mode)};")
     return lines
 
 

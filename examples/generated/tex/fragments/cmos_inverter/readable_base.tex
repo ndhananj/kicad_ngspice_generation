@@ -1,39 +1,18 @@
-\providecommand{\msCircuitMixedSigNmosSymbol}[4]{%
-  \pgfmathsetmacro{\msx}{#1}
-  \pgfmathsetmacro{\msy}{#2}
-  \draw ({\msx + -0.70},{\msy + -0.00}) -- ({\msx + -0.32},{\msy + -0.00});
-  \draw ({\msx + -0.18},{\msy + 0.46}) -- ({\msx + -0.18},{\msy + -0.46});
-  \draw ({\msx + 0.18},{\msy + 0.46}) -- ({\msx + 0.18},{\msy + -0.46});
-  \draw ({\msx + -0.32},{\msy + -0.00}) -- ({\msx + -0.32},{\msy + -0.42});
-  \draw ({\msx + -0.32},{\msy + 0.42}) -- ({\msx + -0.32},{\msy + -0.00});
-  \draw ({\msx + 0.18},{\msy + 0.88}) -- ({\msx + 0.18},{\msy + 0.46});
-  \draw ({\msx + 0.18},{\msy + -0.46}) -- ({\msx + 0.18},{\msy + -0.88});
-  \draw ({\msx + 0.48},{\msy + -0.00}) -- ({\msx + 0.18},{\msy + -0.00});
-  \draw ({\msx + 0.02},{\msy + -0.18}) -- ({\msx + 0.18},{\msy + -0.00});
-  \draw ({\msx + 0.02},{\msy + 0.18}) -- ({\msx + 0.18},{\msy + -0.00});
-  \node[font=\scriptsize,align=center] at ({\msx + 0.00},{\msy + -1.08}) {#3\\#4};
-}
-\providecommand{\msCircuitMixedSigPmosSymbol}[4]{%
-  \pgfmathsetmacro{\msx}{#1}
-  \pgfmathsetmacro{\msy}{#2}
-  \draw ({\msx + -0.74},{\msy + -0.00}) -- ({\msx + -0.42},{\msy + -0.00});
-  \draw ({\msx + -0.18},{\msy + 0.46}) -- ({\msx + -0.18},{\msy + -0.46});
-  \draw ({\msx + 0.18},{\msy + 0.46}) -- ({\msx + 0.18},{\msy + -0.46});
-  \draw ({\msx + -0.42},{\msy + -0.00}) -- ({\msx + -0.42},{\msy + -0.42});
-  \draw ({\msx + -0.42},{\msy + 0.42}) -- ({\msx + -0.42},{\msy + -0.00});
-  \draw ({\msx + 0.18},{\msy + 0.88}) -- ({\msx + 0.18},{\msy + 0.46});
-  \draw ({\msx + 0.18},{\msy + -0.46}) -- ({\msx + 0.18},{\msy + -0.88});
-  \draw ({\msx + 0.48},{\msy + -0.00}) -- ({\msx + 0.18},{\msy + -0.00});
-  \draw ({\msx + 0.02},{\msy + -0.18}) -- ({\msx + 0.18},{\msy + -0.00});
-  \draw ({\msx + 0.02},{\msy + 0.18}) -- ({\msx + 0.18},{\msy + -0.00});
-  \draw ({\msx + -0.32},{\msy + 0.00}) circle (0.09);
-  \node[font=\scriptsize,align=center] at ({\msx + 0.00},{\msy + -1.08}) {#3\\#4};
-}
 \begin{circuitikz}[american voltages,scale=1,transform shape]
   \draw (6.22,-6.10) to[V,l={\MixedSigReadableValueLabel{VDD}{DC 3.3}},t={VDD}] (6.22,-7.62);
   \draw (8.38,-11.56) to[V,l={\MixedSigReadableValueLabel{VIN}{PULSE(0 3.3 0 1n 1n 10n 20n)}},t={VIN}] (8.38,-13.08);
-  \msCircuitMixedSigNmosSymbol{16.00}{-13.72}{MN1}{\MixedSigReadableTransistorSecondary{MN1}{NM1}}
-  \msCircuitMixedSigPmosSymbol{16.00}{-8.89}{MP1}{\MixedSigReadableTransistorSecondary{MP1}{PM1}}
+  \node[nmos] (msNodeMN1) at (16.00,-13.72) {};
+  \draw (16.26,-13.21) -- (msNodeMN1.D);
+  \draw (15.49,-13.72) -- (msNodeMN1.G);
+  \draw (16.26,-14.22) -- (msNodeMN1.S);
+  \draw (16.51,-14.22) -- (msNodeMN1.B);
+  \node[font=\scriptsize,align=center] at (msNodeMN1.text) {MN1\\\MixedSigReadableTransistorSecondary{MN1}{NM1}};
+  \node[pmos] (msNodeMP1) at (16.00,-8.89) {};
+  \draw (16.26,-9.40) -- (msNodeMP1.D);
+  \draw (15.49,-8.89) -- (msNodeMP1.G);
+  \draw (16.26,-8.38) -- (msNodeMP1.S);
+  \draw (16.51,-8.38) -- (msNodeMP1.B);
+  \node[font=\scriptsize,align=center] at (msNodeMP1.text) {MP1\\\MixedSigReadableTransistorSecondary{MP1}{PM1}};
   \draw (16.38,-15.49) node[ground] {};
   \draw (8.38,-14.22) node[ground] {};
   \draw (6.22,-8.76) node[ground] {};

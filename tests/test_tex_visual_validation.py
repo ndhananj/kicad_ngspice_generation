@@ -77,9 +77,9 @@ def test_tex_transistor_validation_accepts_canonical_macros() -> None:
 
 def test_tex_transistor_validation_rejects_rectangular_fallback() -> None:
     geometry = _compiled_geometry(cmos_inverter())
-    text = export_circuitikz(cmos_inverter()).replace("circle", "ellipse", 1).replace(
-        r"\draw ({\msx + -0.70},{\msy + 0.00}) -- ({\msx + -0.32},{\msy + 0.00});",
-        r"\draw ({\msx + -0.56},{\msy + 0.39}) rectangle ({\msx + 0.56},{\msy + -0.39});",
+    text = export_circuitikz(cmos_inverter()).replace(
+        r"\draw (16.51,-8.38) -- (msNodeMP1.B);",
+        "",
         1,
     )
 
