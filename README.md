@@ -11,6 +11,8 @@ python3 scripts/setup_parser_env.py
 
 `scripts/install_dev_env.sh` is the supported bootstrap path for Debian/Ubuntu-style Linux hosts. It installs the local system packages and repo dependencies needed for the full validator stack, including OCR, TeX, KiCad CLI, Node, npm packages, and Playwright's Chromium runtime.
 
+The supported Linux target is currently Ubuntu, Debian, and Linux Mint. On those hosts, the expectation is that `bash scripts/install_dev_env.sh` completes successfully and leaves `python3 scripts/setup_parser_env.py` passing.
+
 `python3 scripts/setup_parser_env.py` is the verification pass. It checks the Python modules, OCR binary, TeX tooling, KiCad CLI, and frontend runtime, then points back to the bootstrap command if anything is still missing.
 
 ## What is included

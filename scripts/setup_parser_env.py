@@ -8,7 +8,12 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from mixedsig2cad.dev_env import BOOTSTRAP_COMMAND, frontend_runtime_issues, missing_python_modules
+from mixedsig2cad.dev_env import (
+    BOOTSTRAP_COMMAND,
+    frontend_runtime_issues,
+    missing_python_modules,
+    supported_linux_distros_text,
+)
 
 
 def main() -> int:
@@ -28,7 +33,8 @@ def main() -> int:
             print(f"missing external tool: {name}")
         print(
             "Bootstrap the local toolchain with "
-            f"`{BOOTSTRAP_COMMAND}` and rerun `python3 scripts/setup_parser_env.py`."
+            f"`{BOOTSTRAP_COMMAND}` on supported {supported_linux_distros_text()} hosts, "
+            "then rerun `python3 scripts/setup_parser_env.py`."
         )
         return 1
     print("Parser and validation environment looks ready.")

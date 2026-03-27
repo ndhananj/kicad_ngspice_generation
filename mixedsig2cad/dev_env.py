@@ -9,6 +9,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 BOOTSTRAP_COMMAND = "bash scripts/install_dev_env.sh"
+SUPPORTED_LINUX_DISTROS = ("Ubuntu", "Debian", "Linux Mint")
 NODE_MIN_VERSION = (18, 0, 0)
 PYTHON_MODULES = (
     "numpy",
@@ -26,6 +27,32 @@ BROWSER_CANDIDATES = (
     "/usr/bin/chromium",
     "/usr/bin/brave-browser",
 )
+
+
+def supported_linux_distros_text() -> str:
+    return ", ".join(SUPPORTED_LINUX_DISTROS)
+
+
+def parse_os_release(text: str) -> dict[str, str]:
+    data: dict[str, str] = {}
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        data[key] = value.strip().strip('"')
+    return data
+
+
+def linux_bootstrap_supported(os_release_text: str) -> bool:
+    data = parse_os_release(os_release_text)
+    distro_tokens = {
+        token
+        for value in (data.get("ID", ""), data.get("ID_LIKE", ""))
+        for token in value.lower().split()
+        if token
+    }
+    return bool(distro_tokens & {"ubuntu", "debian", "linuxmint"})
 
 
 def missing_python_modules() -> list[str]:

@@ -13,6 +13,21 @@ def test_parse_node_version_rejects_invalid_output() -> None:
     assert dev_env.parse_node_version("node version") is None
 
 
+def test_parse_os_release_keeps_id_and_id_like() -> None:
+    parsed = dev_env.parse_os_release('ID=linuxmint\nID_LIKE="ubuntu debian"\n')
+
+    assert parsed["ID"] == "linuxmint"
+    assert parsed["ID_LIKE"] == "ubuntu debian"
+
+
+def test_linux_bootstrap_supported_accepts_linux_mint() -> None:
+    assert dev_env.linux_bootstrap_supported('ID=linuxmint\nID_LIKE="ubuntu debian"\n') is True
+
+
+def test_linux_bootstrap_supported_rejects_unsupported_distro() -> None:
+    assert dev_env.linux_bootstrap_supported('ID=fedora\nID_LIKE="fedora rhel"\n') is False
+
+
 def test_find_browser_executable_prefers_env_var(monkeypatch) -> None:
     monkeypatch.setenv("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH", "/tmp/custom-browser")
     monkeypatch.setattr(dev_env.Path, "exists", lambda self: str(self) == "/tmp/custom-browser")
@@ -42,6 +57,10 @@ def test_node_version_error_reports_old_node(monkeypatch) -> None:
     monkeypatch.setattr(dev_env, "node_version", lambda: (16, 19, 1))
 
     assert dev_env.node_version_error() == "node >= 18 (found 16.19.1)"
+
+
+def test_supported_linux_distros_text_mentions_linux_mint() -> None:
+    assert dev_env.supported_linux_distros_text() == "Ubuntu, Debian, Linux Mint"
 
 
 def test_npm_packages_available_runs_from_repo_root(monkeypatch) -> None:

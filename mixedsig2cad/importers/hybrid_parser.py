@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
 
-from mixedsig2cad.dev_env import BOOTSTRAP_COMMAND
+from mixedsig2cad.dev_env import BOOTSTRAP_COMMAND, supported_linux_distros_text
 from mixedsig2cad.exporters.ngspice import export_ngspice_netlist
 from mixedsig2cad.importers.kicad_schematic import import_kicad_schematic
 from mixedsig2cad.importers.raster_extract import extract_geometry_from_image
@@ -496,7 +496,8 @@ def _require_runtime_dependencies(*, require_sam: bool, require_ocr: bool) -> No
         raise RuntimeError(
             "Missing parser dependencies: "
             + ", ".join(missing)
-            + f". Run `{BOOTSTRAP_COMMAND}` and then `python3 scripts/setup_parser_env.py`."
+            + f". Run `{BOOTSTRAP_COMMAND}` on supported {supported_linux_distros_text()} hosts and then "
+            + "`python3 scripts/setup_parser_env.py`."
         )
 
 
@@ -521,7 +522,8 @@ def _require_validation_runtime_dependencies(
         raise RuntimeError(
             "Missing validation dependencies: "
             + ", ".join(missing)
-            + f". Run `{BOOTSTRAP_COMMAND}` and then `python3 scripts/setup_parser_env.py`."
+            + f". Run `{BOOTSTRAP_COMMAND}` on supported {supported_linux_distros_text()} hosts and then "
+            + "`python3 scripts/setup_parser_env.py`."
         )
 
 
