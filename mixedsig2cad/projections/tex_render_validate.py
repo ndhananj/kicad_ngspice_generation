@@ -11,7 +11,7 @@ import numpy as np
 
 from mixedsig2cad.compiled import compile_schematic
 from mixedsig2cad.design import ExampleDesign, circuit_of
-from mixedsig2cad.exporters.tex import DOCUMENT_PACKAGES, _pt, _tikz_safe_name, _visible_readable_labels, export_circuitikz
+from mixedsig2cad.exporters.tex import DOCUMENT_PACKAGES, _pt, _tex_point_values, _tikz_safe_name, _visible_readable_labels, export_circuitikz
 from mixedsig2cad.intent import build_schematic_intent
 from mixedsig2cad.models import BoundingBox, CompiledSchematic, TextPlacement
 from mixedsig2cad.projections.kicad_render_validate import build_symbol_probe_geometry
@@ -62,6 +62,14 @@ class RenderedTexSymbolGoldenComparison:
     orientation: str
     fixture_path: Path
     mismatch_ratio: float | None
+    passed: bool
+    notes: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RenderedTexMosGeometryComparison:
+    target_name: str
+    shape: str
     passed: bool
     notes: tuple[str, ...]
 
@@ -151,6 +159,10 @@ def validate_rendered_tex_symbol_goldens(
             notes.append(
                 f"rendered symbol drifted from golden image ({mismatch_ratio:.4f} > {mismatch_threshold:.4f})"
             )
+        if shape in {"nmos", "pmos"}:
+            mos_geometry = _compare_tex_mos_geometry(fixture_path.stem, shape, expected)
+            if not mos_geometry.passed:
+                notes.extend(mos_geometry.notes)
         results.append(
             RenderedTexSymbolGoldenComparison(
                 shape=shape,
@@ -165,6 +177,36 @@ def validate_rendered_tex_symbol_goldens(
     if failures:
         details = "\n".join(_failure_note(result) for result in failures)
         raise AssertionError(f"rendered TeX symbol golden validation failed:\n{details}")
+    return results
+
+
+def validate_rendered_tex_example_mos_geometry(
+    specs: list[ExampleDesign | CircuitSpec],
+) -> list[RenderedTexMosGeometryComparison]:
+    results: list[RenderedTexMosGeometryComparison] = []
+    for source in specs:
+        geometry = _compiled_geometry(source)
+        for shape in geometry.shapes:
+            if shape.shape not in {"nmos", "pmos"}:
+                continue
+            local_geometry = _build_example_mos_probe_geometry(geometry, shape)
+            image = _pdf_page_to_image(
+                _compile_tex_snippet_pdf(export_circuitikz(local_geometry), stem=f"{geometry.name}_{shape.ref}_mos_geometry"),
+                dpi=300,
+            )
+            results.append(
+                _compare_tex_mos_geometry(
+                    f"{geometry.name}:{shape.ref}",
+                    shape.shape,
+                    image,
+                    min_right_vertical=60.0,
+                    min_left_horizontal=25.0,
+                )
+            )
+    failures = [result for result in results if not result.passed]
+    if failures:
+        details = "\n".join(_failure_note(result) for result in failures)
+        raise AssertionError(f"rendered TeX MOS geometry validation failed:\n{details}")
     return results
 
 
@@ -343,56 +385,48 @@ def _compare_tex_transistors(
     geometry: CompiledSchematic,
     text: str,
 ) -> list[RenderedTexTransistorComparison]:
-    symbol_by_shape = {
-        "npn_bjt": "npn",
-        "nmos": "nmos",
-        "pmos": "pmos",
-    }
-    legacy_macro_by_shape = {
-        "npn_bjt": "msCircuitMixedSigNpnBjtSymbol",
-        "nmos": "msCircuitMixedSigNmosSymbol",
-        "pmos": "msCircuitMixedSigPmosSymbol",
-    }
     results: list[RenderedTexTransistorComparison] = []
     for shape in geometry.shapes:
-        symbol_name = symbol_by_shape.get(shape.shape)
-        if symbol_name is None:
+        if shape.shape not in {"npn_bjt", "nmos", "pmos"}:
             continue
-        legacy_macro_name = legacy_macro_by_shape[shape.shape]
         notes: list[str] = []
-        node_name = _tikz_safe_name(shape.ref)
-        if rf"\node[{symbol_name}] ({node_name})" not in text:
-            notes.append(f"missing native circuitikz {symbol_name} node")
-        if rf"\providecommand{{\{legacy_macro_name}}}[4]" in text:
-            notes.append("legacy custom transistor macro should not be emitted")
         if shape.shape == "npn_bjt":
+            node_name = _tikz_safe_name(shape.ref)
+            if rf"\node[npn] ({node_name})" not in text:
+                notes.append("missing native circuitikz npn node")
+            if r"\providecommand{\msCircuitMixedSigNpnBjtSymbol}[4]" in text:
+                notes.append("legacy custom transistor macro should not be emitted")
             expected_anchors = {
                 "base": "B",
                 "collector": "C",
                 "emitter": "E",
             }
+            for terminal in shape.terminals:
+                anchor = expected_anchors.get(terminal.name)
+                if anchor is None:
+                    continue
+                expected_wire = rf"\draw {_pt(terminal.point)} -- ({node_name}.{anchor});"
+                if expected_wire not in text:
+                    notes.append(f"missing transistor terminal wire for {terminal.name}")
+            if rf"\node[font=\scriptsize,align=center] at ({node_name}.text)" not in text:
+                notes.append("missing transistor label at native node text anchor")
+            macro_name = "npn"
         else:
-            expected_anchors = {
-                "gate": "G",
-                "drain": "D",
-                "source": "S",
-                "body": "B",
-            }
-        for terminal in shape.terminals:
-            anchor = expected_anchors.get(terminal.name)
-            if anchor is None:
-                continue
-            expected_wire = rf"\draw {_pt(terminal.point)} -- ({node_name}.{anchor});"
-            if expected_wire not in text:
-                notes.append(f"missing transistor terminal wire for {terminal.name}")
-        if rf"\node[font=\scriptsize,align=center] at ({node_name}.text)" not in text:
-            notes.append("missing transistor label at native node text anchor")
+            macro_name = f"msCircuitMixedSig{shape.shape.capitalize()}Symbol"
+            if rf"\providecommand{{\{macro_name}}}[4]" not in text:
+                notes.append("missing custom MOS TeX symbol macro definition")
+            x, y = _tex_point_values(shape.center, dialect="circuitikz")
+            if rf"\{macro_name}{{{x:.2f}}}{{{y:.2f}}}" not in text:
+                notes.append("missing MOS TeX symbol call")
+            body_wire = next((terminal for terminal in shape.terminals if terminal.name == "body"), None)
+            if body_wire is not None and _pt(body_wire.point) in text:
+                notes.append("body terminal should be suppressed in TeX output")
         results.append(
             RenderedTexTransistorComparison(
                 schematic_name=geometry.name,
                 ref=shape.ref,
                 shape=shape.shape,
-                macro_name=symbol_name,
+                macro_name=macro_name,
                 passed=not notes,
                 notes=tuple(notes),
             )
@@ -426,7 +460,7 @@ def _boxes_overlap(first: BoundingBox, second: BoundingBox) -> bool:
 
 
 def _failure_note(
-    result: RenderedTexLabelComparison | RenderedTexClipComparison | RenderedTexTransistorComparison | RenderedTexSymbolGoldenComparison,
+    result: RenderedTexLabelComparison | RenderedTexClipComparison | RenderedTexTransistorComparison | RenderedTexSymbolGoldenComparison | RenderedTexMosGeometryComparison,
 ) -> str:
     if isinstance(result, RenderedTexClipComparison):
         return f"{result.schematic_name}:clip: {'; '.join(result.notes)}"
@@ -434,7 +468,149 @@ def _failure_note(
         return f"{result.schematic_name}:{result.ref}:{result.shape}: {'; '.join(result.notes)}"
     if isinstance(result, RenderedTexSymbolGoldenComparison):
         return f"{result.shape}/{result.orientation}: {'; '.join(result.notes)}"
+    if isinstance(result, RenderedTexMosGeometryComparison):
+        return f"{result.target_name}:{result.shape}: {'; '.join(result.notes)}"
     return f"{result.schematic_name}:{result.role}:{result.label_text}: {'; '.join(result.notes)}"
+
+
+def _crop_rendered_mos_region(
+    image: np.ndarray,
+    transform: tuple[float, float, float, float] | None,
+    center: Point,
+    *,
+    pad_x: int = 90,
+    pad_y: int = 90,
+) -> np.ndarray | None:
+    if transform is None:
+        return None
+    scale_x, offset_x, scale_y, offset_y = transform
+    tex_x, tex_y = _tex_point_values(center, dialect="circuitikz")
+    center_x = int(round((tex_x * scale_x) + offset_x))
+    center_y = int(round((tex_y * scale_y) + offset_y))
+    left = max(0, center_x - pad_x)
+    right = min(image.shape[1], center_x + pad_x)
+    top = max(0, center_y - pad_y)
+    bottom = min(image.shape[0], center_y + pad_y)
+    return image[top:bottom, left:right]
+
+
+def _build_example_mos_probe_geometry(geometry: CompiledSchematic, shape: PlacedShape) -> CompiledSchematic:
+    local = CompiledSchematic(name=f"{geometry.name}_{shape.ref}_probe")
+    local.shapes.append(shape)
+    local.labels.extend(label for label in geometry.labels if label.owner_ref == shape.ref)
+    x_min = shape.body_box.left - 8.0
+    x_max = shape.body_box.right + 8.0
+    y_min = shape.body_box.top - 10.0
+    y_max = shape.body_box.bottom + 10.0
+    for wire in geometry.wires:
+        if any(x_min <= point.x <= x_max and y_min <= point.y <= y_max for point in wire.points):
+            local.wires.append(wire)
+    for junction in geometry.junctions:
+        if x_min <= junction.point.x <= x_max and y_min <= junction.point.y <= y_max:
+            local.junctions.append(junction)
+    return local
+
+
+def _estimate_tex_raster_transform(
+    geometry: CompiledSchematic,
+    observed_texts: list[RenderedPdfText],
+) -> tuple[float, float, float, float] | None:
+    matched: list[tuple[float, float, float, float]] = []
+    for label in _visible_example_labels(geometry):
+        observed = _nearest_rendered_text(label, observed_texts)
+        if observed is None:
+            continue
+        anchor = label.anchor_position if label.anchor_position is not None else label.position
+        tex_x, tex_y = _tex_point_values(anchor, dialect="circuitikz")
+        pixel_x = (observed.bounds.left + observed.bounds.right) / 2.0
+        pixel_y = (observed.bounds.top + observed.bounds.bottom) / 2.0
+        matched.append((tex_x, pixel_x, tex_y, pixel_y))
+    if len(matched) < 2:
+        return None
+    tex_xs = np.array([item[0] for item in matched], dtype=np.float64)
+    pixel_xs = np.array([item[1] for item in matched], dtype=np.float64)
+    tex_ys = np.array([item[2] for item in matched], dtype=np.float64)
+    pixel_ys = np.array([item[3] for item in matched], dtype=np.float64)
+    if len(np.unique(tex_xs)) < 2 or len(np.unique(tex_ys)) < 2:
+        return None
+    scale_x, offset_x = np.polyfit(tex_xs, pixel_xs, 1)
+    scale_y, offset_y = np.polyfit(tex_ys, pixel_ys, 1)
+    return (float(scale_x), float(offset_x), float(scale_y), float(offset_y))
+
+
+def _compare_tex_mos_geometry(
+    target_name: str,
+    shape: str,
+    image: np.ndarray,
+    *,
+    min_right_vertical: float = 120.0,
+    min_left_horizontal: float = 70.0,
+) -> RenderedTexMosGeometryComparison:
+    normalized = _normalize_symbol_image(image)
+    _, mask = cv2.threshold(normalized, 220, 255, cv2.THRESH_BINARY_INV)
+    notes: list[str] = []
+    lines = cv2.HoughLinesP(mask, 1, np.pi / 180.0, threshold=12, minLineLength=10, maxLineGap=3)
+    if lines is None:
+        notes.append("no MOS strokes detected in rendered image")
+        return RenderedTexMosGeometryComparison(target_name=target_name, shape=shape, passed=False, notes=tuple(notes))
+    segments = [
+        (
+            float(((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5),
+            float(np.degrees(np.arctan2(y2 - y1, x2 - x1))),
+            (int(x1), int(y1), int(x2), int(y2)),
+        )
+        for x1, y1, x2, y2 in lines[:, 0, :]
+    ]
+    right_vertical = [
+        length
+        for length, angle, (x1, _y1, x2, _y2) in segments
+        if _line_is_vertical(angle) and max(x1, x2) >= 180
+    ]
+    if not right_vertical or max(right_vertical) < min_right_vertical:
+        notes.append("missing a long straight vertical drain/source spine")
+    left_horizontal = [
+        length
+        for length, angle, (x1, _y1, x2, _y2) in segments
+        if _line_is_horizontal(angle) and min(x1, x2) <= 80
+    ]
+    if not left_horizontal or max(left_horizontal) < min_left_horizontal:
+        notes.append("missing a long straight horizontal gate spine")
+    extra_right_horizontal = [
+        length
+        for length, angle, (x1, _y1, x2, _y2) in segments
+        if _line_is_horizontal(angle) and min(x1, x2) >= 170 and length >= 40.0
+    ]
+    if extra_right_horizontal:
+        notes.append("unexpected extra right-side connection remains")
+    right_diagonal = [
+        length
+        for length, angle, (x1, _y1, x2, _y2) in segments
+        if not _line_is_axis_aligned_angle(angle) and min(x1, x2) >= 150 and length >= 25.0
+    ]
+    if right_diagonal:
+        notes.append("right-side corridor contains a kinked diagonal segment")
+    return RenderedTexMosGeometryComparison(
+        target_name=target_name,
+        shape=shape,
+        passed=not notes,
+        notes=tuple(notes),
+    )
+
+
+def _line_is_axis_aligned_angle(angle: float, *, tolerance_degrees: float = 8.0) -> bool:
+    return _line_is_horizontal(angle, tolerance_degrees=tolerance_degrees) or _line_is_vertical(
+        angle,
+        tolerance_degrees=tolerance_degrees,
+    )
+
+
+def _line_is_horizontal(angle: float, *, tolerance_degrees: float = 8.0) -> bool:
+    normalized = abs(((angle + 180.0) % 180.0) - 180.0)
+    return normalized <= tolerance_degrees or abs(angle) <= tolerance_degrees
+
+
+def _line_is_vertical(angle: float, *, tolerance_degrees: float = 8.0) -> bool:
+    return abs(abs(angle) - 90.0) <= tolerance_degrees
 
 
 def render_tex_symbol_probe_image(shape: str, orientation: str, *, dpi: int = 300) -> np.ndarray:

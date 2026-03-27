@@ -9,14 +9,18 @@ from mixedsig2cad.importers.hybrid_parser import check_validation_runtime_depend
 from mixedsig2cad.projections.tex_render_validate import (
     DEFAULT_TEX_SYMBOL_GOLDEN_DIR,
     RenderedPdfText,
+    _compare_tex_mos_geometry,
     _compare_rendered_tex_labels,
     _compare_tex_page_clipping,
     _compare_tex_transistors,
     _compile_tex_snippet_pdf,
     _compiled_geometry,
+    _crop_rendered_mos_region,
+    _estimate_tex_raster_transform,
     _extract_pdf_texts,
     _pdf_page_to_image,
     render_tex_symbol_probe_image,
+    validate_rendered_tex_example_mos_geometry,
     validate_rendered_tex_symbol_goldens,
 )
 from mixedsig2cad.models import BoundingBox
@@ -78,7 +82,7 @@ def test_tex_transistor_validation_accepts_canonical_macros() -> None:
 def test_tex_transistor_validation_rejects_rectangular_fallback() -> None:
     geometry = _compiled_geometry(cmos_inverter())
     text = export_circuitikz(cmos_inverter()).replace(
-        r"\draw (16.51,-8.38) -- (msNodeMP1.B);",
+        r"\providecommand{\msCircuitMixedSigPmosSymbol}[4]{%",
         "",
         1,
     )
@@ -114,6 +118,16 @@ def test_symbol_probe_render_contains_visible_content_for_vertical_capacitor() -
     assert int((gray < 245).sum()) > 0
 
 
+def test_current_checked_in_mos_fixtures_are_straight_and_have_no_extra_connection() -> None:
+    for shape in ("nmos", "pmos"):
+        fixture = cv2.imread(str(DEFAULT_TEX_SYMBOL_GOLDEN_DIR / f"{shape}__right.png"), cv2.IMREAD_GRAYSCALE)
+        assert fixture is not None
+
+        result = _compare_tex_mos_geometry(f"{shape}__right", shape, fixture)
+
+        assert result.passed, result.notes
+
+
 def test_symbol_probe_pdf_contains_drawings_for_npn_bjt() -> None:
     pdf_path = _compile_tex_snippet_pdf(
         render_circuitikz_ir(build_circuitikz_ir(build_symbol_probe_geometry("npn_bjt", "right"))),
@@ -146,3 +160,25 @@ def test_tex_symbol_golden_validation_passes_for_checked_in_fixtures() -> None:
 
     assert results
     assert all(result.passed for result in results)
+
+
+def test_cmos_inverter_rendered_mos_regions_are_straight_and_three_terminal() -> None:
+    results = validate_rendered_tex_example_mos_geometry([cmos_inverter()])
+
+    assert results
+    assert all(result.passed for result in results)
+
+
+def test_cmos_inverter_rendered_mos_crop_finds_reference_anchor() -> None:
+    snippet = export_circuitikz(cmos_inverter())
+    pdf_path = _compile_tex_snippet_pdf(snippet, stem="cmos_inverter_mos_crop")
+    image = _pdf_page_to_image(pdf_path, dpi=300)
+    observed = _extract_pdf_texts(pdf_path)
+    geometry = _compiled_geometry(cmos_inverter())
+    transform = _estimate_tex_raster_transform(geometry, observed)
+
+    mn1 = next(shape for shape in geometry.shapes if shape.ref == "MN1")
+    crop = _crop_rendered_mos_region(image, transform, mn1.center)
+
+    assert crop is not None
+    assert crop.size > 0

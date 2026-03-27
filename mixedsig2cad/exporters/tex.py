@@ -452,7 +452,7 @@ def _render_circuitikz_shapes(geometry: CompiledSchematic, *, label_mode: Readab
         elif shape.shape == "npn_bjt":
             lines.extend(_native_circuitikz_npn_symbol(shape, label_mode=label_mode))
         elif shape.shape in {"pmos", "nmos"}:
-            lines.extend(_native_circuitikz_mos_symbol(shape, label_mode=label_mode))
+            lines.append(_transistor_symbol_call(shape, dialect="circuitikz", label_mode=label_mode))
         else:
             lines.extend(_device_box(shape, label_mode=label_mode))
     return lines
@@ -460,8 +460,17 @@ def _render_circuitikz_shapes(geometry: CompiledSchematic, *, label_mode: Readab
 
 def _render_circuitikz_wires(geometry: CompiledSchematic) -> list[str]:
     lines: list[str] = []
+    suppressed_body_points = {
+        (terminal.point.x, terminal.point.y)
+        for shape in geometry.shapes
+        if shape.shape in {"pmos", "nmos"}
+        for terminal in shape.terminals
+        if terminal.name == "body"
+    }
     for wire in geometry.wires:
         if len(wire.points) < 2:
+            continue
+        if any((point.x, point.y) in suppressed_body_points for point in wire.points):
             continue
         coords = " -- ".join(_pt(point) for point in wire.points)
         lines.append(rf"  \draw {coords};")
@@ -592,7 +601,7 @@ def _transistor_symbol_definitions(geometry: CompiledSchematic, *, dialect: str)
     for shape in geometry.shapes:
         if shape.shape not in TRANSISTOR_SYMBOLS or shape.shape in seen_shapes:
             continue
-        if dialect == "circuitikz" and shape.shape in {"npn_bjt", "nmos", "pmos"}:
+        if dialect == "circuitikz" and shape.shape == "npn_bjt":
             continue
         seen_shapes.add(shape.shape)
         definitions.append(_build_transistor_symbol_definition(shape.shape, dialect=dialect))
@@ -629,16 +638,15 @@ def _build_transistor_symbol_definition(shape_name: str, *, dialect: str) -> Tex
             r"  \pgfmathsetmacro{\msy}{#2}",
             *_transistor_line_commands(
                 (
-                    ((-7.00, 0.0), (-4.00, 0.0)),
-                    ((-3.20, -4.60), (-3.20, 4.60)),
-                    ((-0.40, -4.60), (-0.40, 4.60)),
-                    ((-0.40, -3.60), (2.80, -3.60)),
-                    ((2.80, -8.80), (2.80, -3.60)),
-                    ((-0.40, 3.60), (2.80, 3.60)),
-                    ((2.80, 0.0), (2.80, 8.80)),
-                    ((4.80, 0.0), (2.80, 0.0)),
-                    ((2.80, -1.60), (0.60, 0.00)),
-                    ((2.80, 1.60), (0.60, 0.00)),
+                    ((-5.08, 0.0), (-3.05, 0.0)),
+                    ((-2.54, -3.30), (-2.54, 3.30)),
+                    ((-1.02, -3.30), (-1.02, 3.30)),
+                    ((2.54, -8.80), (2.54, 8.80)),
+                    ((-1.02, -2.20), (2.54, -2.20)),
+                    ((-1.02, 2.20), (2.54, 2.20)),
+                    ((0.25, 0.00), (1.52, 0.00)),
+                    ((0.25, 0.00), (1.52, -1.27)),
+                    ((0.25, 0.00), (1.52, 1.27)),
                 ),
                 dialect=dialect,
             ),
@@ -651,20 +659,18 @@ def _build_transistor_symbol_definition(shape_name: str, *, dialect: str) -> Tex
             r"  \pgfmathsetmacro{\msy}{#2}",
             *_transistor_line_commands(
                 (
-                    ((-7.40, 0.0), (-4.20, 0.0)),
-                    ((-1.80, -4.60), (-1.80, 4.60)),
-                    ((1.80, -4.60), (1.80, 4.60)),
-                    ((-4.20, 0.0), (-4.20, 4.20)),
-                    ((-4.20, -4.20), (-4.20, 0.0)),
-                    ((1.80, -8.80), (1.80, -4.60)),
-                    ((1.80, 4.60), (1.80, 8.80)),
-                    ((4.80, 0.0), (1.80, 0.0)),
-                    ((0.20, 1.80), (1.80, 0.0)),
-                    ((0.20, -1.80), (1.80, 0.0)),
+                    ((-5.08, 0.0), (-3.70, 0.0)),
+                    ((-1.02, -3.30), (-1.02, 3.30)),
+                    ((2.54, -8.80), (2.54, 8.80)),
+                    ((-1.02, -2.20), (2.54, -2.20)),
+                    ((-1.02, 2.20), (2.54, 2.20)),
+                    ((0.25, 0.00), (1.52, 0.00)),
+                    ((0.25, 0.00), (1.52, -1.27)),
+                    ((0.25, 0.00), (1.52, 1.27)),
                 ),
                 dialect=dialect,
             ),
-            rf"  \draw ({{\msx + {_tex_dimension(-3.20, dialect=dialect):.2f}}},{{\msy + 0.00}}) circle ({bubble_radius:.2f});",
+            rf"  \draw ({{\msx + {_tex_dimension(-2.90, dialect=dialect):.2f}}},{{\msy + 0.00}}) circle ({bubble_radius:.2f});",
             rf"  \node[font=\scriptsize,align=center] at ({{\msx + 0.00}},{{\msy + {_tex_dimension(-10.80, dialect=dialect):.2f}}}) {label};",
         )
     else:
