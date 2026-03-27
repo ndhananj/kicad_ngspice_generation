@@ -149,8 +149,21 @@ def test_tex_pmos_macro_uses_double_channel_line_and_bubble_on_left_channel() ->
     assert len(vertical_xs) == 3
     assert vertical_xs[0] < vertical_xs[1] < vertical_xs[2]
     assert len(circles) == 1
-    assert circles[0][0] == (vertical_xs[0], 0.0)
-    assert circles[0][1] > 0.0
+    bubble_center, bubble_radius = circles[0]
+    assert bubble_center[1] == 0.0
+    assert bubble_radius > 0.0
+    assert bubble_center[0] < vertical_xs[0]
+    assert round(bubble_center[0] + bubble_radius, 2) < vertical_xs[0]
+
+    left_horizontal = next(
+        segment
+        for segment in segments
+        if abs(segment[0][1] - segment[1][1]) <= 0.05
+        and abs(segment[0][1]) <= 0.05
+        and max(segment[0][0], segment[1][0]) < vertical_xs[0]
+    )
+    left_horizontal_end_x = max(left_horizontal[0][0], left_horizontal[1][0])
+    assert left_horizontal_end_x == round(bubble_center[0] - bubble_radius, 2)
 
 
 def test_tex_pmos_arrow_points_opposite_direction_of_nmos() -> None:
