@@ -7,6 +7,7 @@ import shutil
 FIXTURE_URL_PREFIX = "/_frontend_fixtures"
 EXPECTED_FIXTURE_ARTIFACTS = {
     "rc_lowpass": {
+        "editorScene": True,
         "svg": True,
         "pdf": False,
         "kicad": True,
@@ -16,6 +17,7 @@ EXPECTED_FIXTURE_ARTIFACTS = {
         "reportPdf": False,
     },
     "rc_highpass": {
+        "editorScene": True,
         "svg": False,
         "pdf": False,
         "kicad": True,
@@ -25,6 +27,7 @@ EXPECTED_FIXTURE_ARTIFACTS = {
         "reportPdf": False,
     },
     "diode_clipper": {
+        "editorScene": True,
         "svg": False,
         "pdf": False,
         "kicad": True,
@@ -35,6 +38,9 @@ EXPECTED_FIXTURE_ARTIFACTS = {
     },
 }
 EXPECTED_FIXTURE_FILES = {
+    "examples/generated/frontend/diode_clipper.scene.json",
+    "examples/generated/frontend/rc_highpass.scene.json",
+    "examples/generated/frontend/rc_lowpass.scene.json",
     "examples/generated/kicad/diode_clipper.kicad_sch",
     "examples/generated/kicad/rc_highpass.kicad_sch",
     "examples/generated/kicad/rc_lowpass.kicad_sch",

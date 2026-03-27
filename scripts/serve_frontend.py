@@ -16,6 +16,7 @@ CATALOG_PATH = ROOT / "frontend" / "example_catalog.json"
 FIXTURE_PREFIX = "/_frontend_fixtures"
 
 ARTIFACT_RELATIVE_PATHS = {
+    "editorScene": "examples/generated/frontend/{example_id}.scene.json",
     "svg": "examples/generated/svg/{example_id}.svg",
     "pdf": "examples/generated/svg/{example_id}.pdf",
     "kicad": "examples/generated/kicad/{example_id}.kicad_sch",

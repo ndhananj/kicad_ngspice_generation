@@ -19,8 +19,8 @@
           <p class="eyebrow">Generated corpus</p>
           <h1>Circuit Editor</h1>
           <p class="panel-copy">
-            Browse the generated corpus in a TeX-first workbench with source tabs, preview panes, and direct
-            artifact access.
+            Browse generated examples in an editor-first workbench with interactive geometry, source tabs, previews,
+            and direct artifact access.
           </p>
         </div>
 
@@ -44,7 +44,7 @@
       <main class="workbench workspace">
         <section class="hero panel hero-card glass-panel">
           <div class="hero-copy">
-            <p class="eyebrow">TeX workbench</p>
+            <p class="eyebrow">Interactive workbench</p>
             <h2 id="hero-title">Circuit workspace</h2>
             <p id="hero-summary" class="hero-summary"></p>
           </div>
@@ -57,7 +57,7 @@
           <div class="panel-topbar">
             <div>
               <p class="section-label">Source tabs</p>
-              <p id="active-file-label" class="topbar-copy">circuitikz.tex</p>
+              <p id="active-file-label" class="topbar-copy">editor.scene.json</p>
             </div>
             <div class="topbar-actions">
               <a id="open-raw-link" class="ghost-button" href="#" target="_blank" rel="noopener">Open raw</a>
@@ -67,6 +67,24 @@
           <div id="source-tab-list" class="tab-list" role="tablist" aria-label="Source tabs"></div>
 
           <div class="editor-pane">
+            <div id="editor-surface" class="editor-surface" hidden>
+              <div class="grid-backdrop" aria-hidden="true"></div>
+              <svg
+                id="editor-canvas"
+                class="editor-canvas"
+                tabindex="0"
+                role="application"
+                aria-label="Interactive circuit editor"
+              ></svg>
+              <div class="editor-overlay">
+                <p id="editor-selection" class="editor-selection">No component selected</p>
+                <p class="editor-shortcuts">Drag to move. Arrow keys nudge. Shift+Arrow uses a larger step.</p>
+              </div>
+              <div id="editor-empty-state" class="preview-state" hidden>
+                <p id="editor-empty-title" class="fallback-title">Editor unavailable</p>
+                <p id="editor-empty-copy" class="fallback-copy"></p>
+              </div>
+            </div>
             <pre id="source-viewer" class="source-viewer"><code id="source-code"></code></pre>
             <div id="source-status" class="source-status" hidden></div>
           </div>

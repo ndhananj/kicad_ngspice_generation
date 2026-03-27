@@ -1,3 +1,7 @@
+const SVG_NS = "http://www.w3.org/2000/svg";
+const GRID_STEP = 1.27;
+const LARGE_GRID_STEP = GRID_STEP * 4;
+
 const fallbackExamples = [
   {
     id: "rc_lowpass",
@@ -59,11 +63,21 @@ const fallbackExamples = [
 
 const sourceTabs = [
   {
+    id: "editor",
+    label: "Editor",
+    title: "Interactive Editor",
+    filename: "editor.scene.json",
+    artifactKey: "editorScene",
+    kind: "editor",
+    previewMode: "visual",
+  },
+  {
     id: "circuitikz",
     label: "circuitikz.tex",
     title: "Circuitikz Source",
     filename: "circuitikz.tex",
     artifactKey: "circuitikzTex",
+    kind: "source",
     previewMode: "visual",
   },
   {
@@ -72,6 +86,7 @@ const sourceTabs = [
     title: "Report TeX",
     filename: "report.tex",
     artifactKey: "reportTex",
+    kind: "source",
     previewMode: "document",
   },
   {
@@ -80,11 +95,13 @@ const sourceTabs = [
     title: "SPICE Netlist",
     filename: "ngspice.cir",
     artifactKey: "ngspice",
+    kind: "source",
     previewMode: "visual",
   },
 ];
 
 const artifactEntries = [
+  { id: "editor", label: "editor.scene.json", meta: "Interactive geometry scene", tabId: "editor", artifactKey: "editorScene" },
   { id: "circuitikz", label: "circuitikz.tex", meta: "Readable circuit source", tabId: "circuitikz", artifactKey: "circuitikzTex" },
   { id: "report", label: "report.tex", meta: "Standalone report source", tabId: "report", artifactKey: "reportTex" },
   { id: "ngspice", label: "ngspice.cir", meta: "Simulation-ready netlist", tabId: "ngspice", artifactKey: "ngspice" },
@@ -94,6 +111,7 @@ const artifactEntries = [
 ];
 
 const artifactUrlTemplates = {
+  editorScene: "/examples/generated/frontend/{exampleId}.scene.json",
   svg: "/examples/generated/svg/{exampleId}.svg",
   pdf: "/examples/generated/svg/{exampleId}.pdf",
   kicad: "/examples/generated/kicad/{exampleId}.kicad_sch",
@@ -107,7 +125,12 @@ const state = {
   examples: [],
   byId: {},
   activeExampleId: fallbackExamples[0].id,
-  activeTabId: "circuitikz",
+  activeTabId: "editor",
+  sourceRequestToken: 0,
+  sceneRequestToken: 0,
+  editorScenes: {},
+  selectedComponentId: null,
+  dragSession: null,
 };
 
 const exampleCount = document.querySelector("#example-count");
@@ -118,6 +141,7 @@ const heroSummary = document.querySelector("#hero-summary");
 const focusButton = document.querySelector("#focus-button");
 const activeFileLabel = document.querySelector("#active-file-label");
 const sourceTabList = document.querySelector("#source-tab-list");
+const sourceViewer = document.querySelector("#source-viewer");
 const sourceCode = document.querySelector("#source-code");
 const sourceStatus = document.querySelector("#source-status");
 const openRawLink = document.querySelector("#open-raw-link");
@@ -142,8 +166,12 @@ const viewNgspice = document.querySelector("#view-ngspice");
 const viewKicad = document.querySelector("#view-kicad");
 const downloadSvg = document.querySelector("#download-svg");
 const downloadPdf = document.querySelector("#download-pdf");
-
-let sourceRequestToken = 0;
+const editorSurface = document.querySelector("#editor-surface");
+const editorCanvas = document.querySelector("#editor-canvas");
+const editorSelection = document.querySelector("#editor-selection");
+const editorEmptyState = document.querySelector("#editor-empty-state");
+const editorEmptyTitle = document.querySelector("#editor-empty-title");
+const editorEmptyCopy = document.querySelector("#editor-empty-copy");
 
 function defaultArtifactUrl(kind, exampleId) {
   return artifactUrlTemplates[kind].replace("{exampleId}", exampleId);
@@ -151,6 +179,7 @@ function defaultArtifactUrl(kind, exampleId) {
 
 function createDefaultArtifacts(exampleId) {
   return {
+    editorScene: { url: defaultArtifactUrl("editorScene", exampleId), available: true },
     svg: { url: defaultArtifactUrl("svg", exampleId), available: true },
     pdf: { url: defaultArtifactUrl("pdf", exampleId), available: true },
     kicad: { url: defaultArtifactUrl("kicad", exampleId), available: true },
@@ -361,7 +390,7 @@ function resetDocumentPreview() {
   previewFrame.removeAttribute("src");
 }
 
-function renderPreview(sourceText = sourceCode.textContent) {
+function renderPreview() {
   const example = getActiveExample();
   const activeTab = getActiveTab();
   const svgArtifact = getArtifact(example, "svg");
@@ -394,7 +423,7 @@ function renderPreview(sourceText = sourceCode.textContent) {
   resetDocumentPreview();
   documentPreview.hidden = true;
   visualPreview.hidden = false;
-  previewCaption.textContent = `${example.name} schematic companion`;
+  previewCaption.textContent = activeTab.kind === "editor" ? `${example.name} editor companion` : `${example.name} schematic companion`;
   setLinkState(previewOpenLink, svgArtifact);
 
   if (!svgArtifact.available) {
@@ -448,11 +477,466 @@ function renderInspector() {
     : null;
 }
 
+function showEditorEmptyState(title, copy) {
+  editorEmptyState.hidden = false;
+  editorEmptyTitle.textContent = title;
+  editorEmptyCopy.textContent = copy;
+}
+
+function hideEditorEmptyState() {
+  editorEmptyState.hidden = true;
+}
+
+function pointKey(point) {
+  return `${point.x}:${point.y}`;
+}
+
+function roundToGrid(value) {
+  return Math.round(value / GRID_STEP) * GRID_STEP;
+}
+
+function normalizeEditorScene(scene) {
+  const componentByRef = new Map();
+  const components = (scene.components ?? []).map((component) => {
+    const normalized = {
+      ...component,
+      center: { ...component.center },
+      bodyBoxOffset: {
+        left: component.bodyBox.left - component.center.x,
+        top: component.bodyBox.top - component.center.y,
+        right: component.bodyBox.right - component.center.x,
+        bottom: component.bodyBox.bottom - component.center.y,
+      },
+      terminalOffsets: (component.terminals ?? []).map((terminal) => ({
+        name: terminal.name,
+        side: terminal.side,
+        offset: {
+          x: terminal.point.x - component.center.x,
+          y: terminal.point.y - component.center.y,
+        },
+      })),
+    };
+    componentByRef.set(normalized.ref, normalized);
+    return normalized;
+  });
+
+  const labels = (scene.labels ?? []).map((label) => {
+    const owner = componentByRef.get(label.ownerRef);
+    return {
+      ...label,
+      position: { ...label.position },
+      offset: owner
+        ? {
+            x: label.position.x - owner.center.x,
+            y: label.position.y - owner.center.y,
+          }
+        : null,
+    };
+  });
+
+  return {
+    ...scene,
+    bounds: scene.bounds ?? { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 },
+    components,
+    labels,
+    wires: (scene.wires ?? []).map((wire) => ({
+      ...wire,
+      points: wire.points.map((point) => ({ ...point })),
+    })),
+    nodes: (scene.nodes ?? []).map((node) => ({
+      ...node,
+      point: { ...node.point },
+      attachments: (node.attachments ?? []).map((attachment) => ({ ...attachment })),
+    })),
+    junctions: (scene.junctions ?? []).map((junction) => ({
+      ...junction,
+      point: { ...junction.point },
+    })),
+  };
+}
+
+function deriveComponent(component) {
+  return {
+    ...component,
+    bodyBox: {
+      left: component.center.x + component.bodyBoxOffset.left,
+      top: component.center.y + component.bodyBoxOffset.top,
+      right: component.center.x + component.bodyBoxOffset.right,
+      bottom: component.center.y + component.bodyBoxOffset.bottom,
+    },
+    terminals: component.terminalOffsets.map((terminal) => ({
+      name: terminal.name,
+      side: terminal.side,
+      point: {
+        x: component.center.x + terminal.offset.x,
+        y: component.center.y + terminal.offset.y,
+      },
+    })),
+  };
+}
+
+function compressPolyline(points) {
+  const compressed = [];
+  for (const point of points) {
+    const last = compressed[compressed.length - 1];
+    if (!last || last.x !== point.x || last.y !== point.y) {
+      compressed.push(point);
+    }
+  }
+  return compressed;
+}
+
+function routeOrthogonal(start, end) {
+  if (start.x === end.x || start.y === end.y) {
+    return [start, end];
+  }
+  return compressPolyline([start, { x: end.x, y: start.y }, end]);
+}
+
+function buildRenderedWires(scene, componentsByRef) {
+  if (!scene.nodes?.length) {
+    return scene.wires ?? [];
+  }
+
+  const rendered = [];
+  for (const node of scene.nodes) {
+    const attachments = node.attachments
+      .map((attachment) => {
+        const component = componentsByRef.get(attachment.ownerRef);
+        const terminal = component?.terminals.find((item) => item.name === attachment.terminalName);
+        return terminal ? { attachment, point: terminal.point } : null;
+      })
+      .filter(Boolean);
+
+    if (attachments.length < 2) {
+      continue;
+    }
+
+    if (attachments.length === 2 && node.renderStyle !== "junction") {
+      rendered.push({
+        id: `${node.id}:inline`,
+        points: routeOrthogonal(attachments[0].point, attachments[1].point),
+      });
+      continue;
+    }
+
+    for (const item of attachments) {
+      rendered.push({
+        id: `${node.id}:${item.attachment.ownerRef}:${item.attachment.terminalName}`,
+        points: routeOrthogonal(item.point, node.point),
+      });
+    }
+  }
+  return rendered;
+}
+
+function buildRenderedScene(scene) {
+  const components = scene.components.map(deriveComponent);
+  const componentsByRef = new Map(components.map((component) => [component.ref, component]));
+  const labels = scene.labels.map((label) => {
+    const owner = componentsByRef.get(label.ownerRef);
+    return {
+      ...label,
+      position: label.offset && owner
+        ? {
+            x: owner.center.x + label.offset.x,
+            y: owner.center.y + label.offset.y,
+          }
+        : label.position,
+    };
+  });
+  const wires = buildRenderedWires(scene, componentsByRef);
+  const bounds = calculateRenderedBounds(components, wires, labels, scene.junctions, scene.nodes);
+  return { components, labels, wires, bounds };
+}
+
+function calculateRenderedBounds(components, wires, labels, junctions, nodes) {
+  const xs = [];
+  const ys = [];
+
+  for (const component of components) {
+    xs.push(component.bodyBox.left, component.bodyBox.right, component.center.x);
+    ys.push(component.bodyBox.top, component.bodyBox.bottom, component.center.y);
+    for (const terminal of component.terminals) {
+      xs.push(terminal.point.x);
+      ys.push(terminal.point.y);
+    }
+  }
+
+  for (const wire of wires) {
+    for (const point of wire.points) {
+      xs.push(point.x);
+      ys.push(point.y);
+    }
+  }
+
+  for (const label of labels) {
+    xs.push(label.position.x);
+    ys.push(label.position.y);
+  }
+
+  for (const item of [...junctions, ...nodes]) {
+    xs.push(item.point.x);
+    ys.push(item.point.y);
+  }
+
+  if (!xs.length || !ys.length) {
+    return { left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100 };
+  }
+
+  const left = Math.min(...xs);
+  const top = Math.min(...ys);
+  const right = Math.max(...xs);
+  const bottom = Math.max(...ys);
+  return {
+    left,
+    top,
+    right,
+    bottom,
+    width: Math.max(right - left, 1),
+    height: Math.max(bottom - top, 1),
+  };
+}
+
+function getActiveEditorScene() {
+  return state.editorScenes[state.activeExampleId] ?? null;
+}
+
+function renderEditorSelection() {
+  const scene = getActiveEditorScene();
+  if (!scene || !state.selectedComponentId) {
+    editorSelection.textContent = "No component selected";
+    return;
+  }
+  const component = scene.components.find((entry) => entry.ref === state.selectedComponentId);
+  editorSelection.textContent = component ? `Selected: ${component.ref} (${component.shape})` : "No component selected";
+}
+
+function createSvgElement(name, attrs = {}) {
+  const element = document.createElementNS(SVG_NS, name);
+  for (const [key, value] of Object.entries(attrs)) {
+    element.setAttribute(key, String(value));
+  }
+  return element;
+}
+
+function renderEditorScene() {
+  const scene = getActiveEditorScene();
+  if (getActiveTab().kind !== "editor") {
+    editorSurface.hidden = true;
+    sourceViewer.hidden = false;
+    return;
+  }
+
+  editorSurface.hidden = false;
+  sourceViewer.hidden = true;
+  editorCanvas.replaceChildren();
+  renderEditorSelection();
+
+  if (!scene) {
+    showEditorEmptyState("Editor unavailable", "This example does not include an editor scene in the current corpus.");
+    return;
+  }
+
+  hideEditorEmptyState();
+  const rendered = buildRenderedScene(scene);
+  const margin = 12;
+  const viewLeft = rendered.bounds.left - margin;
+  const viewTop = rendered.bounds.top - margin;
+  const viewWidth = rendered.bounds.width + margin * 2;
+  const viewHeight = rendered.bounds.height + margin * 2;
+  editorCanvas.setAttribute("viewBox", `${viewLeft} ${viewTop} ${viewWidth} ${viewHeight}`);
+
+  const wireLayer = createSvgElement("g", { class: "editor-wire-layer" });
+  for (const wire of rendered.wires) {
+    wireLayer.append(
+      createSvgElement("polyline", {
+        class: "editor-wire",
+        points: wire.points.map((point) => `${point.x},${point.y}`).join(" "),
+      }),
+    );
+  }
+
+  const nodeLayer = createSvgElement("g", { class: "editor-node-layer" });
+  const renderedNodePoints = new Set();
+  for (const node of scene.nodes ?? []) {
+    if (node.renderStyle === "junction") {
+      renderedNodePoints.add(pointKey(node.point));
+    }
+  }
+  for (const junction of scene.junctions ?? []) {
+    renderedNodePoints.add(pointKey(junction.point));
+  }
+  for (const point of renderedNodePoints) {
+    const [x, y] = point.split(":").map(Number);
+    nodeLayer.append(createSvgElement("circle", { class: "editor-junction", cx: x, cy: y, r: 1.9 }));
+  }
+
+  const labelLayer = createSvgElement("g", { class: "editor-label-layer" });
+  for (const label of rendered.labels) {
+    const text = createSvgElement("text", {
+      class: `editor-label editor-label-${label.role}`,
+      x: label.position.x,
+      y: label.position.y,
+    });
+    text.textContent = label.text;
+    labelLayer.append(text);
+  }
+
+  const componentLayer = createSvgElement("g", { class: "editor-component-layer" });
+  for (const component of rendered.components) {
+    const group = createSvgElement("g", {
+      class: `editor-component${component.ref === state.selectedComponentId ? " active" : ""}`,
+      transform: `translate(${component.center.x} ${component.center.y})`,
+      "data-component-id": component.ref,
+      tabindex: -1,
+    });
+    group.append(
+      createSvgElement("rect", {
+        class: "editor-component-body",
+        x: component.bodyBox.left - component.center.x,
+        y: component.bodyBox.top - component.center.y,
+        width: component.bodyBox.right - component.bodyBox.left,
+        height: component.bodyBox.bottom - component.bodyBox.top,
+        rx: 2.6,
+        ry: 2.6,
+      }),
+    );
+    for (const terminal of component.terminals) {
+      group.append(
+        createSvgElement("circle", {
+          class: "editor-terminal",
+          cx: terminal.point.x - component.center.x,
+          cy: terminal.point.y - component.center.y,
+          r: 1.3,
+        }),
+      );
+    }
+
+    const refText = createSvgElement("text", { class: "editor-component-ref", x: 0, y: -1.5 });
+    refText.textContent = component.ref;
+    group.append(refText);
+
+    const shapeText = createSvgElement("text", { class: "editor-component-shape", x: 0, y: 2.8 });
+    shapeText.textContent = component.shape;
+    group.append(shapeText);
+    componentLayer.append(group);
+  }
+
+  editorCanvas.append(wireLayer, nodeLayer, labelLayer, componentLayer);
+}
+
+function setEditorSelection(componentId) {
+  state.selectedComponentId = componentId;
+  renderEditorScene();
+}
+
+function getEditorScenePoint(event) {
+  const rect = editorCanvas.getBoundingClientRect();
+  const viewBox = editorCanvas.viewBox.baseVal;
+  if (!rect.width || !rect.height) {
+    return { x: 0, y: 0 };
+  }
+  return {
+    x: viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.width,
+    y: viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.height,
+  };
+}
+
+function updateSelectedComponent(deltaX, deltaY) {
+  const scene = getActiveEditorScene();
+  if (!scene || !state.selectedComponentId) {
+    return;
+  }
+  const component = scene.components.find((entry) => entry.ref === state.selectedComponentId);
+  if (!component) {
+    return;
+  }
+  component.center = {
+    x: roundToGrid(component.center.x + deltaX),
+    y: roundToGrid(component.center.y + deltaY),
+  };
+  renderEditorScene();
+}
+
+function handleEditorPointerDown(event) {
+  if (getActiveTab().kind !== "editor") {
+    return;
+  }
+  const componentGroup = event.target.closest("[data-component-id]");
+  if (!componentGroup) {
+    state.dragSession = null;
+    setEditorSelection(null);
+    return;
+  }
+
+  const scene = getActiveEditorScene();
+  const componentId = componentGroup.dataset.componentId;
+  const component = scene?.components.find((entry) => entry.ref === componentId);
+  if (!component) {
+    return;
+  }
+  event.preventDefault();
+  editorCanvas.focus();
+  setEditorSelection(componentId);
+  state.dragSession = {
+    componentId,
+    startPointer: getEditorScenePoint(event),
+    startCenter: { ...component.center },
+  };
+}
+
+function handleEditorPointerMove(event) {
+  if (!state.dragSession || getActiveTab().kind !== "editor") {
+    return;
+  }
+  const scene = getActiveEditorScene();
+  const component = scene?.components.find((entry) => entry.ref === state.dragSession.componentId);
+  if (!component) {
+    return;
+  }
+  const point = getEditorScenePoint(event);
+  component.center = {
+    x: roundToGrid(state.dragSession.startCenter.x + point.x - state.dragSession.startPointer.x),
+    y: roundToGrid(state.dragSession.startCenter.y + point.y - state.dragSession.startPointer.y),
+  };
+  renderEditorScene();
+}
+
+function handleEditorPointerUp() {
+  state.dragSession = null;
+}
+
+function handleEditorKeyDown(event) {
+  if (getActiveTab().kind !== "editor" || !state.selectedComponentId) {
+    return;
+  }
+  const step = event.shiftKey ? LARGE_GRID_STEP : GRID_STEP;
+  if (event.key === "Delete" || event.key === "Backspace") {
+    event.preventDefault();
+    setEditorSelection(null);
+    return;
+  }
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+    updateSelectedComponent(0, -step);
+  } else if (event.key === "ArrowDown") {
+    event.preventDefault();
+    updateSelectedComponent(0, step);
+  } else if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    updateSelectedComponent(-step, 0);
+  } else if (event.key === "ArrowRight") {
+    event.preventDefault();
+    updateSelectedComponent(step, 0);
+  }
+}
+
 async function loadSourceText() {
   const example = getActiveExample();
   const activeTab = getActiveTab();
   const artifact = getArtifact(example, activeTab.artifactKey);
-  const requestToken = ++sourceRequestToken;
+  const requestToken = ++state.sourceRequestToken;
 
   sourceCode.textContent = "";
   activeFileLabel.textContent = activeTab.filename;
@@ -460,7 +944,7 @@ async function loadSourceText() {
 
   if (!artifact.available) {
     setStatus(`Unable to load ${activeTab.filename}. This artifact is not available in the current corpus.`, true);
-    renderPreview("");
+    renderPreview();
     return;
   }
 
@@ -471,19 +955,60 @@ async function loadSourceText() {
       throw new Error(`HTTP ${response.status}`);
     }
     const text = await response.text();
-    if (requestToken !== sourceRequestToken) {
+    if (requestToken !== state.sourceRequestToken) {
       return;
     }
     sourceCode.textContent = text;
     setStatus("");
-    renderPreview(text);
+    renderPreview();
   } catch (error) {
-    if (requestToken !== sourceRequestToken) {
+    if (requestToken !== state.sourceRequestToken) {
       return;
     }
     sourceCode.textContent = "";
     setStatus(`Unable to load ${activeTab.filename}. ${error.message}.`, true);
-    renderPreview("");
+    renderPreview();
+  }
+}
+
+async function loadEditorScene() {
+  const example = getActiveExample();
+  const activeTab = getActiveTab();
+  const artifact = getArtifact(example, activeTab.artifactKey);
+  const requestToken = ++state.sceneRequestToken;
+
+  activeFileLabel.textContent = activeTab.filename;
+  setLinkState(openRawLink, artifact);
+  setStatus("");
+
+  if (!artifact.available) {
+    delete state.editorScenes[example.id];
+    state.selectedComponentId = null;
+    renderEditorScene();
+    return;
+  }
+
+  try {
+    const response = await fetch(artifact.url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const scene = await response.json();
+    if (requestToken !== state.sceneRequestToken) {
+      return;
+    }
+    state.editorScenes[example.id] = normalizeEditorScene(scene);
+    state.selectedComponentId = null;
+    renderEditorScene();
+  } catch (error) {
+    if (requestToken !== state.sceneRequestToken) {
+      return;
+    }
+    delete state.editorScenes[example.id];
+    state.selectedComponentId = null;
+    showEditorEmptyState("Editor unavailable", `Unable to load ${activeTab.filename}. ${error.message}.`);
+    setStatus(`Unable to load ${activeTab.filename}. ${error.message}.`, true);
+    renderEditorScene();
   }
 }
 
@@ -493,6 +1018,18 @@ function renderAll() {
   renderSourceTabs();
   renderInspector();
   renderPreview();
+  renderEditorScene();
+}
+
+function loadActiveTabContent() {
+  if (getActiveTab().kind === "editor") {
+    sourceCode.textContent = "";
+    setStatus("");
+    void loadEditorScene();
+    return;
+  }
+  renderEditorScene();
+  void loadSourceText();
 }
 
 function setActiveTab(tabId) {
@@ -503,7 +1040,8 @@ function setActiveTab(tabId) {
   renderArtifactList();
   renderSourceTabs();
   renderPreview();
-  void loadSourceText();
+  renderEditorScene();
+  loadActiveTabContent();
 }
 
 function setActiveExample(exampleId) {
@@ -511,8 +1049,10 @@ function setActiveExample(exampleId) {
     return;
   }
   state.activeExampleId = exampleId;
+  state.selectedComponentId = null;
+  state.dragSession = null;
   renderAll();
-  void loadSourceText();
+  loadActiveTabContent();
 }
 
 async function hydrateFromServer() {
@@ -531,7 +1071,7 @@ async function hydrateFromServer() {
       state.activeExampleId = state.examples[0].id;
     }
     renderAll();
-    void loadSourceText();
+    loadActiveTabContent();
   } catch (error) {
     console.warn("Falling back to static example metadata.", error);
   }
@@ -543,8 +1083,13 @@ function initializeApp() {
   }
   setExamples(fallbackExamples);
   renderAll();
-  void loadSourceText();
+  loadActiveTabContent();
   void hydrateFromServer();
 }
+
+editorCanvas.addEventListener("pointerdown", handleEditorPointerDown);
+window.addEventListener("pointermove", handleEditorPointerMove);
+window.addEventListener("pointerup", handleEditorPointerUp);
+editorCanvas.addEventListener("keydown", handleEditorKeyDown);
 
 initializeApp();

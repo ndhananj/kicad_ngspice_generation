@@ -44,6 +44,7 @@ from .projections.kicad_cli import export_schematic_pdf, export_schematic_svg
 from .spec import Analysis, CircuitSpec, Component
 from .exporters.kicad import export_kicad_schematic
 from .exporters.ngspice import export_ngspice_netlist
+from .exporters.frontend import build_frontend_scene, export_frontend_scene_json
 from .exporters.tex import (
     build_circuitikz_ir,
     build_example_report_bundle,
@@ -96,6 +97,7 @@ __all__ = [
     "build_example_report_bundle",
     "build_examples_master_report",
     "build_examples_master_bundle",
+    "build_frontend_scene",
     "build_literal_tikz_ir",
     "build_tex_report",
     "derive_topology_layout",
@@ -107,6 +109,7 @@ __all__ = [
     "export_circuitikz",
     "export_example_report_tex",
     "export_examples_master_report",
+    "export_frontend_scene_json",
     "export_literal_tikz",
     "import_kicad_schematic",
     "parse_circuit_source",

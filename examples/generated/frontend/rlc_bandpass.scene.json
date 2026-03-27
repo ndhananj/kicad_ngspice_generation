@@ -1,0 +1,755 @@
+{
+  "name": "rlc_bandpass",
+  "bounds": {
+    "left": 50.8,
+    "top": 73.66,
+    "right": 140.97,
+    "bottom": 119.38,
+    "width": 90.17,
+    "height": 45.72
+  },
+  "components": [
+    {
+      "id": "R1",
+      "ref": "R1",
+      "value": "50",
+      "shape": "resistor",
+      "orientation": "horizontal",
+      "center": {
+        "x": 90.17,
+        "y": 77.47
+      },
+      "bodyBox": {
+        "left": 86.36,
+        "top": 76.45,
+        "right": 93.98,
+        "bottom": 78.49
+      },
+      "terminals": [
+        {
+          "name": "left",
+          "point": {
+            "x": 83.82,
+            "y": 77.47
+          },
+          "side": "left"
+        },
+        {
+          "name": "right",
+          "point": {
+            "x": 96.52,
+            "y": 77.47
+          },
+          "side": "right"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "R2",
+      "ref": "R2",
+      "value": "1k",
+      "shape": "resistor",
+      "orientation": "vertical",
+      "center": {
+        "x": 135.89,
+        "y": 96.52
+      },
+      "bodyBox": {
+        "left": 134.87,
+        "top": 92.71,
+        "right": 136.91,
+        "bottom": 100.33
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 135.89,
+            "y": 90.17
+          },
+          "side": "top"
+        },
+        {
+          "name": "bottom",
+          "point": {
+            "x": 135.89,
+            "y": 102.87
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "C1",
+      "ref": "C1",
+      "value": "100n",
+      "shape": "capacitor",
+      "orientation": "vertical",
+      "center": {
+        "x": 116.84,
+        "y": 96.52
+      },
+      "bodyBox": {
+        "left": 113.03,
+        "top": 95.25,
+        "right": 120.65,
+        "bottom": 97.79
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 116.84,
+            "y": 90.17
+          },
+          "side": "top"
+        },
+        {
+          "name": "bottom",
+          "point": {
+            "x": 116.84,
+            "y": 102.87
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "L1",
+      "ref": "L1",
+      "value": "10m",
+      "shape": "inductor",
+      "orientation": "horizontal",
+      "center": {
+        "x": 119.38,
+        "y": 77.47
+      },
+      "bodyBox": {
+        "left": 114.3,
+        "top": 76.2,
+        "right": 124.46,
+        "bottom": 77.47
+      },
+      "terminals": [
+        {
+          "name": "left",
+          "point": {
+            "x": 113.03,
+            "y": 77.47
+          },
+          "side": "left"
+        },
+        {
+          "name": "right",
+          "point": {
+            "x": 125.73,
+            "y": 77.47
+          },
+          "side": "right"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "V1",
+      "ref": "V1",
+      "value": "AC 1",
+      "shape": "voltage_source",
+      "orientation": "vertical_up",
+      "center": {
+        "x": 55.88,
+        "y": 86.36
+      },
+      "bodyBox": {
+        "left": 50.8,
+        "top": 80.01,
+        "right": 63.5,
+        "bottom": 92.71
+      },
+      "terminals": [
+        {
+          "name": "pos",
+          "point": {
+            "x": 55.88,
+            "y": 78.74
+          },
+          "side": "top"
+        },
+        {
+          "name": "neg",
+          "point": {
+            "x": 55.88,
+            "y": 93.98
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "#SUPPORT0001",
+      "ref": "#SUPPORT0001",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 135.89,
+        "y": 114.3
+      },
+      "bodyBox": {
+        "left": 134.62,
+        "top": 114.3,
+        "right": 137.16,
+        "bottom": 116.84
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 135.89,
+            "y": 114.3
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0002",
+      "ref": "#SUPPORT0002",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 55.88,
+        "y": 105.41
+      },
+      "bodyBox": {
+        "left": 54.61,
+        "top": 105.41,
+        "right": 57.15,
+        "bottom": 107.95
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 55.88,
+            "y": 105.41
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0003",
+      "ref": "#SUPPORT0003",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 116.84,
+        "y": 114.3
+      },
+      "bodyBox": {
+        "left": 115.57,
+        "top": 114.3,
+        "right": 118.11,
+        "bottom": 116.84
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 116.84,
+            "y": 114.3
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    }
+  ],
+  "wires": [
+    {
+      "id": "rlc_bandpass:0:1",
+      "points": [
+        {
+          "x": 116.84,
+          "y": 102.87
+        },
+        {
+          "x": 116.84,
+          "y": 114.3
+        }
+      ]
+    },
+    {
+      "id": "rlc_bandpass:0:2",
+      "points": [
+        {
+          "x": 55.88,
+          "y": 93.98
+        },
+        {
+          "x": 55.88,
+          "y": 105.41
+        }
+      ]
+    },
+    {
+      "id": "rlc_bandpass:0:3",
+      "points": [
+        {
+          "x": 135.89,
+          "y": 102.87
+        },
+        {
+          "x": 135.89,
+          "y": 114.3
+        }
+      ]
+    },
+    {
+      "id": "rlc_bandpass:n1:1",
+      "points": [
+        {
+          "x": 113.03,
+          "y": 77.47
+        },
+        {
+          "x": 96.52,
+          "y": 77.47
+        }
+      ]
+    },
+    {
+      "id": "rlc_bandpass:n2:1",
+      "points": [
+        {
+          "x": 116.84,
+          "y": 90.17
+        },
+        {
+          "x": 125.73,
+          "y": 90.17
+        }
+      ]
+    },
+    {
+      "id": "rlc_bandpass:n2:2",
+      "points": [
+        {
+          "x": 135.89,
+          "y": 77.47
+        },
+        {
+          "x": 125.73,
+          "y": 77.47
+        }
+      ]
+    },
+    {
+      "id": "rlc_bandpass:n2:3",
+      "points": [
+        {
+          "x": 135.89,
+          "y": 90.17
+        },
+        {
+          "x": 135.89,
+          "y": 77.47
+        }
+      ]
+    },
+    {
+      "id": "rlc_bandpass:n2:4",
+      "points": [
+        {
+          "x": 125.73,
+          "y": 90.17
+        },
+        {
+          "x": 125.73,
+          "y": 77.47
+        }
+      ]
+    },
+    {
+      "id": "rlc_bandpass:vin:1",
+      "points": [
+        {
+          "x": 55.88,
+          "y": 77.47
+        },
+        {
+          "x": 83.82,
+          "y": 77.47
+        }
+      ]
+    },
+    {
+      "id": "rlc_bandpass:vin:2",
+      "points": [
+        {
+          "x": 55.88,
+          "y": 78.74
+        },
+        {
+          "x": 55.88,
+          "y": 77.47
+        }
+      ]
+    }
+  ],
+  "labels": [
+    {
+      "id": "rlc_bandpass:R1:reference",
+      "text": "R1",
+      "role": "reference",
+      "ownerRef": "R1",
+      "position": {
+        "x": 90.17,
+        "y": 73.66
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:R1:value",
+      "text": "50",
+      "role": "value",
+      "ownerRef": "R1",
+      "position": {
+        "x": 90.17,
+        "y": 81.28
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:R2:reference",
+      "text": "R2",
+      "role": "reference",
+      "ownerRef": "R2",
+      "position": {
+        "x": 130.81,
+        "y": 93.98
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:R2:value",
+      "text": "1k",
+      "role": "value",
+      "ownerRef": "R2",
+      "position": {
+        "x": 140.97,
+        "y": 93.98
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:C1:reference",
+      "text": "C1",
+      "role": "reference",
+      "ownerRef": "C1",
+      "position": {
+        "x": 116.84,
+        "y": 92.71
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:C1:value",
+      "text": "100n",
+      "role": "value",
+      "ownerRef": "C1",
+      "position": {
+        "x": 116.84,
+        "y": 100.33
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:L1:reference",
+      "text": "L1",
+      "role": "reference",
+      "ownerRef": "L1",
+      "position": {
+        "x": 119.38,
+        "y": 73.66
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:L1:value",
+      "text": "10m",
+      "role": "value",
+      "ownerRef": "L1",
+      "position": {
+        "x": 119.38,
+        "y": 80.01
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:V1:reference",
+      "text": "V1",
+      "role": "reference",
+      "ownerRef": "V1",
+      "position": {
+        "x": 52.07,
+        "y": 77.47
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:V1:value",
+      "text": "AC 1",
+      "role": "value",
+      "ownerRef": "V1",
+      "position": {
+        "x": 53.34,
+        "y": 95.25
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:#SUPPORT0001:reference",
+      "text": "#SUPPORT0001",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0001",
+      "position": {
+        "x": 135.89,
+        "y": 110.49
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:#SUPPORT0001:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0001",
+      "position": {
+        "x": 135.89,
+        "y": 119.38
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:#SUPPORT0002:reference",
+      "text": "#SUPPORT0002",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0002",
+      "position": {
+        "x": 55.88,
+        "y": 101.6
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:#SUPPORT0002:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0002",
+      "position": {
+        "x": 55.88,
+        "y": 110.49
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:#SUPPORT0003:reference",
+      "text": "#SUPPORT0003",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0003",
+      "position": {
+        "x": 116.84,
+        "y": 110.49
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:#SUPPORT0003:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0003",
+      "position": {
+        "x": 116.84,
+        "y": 119.38
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:label:1:net_label:vin",
+      "text": "vin",
+      "role": "net_label",
+      "ownerRef": "label:1",
+      "position": {
+        "x": 69.85,
+        "y": 77.47
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:label:2:net_label:n2",
+      "text": "n2",
+      "role": "net_label",
+      "ownerRef": "label:2",
+      "position": {
+        "x": 125.73,
+        "y": 77.47
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rlc_bandpass:label:3:net_label:n1",
+      "text": "n1",
+      "role": "net_label",
+      "ownerRef": "label:3",
+      "position": {
+        "x": 96.52,
+        "y": 77.47
+      },
+      "fontSize": 1.27
+    }
+  ],
+  "junctions": [
+    {
+      "id": "rlc_bandpass:junction:1",
+      "point": {
+        "x": 125.73,
+        "y": 77.47
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "layout:1",
+      "point": {
+        "x": 116.84,
+        "y": 102.87
+      },
+      "attachments": [
+        {
+          "ownerRef": "C1",
+          "terminalName": "bottom"
+        },
+        {
+          "ownerRef": "#SUPPORT0003",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:2",
+      "point": {
+        "x": 55.88,
+        "y": 93.98
+      },
+      "attachments": [
+        {
+          "ownerRef": "V1",
+          "terminalName": "neg"
+        },
+        {
+          "ownerRef": "#SUPPORT0002",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:3",
+      "point": {
+        "x": 135.89,
+        "y": 102.87
+      },
+      "attachments": [
+        {
+          "ownerRef": "R2",
+          "terminalName": "bottom"
+        },
+        {
+          "ownerRef": "#SUPPORT0001",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:4",
+      "point": {
+        "x": 96.52,
+        "y": 77.47
+      },
+      "attachments": [
+        {
+          "ownerRef": "R1",
+          "terminalName": "right"
+        },
+        {
+          "ownerRef": "L1",
+          "terminalName": "left"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:5",
+      "point": {
+        "x": 125.73,
+        "y": 77.47
+      },
+      "attachments": [
+        {
+          "ownerRef": "C1",
+          "terminalName": "top"
+        },
+        {
+          "ownerRef": "L1",
+          "terminalName": "right"
+        },
+        {
+          "ownerRef": "R2",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "junction",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:6",
+      "point": {
+        "x": 55.88,
+        "y": 77.47
+      },
+      "attachments": [
+        {
+          "ownerRef": "V1",
+          "terminalName": "pos"
+        },
+        {
+          "ownerRef": "R1",
+          "terminalName": "left"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    }
+  ]
+}

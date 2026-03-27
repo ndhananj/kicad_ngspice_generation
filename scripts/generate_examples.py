@@ -16,6 +16,7 @@ from examples.specs.catalog import all_examples
 from mixedsig2cad import (
     build_example_report_bundle,
     build_examples_master_bundle,
+    export_frontend_scene_json,
     export_circuitikz,
     export_kicad_schematic,
     export_ngspice_netlist,
@@ -28,6 +29,7 @@ KICAD_DIR = ROOT / "examples" / "generated" / "kicad"
 NGSPICE_DIR = ROOT / "examples" / "generated" / "ngspice"
 TEX_DIR = ROOT / "examples" / "generated" / "tex"
 SVG_DIR = ROOT / "examples" / "generated" / "svg"
+FRONTEND_DIR = ROOT / "examples" / "generated" / "frontend"
 PROJECT_NAME = "examples"
 
 
@@ -183,6 +185,7 @@ def main() -> None:
     NGSPICE_DIR.mkdir(parents=True, exist_ok=True)
     TEX_DIR.mkdir(parents=True, exist_ok=True)
     SVG_DIR.mkdir(parents=True, exist_ok=True)
+    FRONTEND_DIR.mkdir(parents=True, exist_ok=True)
 
     specs = all_examples()
     for spec in specs:
@@ -191,6 +194,7 @@ def main() -> None:
         export_schematic_svg(schematic_path, SVG_DIR)
         export_schematic_pdf(schematic_path, SVG_DIR / f"{spec.name}.pdf")
         (NGSPICE_DIR / f"{spec.name}.cir").write_text(export_ngspice_netlist(spec), encoding="utf-8")
+        (FRONTEND_DIR / f"{spec.name}.scene.json").write_text(export_frontend_scene_json(spec), encoding="utf-8")
         bundle = build_example_report_bundle(spec)
         for file in bundle.files:
             target = TEX_DIR / file.path

@@ -1,0 +1,1290 @@
+{
+  "name": "schmitt_trigger",
+  "bounds": {
+    "left": 62.23,
+    "top": 44.45,
+    "right": 185.42,
+    "bottom": 165.1,
+    "width": 123.19,
+    "height": 120.64999999999999
+  },
+  "components": [
+    {
+      "id": "R3",
+      "ref": "R3",
+      "value": "100k",
+      "shape": "resistor",
+      "orientation": "horizontal_flipped",
+      "center": {
+        "x": 175.26,
+        "y": 118.11
+      },
+      "bodyBox": {
+        "left": 171.45,
+        "top": 117.09,
+        "right": 179.07,
+        "bottom": 119.13
+      },
+      "terminals": [
+        {
+          "name": "left",
+          "point": {
+            "x": 168.91,
+            "y": 118.11
+          },
+          "side": "left"
+        },
+        {
+          "name": "right",
+          "point": {
+            "x": 181.61,
+            "y": 118.11
+          },
+          "side": "right"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "R1",
+      "ref": "R1",
+      "value": "100k",
+      "shape": "resistor",
+      "orientation": "vertical",
+      "center": {
+        "x": 140.97,
+        "y": 91.44
+      },
+      "bodyBox": {
+        "left": 139.95,
+        "top": 87.63,
+        "right": 141.99,
+        "bottom": 95.25
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 140.97,
+            "y": 85.09
+          },
+          "side": "top"
+        },
+        {
+          "name": "bottom",
+          "point": {
+            "x": 140.97,
+            "y": 97.79
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "VIN",
+      "ref": "VIN",
+      "value": "PWL(0 0 1m 5 2m 0)",
+      "shape": "voltage_source",
+      "orientation": "vertical_up",
+      "center": {
+        "x": 80.01,
+        "y": 100.33
+      },
+      "bodyBox": {
+        "left": 74.93,
+        "top": 93.98,
+        "right": 87.63,
+        "bottom": 106.68
+      },
+      "terminals": [
+        {
+          "name": "pos",
+          "point": {
+            "x": 80.01,
+            "y": 92.71
+          },
+          "side": "top"
+        },
+        {
+          "name": "neg",
+          "point": {
+            "x": 80.01,
+            "y": 107.95
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "VREF",
+      "ref": "VREF",
+      "value": "DC 2.5",
+      "shape": "voltage_source",
+      "orientation": "vertical_up",
+      "center": {
+        "x": 80.01,
+        "y": 139.7
+      },
+      "bodyBox": {
+        "left": 74.93,
+        "top": 133.35,
+        "right": 87.63,
+        "bottom": 146.05
+      },
+      "terminals": [
+        {
+          "name": "pos",
+          "point": {
+            "x": 80.01,
+            "y": 132.08
+          },
+          "side": "top"
+        },
+        {
+          "name": "neg",
+          "point": {
+            "x": 80.01,
+            "y": 147.32
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "R2",
+      "ref": "R2",
+      "value": "100k",
+      "shape": "resistor",
+      "orientation": "vertical",
+      "center": {
+        "x": 140.97,
+        "y": 104.14
+      },
+      "bodyBox": {
+        "left": 139.95,
+        "top": 100.33,
+        "right": 141.99,
+        "bottom": 107.95
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 140.97,
+            "y": 97.79
+          },
+          "side": "top"
+        },
+        {
+          "name": "bottom",
+          "point": {
+            "x": 140.97,
+            "y": 110.49
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "VCC",
+      "ref": "VCC",
+      "value": "DC 5",
+      "shape": "voltage_source",
+      "orientation": "vertical_up",
+      "center": {
+        "x": 80.01,
+        "y": 59.69
+      },
+      "bodyBox": {
+        "left": 74.93,
+        "top": 53.34,
+        "right": 87.63,
+        "bottom": 66.04
+      },
+      "terminals": [
+        {
+          "name": "pos",
+          "point": {
+            "x": 80.01,
+            "y": 52.07
+          },
+          "side": "top"
+        },
+        {
+          "name": "neg",
+          "point": {
+            "x": 80.01,
+            "y": 67.31
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "XU1",
+      "ref": "XU1",
+      "value": "OPCMP",
+      "shape": "opamp",
+      "orientation": "right",
+      "center": {
+        "x": 170.18,
+        "y": 95.25
+      },
+      "bodyBox": {
+        "left": 165.1,
+        "top": 90.17,
+        "right": 175.26,
+        "bottom": 100.33
+      },
+      "terminals": [
+        {
+          "name": "plus",
+          "point": {
+            "x": 162.56,
+            "y": 97.79
+          },
+          "side": "left"
+        },
+        {
+          "name": "minus",
+          "point": {
+            "x": 162.56,
+            "y": 92.71
+          },
+          "side": "left"
+        },
+        {
+          "name": "out",
+          "point": {
+            "x": 177.8,
+            "y": 95.25
+          },
+          "side": "right"
+        },
+        {
+          "name": "vplus",
+          "point": {
+            "x": 167.64,
+            "y": 87.63
+          },
+          "side": "top"
+        },
+        {
+          "name": "vminus",
+          "point": {
+            "x": 167.64,
+            "y": 102.87
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "#SUPPORT0001",
+      "ref": "#SUPPORT0001",
+      "value": "VCC",
+      "shape": "power",
+      "orientation": "up",
+      "center": {
+        "x": 80.01,
+        "y": 49.53
+      },
+      "bodyBox": {
+        "left": 79.25,
+        "top": 46.99,
+        "right": 80.77,
+        "bottom": 49.53
+      },
+      "terminals": [
+        {
+          "name": "bottom",
+          "point": {
+            "x": 80.01,
+            "y": 49.53
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0002",
+      "ref": "#SUPPORT0002",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 80.01,
+        "y": 80.01
+      },
+      "bodyBox": {
+        "left": 78.74,
+        "top": 80.01,
+        "right": 81.28,
+        "bottom": 82.55
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 80.01,
+            "y": 80.01
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0004",
+      "ref": "#SUPPORT0004",
+      "value": "VCC",
+      "shape": "power",
+      "orientation": "up",
+      "center": {
+        "x": 167.64,
+        "y": 90.17
+      },
+      "bodyBox": {
+        "left": 166.88,
+        "top": 87.63,
+        "right": 168.4,
+        "bottom": 90.17
+      },
+      "terminals": [
+        {
+          "name": "bottom",
+          "point": {
+            "x": 167.64,
+            "y": 90.17
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0005",
+      "ref": "#SUPPORT0005",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 140.97,
+        "y": 119.38
+      },
+      "bodyBox": {
+        "left": 139.7,
+        "top": 119.38,
+        "right": 142.24,
+        "bottom": 121.92
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 140.97,
+            "y": 119.38
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0007",
+      "ref": "#SUPPORT0007",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 167.64,
+        "y": 110.49
+      },
+      "bodyBox": {
+        "left": 166.37,
+        "top": 110.49,
+        "right": 168.91,
+        "bottom": 113.03
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 167.64,
+            "y": 110.49
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0008",
+      "ref": "#SUPPORT0008",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 80.01,
+        "y": 119.38
+      },
+      "bodyBox": {
+        "left": 78.74,
+        "top": 119.38,
+        "right": 81.28,
+        "bottom": 121.92
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 80.01,
+            "y": 119.38
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0011",
+      "ref": "#SUPPORT0011",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 80.01,
+        "y": 160.02
+      },
+      "bodyBox": {
+        "left": 78.74,
+        "top": 160.02,
+        "right": 81.28,
+        "bottom": 162.56
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 80.01,
+            "y": 160.02
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    }
+  ],
+  "wires": [
+    {
+      "id": "schmitt_trigger:0:1",
+      "points": [
+        {
+          "x": 140.97,
+          "y": 110.49
+        },
+        {
+          "x": 140.97,
+          "y": 119.38
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:0:2",
+      "points": [
+        {
+          "x": 80.01,
+          "y": 67.31
+        },
+        {
+          "x": 80.01,
+          "y": 80.01
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:0:3",
+      "points": [
+        {
+          "x": 167.64,
+          "y": 102.87
+        },
+        {
+          "x": 167.64,
+          "y": 110.49
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:0:4",
+      "points": [
+        {
+          "x": 80.01,
+          "y": 147.32
+        },
+        {
+          "x": 80.01,
+          "y": 160.02
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:0:5",
+      "points": [
+        {
+          "x": 80.01,
+          "y": 107.95
+        },
+        {
+          "x": 80.01,
+          "y": 119.38
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:vcc:1",
+      "points": [
+        {
+          "x": 80.01,
+          "y": 52.07
+        },
+        {
+          "x": 80.01,
+          "y": 49.53
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:vcc:2",
+      "points": [
+        {
+          "x": 167.64,
+          "y": 87.63
+        },
+        {
+          "x": 167.64,
+          "y": 90.17
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:vin:1",
+      "points": [
+        {
+          "x": 80.01,
+          "y": 92.71
+        },
+        {
+          "x": 80.01,
+          "y": 88.9
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:vin:2",
+      "points": [
+        {
+          "x": 157.48,
+          "y": 92.71
+        },
+        {
+          "x": 162.56,
+          "y": 92.71
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:vout:1",
+      "points": [
+        {
+          "x": 181.61,
+          "y": 118.11
+        },
+        {
+          "x": 185.42,
+          "y": 118.11
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:vout:2",
+      "points": [
+        {
+          "x": 185.42,
+          "y": 118.11
+        },
+        {
+          "x": 185.42,
+          "y": 95.25
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:vout:3",
+      "points": [
+        {
+          "x": 177.8,
+          "y": 95.25
+        },
+        {
+          "x": 185.42,
+          "y": 95.25
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:vplus:1",
+      "points": [
+        {
+          "x": 168.91,
+          "y": 118.11
+        },
+        {
+          "x": 147.32,
+          "y": 118.11
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:vplus:2",
+      "points": [
+        {
+          "x": 147.32,
+          "y": 118.11
+        },
+        {
+          "x": 147.32,
+          "y": 97.79
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:vplus:3",
+      "points": [
+        {
+          "x": 147.32,
+          "y": 97.79
+        },
+        {
+          "x": 162.56,
+          "y": 97.79
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:vplus:4",
+      "points": [
+        {
+          "x": 147.32,
+          "y": 97.79
+        },
+        {
+          "x": 140.97,
+          "y": 97.79
+        }
+      ]
+    },
+    {
+      "id": "schmitt_trigger:vref:1",
+      "points": [
+        {
+          "x": 80.01,
+          "y": 132.08
+        },
+        {
+          "x": 80.01,
+          "y": 128.27
+        }
+      ]
+    }
+  ],
+  "labels": [
+    {
+      "id": "schmitt_trigger:R3:reference",
+      "text": "R3",
+      "role": "reference",
+      "ownerRef": "R3",
+      "position": {
+        "x": 175.26,
+        "y": 114.3
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:R3:value",
+      "text": "100k",
+      "role": "value",
+      "ownerRef": "R3",
+      "position": {
+        "x": 175.26,
+        "y": 121.92
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:R1:reference",
+      "text": "R1",
+      "role": "reference",
+      "ownerRef": "R1",
+      "position": {
+        "x": 146.05,
+        "y": 93.98
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:R1:value",
+      "text": "100k",
+      "role": "value",
+      "ownerRef": "R1",
+      "position": {
+        "x": 135.89,
+        "y": 93.98
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:VIN:reference",
+      "text": "VIN",
+      "role": "reference",
+      "ownerRef": "VIN",
+      "position": {
+        "x": 76.2,
+        "y": 91.44
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:VIN:value",
+      "text": "PWL(0 0 1m 5 2m 0)",
+      "role": "value",
+      "ownerRef": "VIN",
+      "position": {
+        "x": 62.23,
+        "y": 105.41
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:VREF:reference",
+      "text": "VREF",
+      "role": "reference",
+      "ownerRef": "VREF",
+      "position": {
+        "x": 77.47,
+        "y": 130.81
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:VREF:value",
+      "text": "DC 2.5",
+      "role": "value",
+      "ownerRef": "VREF",
+      "position": {
+        "x": 83.82,
+        "y": 148.59
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:R2:reference",
+      "text": "R2",
+      "role": "reference",
+      "ownerRef": "R2",
+      "position": {
+        "x": 135.89,
+        "y": 106.68
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:R2:value",
+      "text": "100k",
+      "role": "value",
+      "ownerRef": "R2",
+      "position": {
+        "x": 135.89,
+        "y": 104.14
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:VCC:reference",
+      "text": "VCC",
+      "role": "reference",
+      "ownerRef": "VCC",
+      "position": {
+        "x": 76.2,
+        "y": 68.58
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:VCC:value",
+      "text": "DC 5",
+      "role": "value",
+      "ownerRef": "VCC",
+      "position": {
+        "x": 69.85,
+        "y": 64.77
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:XU1:reference",
+      "text": "XU1",
+      "role": "reference",
+      "ownerRef": "XU1",
+      "position": {
+        "x": 170.18,
+        "y": 102.87
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:XU1:value",
+      "text": "OPCMP",
+      "role": "value",
+      "ownerRef": "XU1",
+      "position": {
+        "x": 172.72,
+        "y": 87.63
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0001:reference",
+      "text": "#SUPPORT0001",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0001",
+      "position": {
+        "x": 80.01,
+        "y": 45.72
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0001:value",
+      "text": "VCC",
+      "role": "value",
+      "ownerRef": "#SUPPORT0001",
+      "position": {
+        "x": 80.01,
+        "y": 44.45
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0002:reference",
+      "text": "#SUPPORT0002",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0002",
+      "position": {
+        "x": 80.01,
+        "y": 76.2
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0002:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0002",
+      "position": {
+        "x": 80.01,
+        "y": 85.09
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0003:net_label",
+      "text": "vref",
+      "role": "net_label",
+      "ownerRef": "#SUPPORT0003",
+      "position": {
+        "x": 140.97,
+        "y": 85.09
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0004:reference",
+      "text": "#SUPPORT0004",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0004",
+      "position": {
+        "x": 167.64,
+        "y": 86.36
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0004:value",
+      "text": "VCC",
+      "role": "value",
+      "ownerRef": "#SUPPORT0004",
+      "position": {
+        "x": 167.64,
+        "y": 85.09
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0005:reference",
+      "text": "#SUPPORT0005",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0005",
+      "position": {
+        "x": 140.97,
+        "y": 115.57
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0005:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0005",
+      "position": {
+        "x": 140.97,
+        "y": 124.46
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0006:net_label",
+      "text": "vin",
+      "role": "net_label",
+      "ownerRef": "#SUPPORT0006",
+      "position": {
+        "x": 157.48,
+        "y": 92.71
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0007:reference",
+      "text": "#SUPPORT0007",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0007",
+      "position": {
+        "x": 167.64,
+        "y": 106.67999999999999
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0007:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0007",
+      "position": {
+        "x": 167.64,
+        "y": 115.57
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0008:reference",
+      "text": "#SUPPORT0008",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0008",
+      "position": {
+        "x": 80.01,
+        "y": 115.57
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0008:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0008",
+      "position": {
+        "x": 80.01,
+        "y": 124.46
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0009:net_label",
+      "text": "vin",
+      "role": "net_label",
+      "ownerRef": "#SUPPORT0009",
+      "position": {
+        "x": 80.01,
+        "y": 88.9
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0010:net_label",
+      "text": "vref",
+      "role": "net_label",
+      "ownerRef": "#SUPPORT0010",
+      "position": {
+        "x": 80.01,
+        "y": 128.27
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0011:reference",
+      "text": "#SUPPORT0011",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0011",
+      "position": {
+        "x": 80.01,
+        "y": 156.21
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:#SUPPORT0011:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0011",
+      "position": {
+        "x": 80.01,
+        "y": 165.1
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "schmitt_trigger:label:1:net_label:vout",
+      "text": "vout",
+      "role": "net_label",
+      "ownerRef": "label:1",
+      "position": {
+        "x": 185.42,
+        "y": 95.25
+      },
+      "fontSize": 1.5
+    },
+    {
+      "id": "schmitt_trigger:label:2:net_label:vplus",
+      "text": "vplus",
+      "role": "net_label",
+      "ownerRef": "label:2",
+      "position": {
+        "x": 156.21,
+        "y": 97.79
+      },
+      "fontSize": 1.5
+    }
+  ],
+  "junctions": [
+    {
+      "id": "schmitt_trigger:junction:1",
+      "point": {
+        "x": 147.32,
+        "y": 97.79
+      }
+    },
+    {
+      "id": "schmitt_trigger:junction:2",
+      "point": {
+        "x": 140.97,
+        "y": 97.79
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "layout:1",
+      "point": {
+        "x": 140.97,
+        "y": 110.49
+      },
+      "attachments": [
+        {
+          "ownerRef": "R2",
+          "terminalName": "bottom"
+        },
+        {
+          "ownerRef": "#SUPPORT0005",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:2",
+      "point": {
+        "x": 80.01,
+        "y": 67.31
+      },
+      "attachments": [
+        {
+          "ownerRef": "VCC",
+          "terminalName": "neg"
+        },
+        {
+          "ownerRef": "#SUPPORT0002",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:3",
+      "point": {
+        "x": 167.64,
+        "y": 102.87
+      },
+      "attachments": [
+        {
+          "ownerRef": "XU1",
+          "terminalName": "vminus"
+        },
+        {
+          "ownerRef": "#SUPPORT0007",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:4",
+      "point": {
+        "x": 80.01,
+        "y": 147.32
+      },
+      "attachments": [
+        {
+          "ownerRef": "VREF",
+          "terminalName": "neg"
+        },
+        {
+          "ownerRef": "#SUPPORT0011",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:5",
+      "point": {
+        "x": 80.01,
+        "y": 107.95
+      },
+      "attachments": [
+        {
+          "ownerRef": "VIN",
+          "terminalName": "neg"
+        },
+        {
+          "ownerRef": "#SUPPORT0008",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:6",
+      "point": {
+        "x": 80.01,
+        "y": 49.53
+      },
+      "attachments": [
+        {
+          "ownerRef": "#SUPPORT0001",
+          "terminalName": "bottom"
+        },
+        {
+          "ownerRef": "VCC",
+          "terminalName": "pos"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:7",
+      "point": {
+        "x": 167.64,
+        "y": 87.63
+      },
+      "attachments": [
+        {
+          "ownerRef": "XU1",
+          "terminalName": "vplus"
+        },
+        {
+          "ownerRef": "#SUPPORT0004",
+          "terminalName": "bottom"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:8",
+      "point": {
+        "x": 177.8,
+        "y": 95.25
+      },
+      "attachments": [
+        {
+          "ownerRef": "XU1",
+          "terminalName": "out"
+        },
+        {
+          "ownerRef": "R3",
+          "terminalName": "right"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:9",
+      "point": {
+        "x": 140.97,
+        "y": 97.79
+      },
+      "attachments": [
+        {
+          "ownerRef": "R1",
+          "terminalName": "bottom"
+        },
+        {
+          "ownerRef": "R2",
+          "terminalName": "top"
+        },
+        {
+          "ownerRef": "XU1",
+          "terminalName": "plus"
+        },
+        {
+          "ownerRef": "R3",
+          "terminalName": "left"
+        }
+      ],
+      "renderStyle": "junction",
+      "label": null,
+      "role": null
+    }
+  ]
+}

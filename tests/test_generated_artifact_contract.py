@@ -11,6 +11,7 @@ CATALOG_PATH = ROOT / "frontend" / "example_catalog.json"
 EXAMPLES_ROOT = ROOT
 CATALOG_IDS = [entry["id"] for entry in json.loads(CATALOG_PATH.read_text(encoding="utf-8"))]
 REQUIRED_GENERATED_ARTIFACT_KEYS = (
+    "editorScene",
     "svg",
     "pdf",
     "kicad",

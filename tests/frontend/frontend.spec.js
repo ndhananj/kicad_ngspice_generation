@@ -9,29 +9,30 @@ async function openWorkbench(page) {
   await stabilizeFonts(page);
   await page.goto("./?test=1");
   await expect(page.locator("#hero-title")).toHaveText("RC Low-pass");
-  await expect(page.locator("#source-code")).toContainText("\\draw");
+  await expect(page.getByRole("tab", { name: "Editor" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-component-id="R1"]')).toBeVisible();
 }
 
 const smokeExamples = [
   {
     id: "rc_lowpass",
     name: "RC Low-pass",
-    availableTabs: ["circuitikz.tex", "report.tex", "ngspice.cir"],
-    availableLinks: ["preview.svg", "circuitikz.tex", "report.tex", "ngspice.cir", "schematic.kicad_sch"],
+    availableTabs: ["Editor", "circuitikz.tex", "report.tex", "ngspice.cir"],
+    availableLinks: ["editor.scene.json", "preview.svg", "circuitikz.tex", "report.tex", "ngspice.cir", "schematic.kicad_sch"],
     unavailableLinks: ["report.pdf"],
   },
   {
     id: "rc_highpass",
     name: "RC High-pass",
-    availableTabs: ["circuitikz.tex", "ngspice.cir"],
-    availableLinks: ["circuitikz.tex", "ngspice.cir", "schematic.kicad_sch"],
+    availableTabs: ["Editor", "circuitikz.tex", "ngspice.cir"],
+    availableLinks: ["editor.scene.json", "circuitikz.tex", "ngspice.cir", "schematic.kicad_sch"],
     unavailableLinks: ["preview.svg", "report.tex", "report.pdf"],
   },
   {
     id: "diode_clipper",
     name: "Diode Clipper",
-    availableTabs: ["circuitikz.tex", "report.tex", "ngspice.cir"],
-    availableLinks: ["circuitikz.tex", "report.tex", "ngspice.cir", "schematic.kicad_sch"],
+    availableTabs: ["Editor", "circuitikz.tex", "report.tex", "ngspice.cir"],
+    availableLinks: ["editor.scene.json", "circuitikz.tex", "report.tex", "ngspice.cir", "schematic.kicad_sch"],
     unavailableLinks: ["preview.svg", "report.pdf"],
   },
 ];
@@ -51,6 +52,31 @@ async function selectExample(page, example) {
   await page.locator('[data-example-id="' + example.id + '"]').click();
   await expect(page.locator("#hero-title")).toHaveText(example.name);
 }
+
+test("supports selecting, dragging, and nudging components in the editor", async ({ page }) => {
+  await openWorkbench(page);
+
+  const resistor = page.locator('[data-component-id="R1"]');
+  await resistor.click();
+  await expect(resistor).toHaveClass(/active/);
+
+  const before = await resistor.boundingBox();
+  await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(before.x + before.width / 2 + 56, before.y + before.height / 2 + 28);
+  await page.mouse.up();
+
+  const afterDrag = await resistor.boundingBox();
+  expect(afterDrag.x).toBeGreaterThan(before.x + 10);
+
+  await page.locator("#editor-canvas").focus();
+  await page.keyboard.press("ArrowRight");
+  const afterNudge = await resistor.boundingBox();
+  expect(afterNudge.x).toBeGreaterThan(afterDrag.x);
+
+  await page.keyboard.press("Delete");
+  await expect(resistor).not.toHaveClass(/active/);
+});
 
 test("preserves the active tab and updates the preview when switching examples", async ({ page }) => {
   await openWorkbench(page);
@@ -105,7 +131,7 @@ test("shows the declared artifact surface for each smoke example", async ({ page
     for (const tab of example.availableTabs) {
       await expect(page.getByRole("tab", { name: tab })).not.toHaveClass(/unavailable/);
     }
-    for (const tab of ["circuitikz.tex", "report.tex", "ngspice.cir"]) {
+    for (const tab of ["Editor", "circuitikz.tex", "report.tex", "ngspice.cir"]) {
       if (!example.availableTabs.includes(tab)) {
         await expect(page.getByRole("tab", { name: tab })).toHaveClass(/unavailable/);
       }

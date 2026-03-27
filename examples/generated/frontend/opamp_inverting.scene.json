@@ -1,0 +1,1354 @@
+{
+  "name": "opamp_inverting",
+  "bounds": {
+    "left": 64.77,
+    "top": 44.45,
+    "right": 177.8,
+    "bottom": 165.1,
+    "width": 113.03000000000002,
+    "height": 120.64999999999999
+  },
+  "components": [
+    {
+      "id": "VCC",
+      "ref": "VCC",
+      "value": "DC 12",
+      "shape": "voltage_source",
+      "orientation": "vertical_up",
+      "center": {
+        "x": 80.01,
+        "y": 59.69
+      },
+      "bodyBox": {
+        "left": 74.93,
+        "top": 53.34,
+        "right": 87.63,
+        "bottom": 66.04
+      },
+      "terminals": [
+        {
+          "name": "pos",
+          "point": {
+            "x": 80.01,
+            "y": 52.07
+          },
+          "side": "top"
+        },
+        {
+          "name": "neg",
+          "point": {
+            "x": 80.01,
+            "y": 67.31
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "XU1",
+      "ref": "XU1",
+      "value": "OPAMP",
+      "shape": "opamp",
+      "orientation": "right",
+      "center": {
+        "x": 170.18,
+        "y": 90.17
+      },
+      "bodyBox": {
+        "left": 165.1,
+        "top": 85.09,
+        "right": 175.26,
+        "bottom": 95.25
+      },
+      "terminals": [
+        {
+          "name": "plus",
+          "point": {
+            "x": 162.56,
+            "y": 92.71
+          },
+          "side": "left"
+        },
+        {
+          "name": "minus",
+          "point": {
+            "x": 162.56,
+            "y": 87.63
+          },
+          "side": "left"
+        },
+        {
+          "name": "out",
+          "point": {
+            "x": 177.8,
+            "y": 90.17
+          },
+          "side": "right"
+        },
+        {
+          "name": "vplus",
+          "point": {
+            "x": 167.64,
+            "y": 82.55
+          },
+          "side": "top"
+        },
+        {
+          "name": "vminus",
+          "point": {
+            "x": 167.64,
+            "y": 97.79
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "RF",
+      "ref": "RF",
+      "value": "100k",
+      "shape": "resistor",
+      "orientation": "vertical",
+      "center": {
+        "x": 162.56,
+        "y": 76.2
+      },
+      "bodyBox": {
+        "left": 161.54,
+        "top": 72.39,
+        "right": 163.58,
+        "bottom": 80.01
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 162.56,
+            "y": 69.85
+          },
+          "side": "top"
+        },
+        {
+          "name": "bottom",
+          "point": {
+            "x": 162.56,
+            "y": 82.55
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "RIN",
+      "ref": "RIN",
+      "value": "10k",
+      "shape": "resistor",
+      "orientation": "horizontal",
+      "center": {
+        "x": 129.54,
+        "y": 82.55
+      },
+      "bodyBox": {
+        "left": 125.73,
+        "top": 81.53,
+        "right": 133.35,
+        "bottom": 83.57
+      },
+      "terminals": [
+        {
+          "name": "left",
+          "point": {
+            "x": 123.19,
+            "y": 82.55
+          },
+          "side": "left"
+        },
+        {
+          "name": "right",
+          "point": {
+            "x": 135.89,
+            "y": 82.55
+          },
+          "side": "right"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "R3",
+      "ref": "R3",
+      "value": "10k",
+      "shape": "resistor",
+      "orientation": "vertical",
+      "center": {
+        "x": 162.56,
+        "y": 104.14
+      },
+      "bodyBox": {
+        "left": 161.54,
+        "top": 100.33,
+        "right": 163.58,
+        "bottom": 107.95
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 162.56,
+            "y": 97.79
+          },
+          "side": "top"
+        },
+        {
+          "name": "bottom",
+          "point": {
+            "x": 162.56,
+            "y": 110.49
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "VEE",
+      "ref": "VEE",
+      "value": "DC -12",
+      "shape": "voltage_source",
+      "orientation": "vertical_up",
+      "center": {
+        "x": 80.01,
+        "y": 100.33
+      },
+      "bodyBox": {
+        "left": 74.93,
+        "top": 93.98,
+        "right": 87.63,
+        "bottom": 106.68
+      },
+      "terminals": [
+        {
+          "name": "pos",
+          "point": {
+            "x": 80.01,
+            "y": 92.71
+          },
+          "side": "top"
+        },
+        {
+          "name": "neg",
+          "point": {
+            "x": 80.01,
+            "y": 107.95
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "VIN",
+      "ref": "VIN",
+      "value": "SIN(0 0.5 500)",
+      "shape": "voltage_source",
+      "orientation": "vertical_up",
+      "center": {
+        "x": 80.01,
+        "y": 139.7
+      },
+      "bodyBox": {
+        "left": 74.93,
+        "top": 133.35,
+        "right": 87.63,
+        "bottom": 146.05
+      },
+      "terminals": [
+        {
+          "name": "pos",
+          "point": {
+            "x": 80.01,
+            "y": 132.08
+          },
+          "side": "top"
+        },
+        {
+          "name": "neg",
+          "point": {
+            "x": 80.01,
+            "y": 147.32
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "#SUPPORT0001",
+      "ref": "#SUPPORT0001",
+      "value": "VCC",
+      "shape": "power",
+      "orientation": "up",
+      "center": {
+        "x": 167.64,
+        "y": 80.01
+      },
+      "bodyBox": {
+        "left": 166.88,
+        "top": 77.47,
+        "right": 168.4,
+        "bottom": 80.01
+      },
+      "terminals": [
+        {
+          "name": "bottom",
+          "point": {
+            "x": 167.64,
+            "y": 80.01
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0002",
+      "ref": "#SUPPORT0002",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 80.01,
+        "y": 160.02
+      },
+      "bodyBox": {
+        "left": 78.74,
+        "top": 160.02,
+        "right": 81.28,
+        "bottom": 162.56
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 80.01,
+            "y": 160.02
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0003",
+      "ref": "#SUPPORT0003",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 162.56,
+        "y": 118.11
+      },
+      "bodyBox": {
+        "left": 161.29,
+        "top": 118.11,
+        "right": 163.83,
+        "bottom": 120.65
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 162.56,
+            "y": 118.11
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0004",
+      "ref": "#SUPPORT0004",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 80.01,
+        "y": 80.01
+      },
+      "bodyBox": {
+        "left": 78.74,
+        "top": 80.01,
+        "right": 81.28,
+        "bottom": 82.55
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 80.01,
+            "y": 80.01
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0005",
+      "ref": "#SUPPORT0005",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 80.01,
+        "y": 119.38
+      },
+      "bodyBox": {
+        "left": 78.74,
+        "top": 119.38,
+        "right": 81.28,
+        "bottom": 121.92
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 80.01,
+            "y": 119.38
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0006",
+      "ref": "#SUPPORT0006",
+      "value": "VCC",
+      "shape": "power",
+      "orientation": "up",
+      "center": {
+        "x": 80.01,
+        "y": 49.53
+      },
+      "bodyBox": {
+        "left": 79.25,
+        "top": 46.99,
+        "right": 80.77,
+        "bottom": 49.53
+      },
+      "terminals": [
+        {
+          "name": "bottom",
+          "point": {
+            "x": 80.01,
+            "y": 49.53
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0007",
+      "ref": "#SUPPORT0007",
+      "value": "VEE",
+      "shape": "power",
+      "orientation": "up",
+      "center": {
+        "x": 80.01,
+        "y": 90.17
+      },
+      "bodyBox": {
+        "left": 79.25,
+        "top": 87.63,
+        "right": 80.77,
+        "bottom": 90.17
+      },
+      "terminals": [
+        {
+          "name": "bottom",
+          "point": {
+            "x": 80.01,
+            "y": 90.17
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0008",
+      "ref": "#SUPPORT0008",
+      "value": "VEE",
+      "shape": "power",
+      "orientation": "down",
+      "center": {
+        "x": 167.64,
+        "y": 100.33
+      },
+      "bodyBox": {
+        "left": 166.88,
+        "top": 100.33,
+        "right": 168.4,
+        "bottom": 102.87
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 167.64,
+            "y": 100.33
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    }
+  ],
+  "wires": [
+    {
+      "id": "opamp_inverting:0:1",
+      "points": [
+        {
+          "x": 80.01,
+          "y": 147.32
+        },
+        {
+          "x": 80.01,
+          "y": 160.02
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:0:2",
+      "points": [
+        {
+          "x": 162.56,
+          "y": 110.49
+        },
+        {
+          "x": 162.56,
+          "y": 118.11
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:0:3",
+      "points": [
+        {
+          "x": 80.01,
+          "y": 107.95
+        },
+        {
+          "x": 80.01,
+          "y": 119.38
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:0:4",
+      "points": [
+        {
+          "x": 80.01,
+          "y": 67.31
+        },
+        {
+          "x": 80.01,
+          "y": 80.01
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:vcc:1",
+      "points": [
+        {
+          "x": 80.01,
+          "y": 52.07
+        },
+        {
+          "x": 80.01,
+          "y": 49.53
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:vcc:2",
+      "points": [
+        {
+          "x": 167.64,
+          "y": 82.55
+        },
+        {
+          "x": 167.64,
+          "y": 80.01
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:vee:1",
+      "points": [
+        {
+          "x": 167.64,
+          "y": 97.79
+        },
+        {
+          "x": 167.64,
+          "y": 100.33
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:vee:2",
+      "points": [
+        {
+          "x": 80.01,
+          "y": 92.71
+        },
+        {
+          "x": 80.01,
+          "y": 90.17
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:vin:1",
+      "points": [
+        {
+          "x": 80.01,
+          "y": 132.08
+        },
+        {
+          "x": 80.01,
+          "y": 128.27
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:vin:2",
+      "points": [
+        {
+          "x": 80.01,
+          "y": 128.27
+        },
+        {
+          "x": 123.19,
+          "y": 128.27
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:vin:3",
+      "points": [
+        {
+          "x": 123.19,
+          "y": 128.27
+        },
+        {
+          "x": 123.19,
+          "y": 82.55
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:vminus:1",
+      "points": [
+        {
+          "x": 162.56,
+          "y": 87.63
+        },
+        {
+          "x": 162.56,
+          "y": 82.55
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:vminus:2",
+      "points": [
+        {
+          "x": 135.89,
+          "y": 82.55
+        },
+        {
+          "x": 162.56,
+          "y": 82.55
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:vout:1",
+      "points": [
+        {
+          "x": 177.8,
+          "y": 90.17
+        },
+        {
+          "x": 177.8,
+          "y": 69.85
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:vout:2",
+      "points": [
+        {
+          "x": 162.56,
+          "y": 69.85
+        },
+        {
+          "x": 177.8,
+          "y": 69.85
+        }
+      ]
+    },
+    {
+      "id": "opamp_inverting:vplus_ref:1",
+      "points": [
+        {
+          "x": 162.56,
+          "y": 92.71
+        },
+        {
+          "x": 162.56,
+          "y": 97.79
+        }
+      ]
+    }
+  ],
+  "labels": [
+    {
+      "id": "opamp_inverting:VCC:reference",
+      "text": "VCC",
+      "role": "reference",
+      "ownerRef": "VCC",
+      "position": {
+        "x": 76.2,
+        "y": 68.58
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:VCC:value",
+      "text": "DC 12",
+      "role": "value",
+      "ownerRef": "VCC",
+      "position": {
+        "x": 69.85,
+        "y": 64.77
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:XU1:reference",
+      "text": "XU1",
+      "role": "reference",
+      "ownerRef": "XU1",
+      "position": {
+        "x": 170.18,
+        "y": 82.55
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:XU1:value",
+      "text": "OPAMP",
+      "role": "value",
+      "ownerRef": "XU1",
+      "position": {
+        "x": 172.72,
+        "y": 97.79
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:RF:reference",
+      "text": "RF",
+      "role": "reference",
+      "ownerRef": "RF",
+      "position": {
+        "x": 167.64,
+        "y": 73.66
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:RF:value",
+      "text": "100k",
+      "role": "value",
+      "ownerRef": "RF",
+      "position": {
+        "x": 157.48,
+        "y": 78.74
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:RIN:reference",
+      "text": "RIN",
+      "role": "reference",
+      "ownerRef": "RIN",
+      "position": {
+        "x": 129.54,
+        "y": 78.74
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:RIN:value",
+      "text": "10k",
+      "role": "value",
+      "ownerRef": "RIN",
+      "position": {
+        "x": 129.54,
+        "y": 86.36
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:R3:reference",
+      "text": "R3",
+      "role": "reference",
+      "ownerRef": "R3",
+      "position": {
+        "x": 157.48,
+        "y": 101.6
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:R3:value",
+      "text": "10k",
+      "role": "value",
+      "ownerRef": "R3",
+      "position": {
+        "x": 167.64,
+        "y": 106.68
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:VEE:reference",
+      "text": "VEE",
+      "role": "reference",
+      "ownerRef": "VEE",
+      "position": {
+        "x": 76.2,
+        "y": 109.22
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:VEE:value",
+      "text": "DC -12",
+      "role": "value",
+      "ownerRef": "VEE",
+      "position": {
+        "x": 83.82,
+        "y": 109.22
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:VIN:reference",
+      "text": "VIN",
+      "role": "reference",
+      "ownerRef": "VIN",
+      "position": {
+        "x": 76.2,
+        "y": 130.81
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:VIN:value",
+      "text": "SIN(0 0.5 500)",
+      "role": "value",
+      "ownerRef": "VIN",
+      "position": {
+        "x": 64.77,
+        "y": 144.78
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0001:reference",
+      "text": "#SUPPORT0001",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0001",
+      "position": {
+        "x": 167.64,
+        "y": 76.2
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0001:value",
+      "text": "VCC",
+      "role": "value",
+      "ownerRef": "#SUPPORT0001",
+      "position": {
+        "x": 172.72,
+        "y": 78.74
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0002:reference",
+      "text": "#SUPPORT0002",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0002",
+      "position": {
+        "x": 80.01,
+        "y": 156.21
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0002:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0002",
+      "position": {
+        "x": 80.01,
+        "y": 165.1
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0003:reference",
+      "text": "#SUPPORT0003",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0003",
+      "position": {
+        "x": 162.56,
+        "y": 114.3
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0003:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0003",
+      "position": {
+        "x": 162.56,
+        "y": 123.19
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0004:reference",
+      "text": "#SUPPORT0004",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0004",
+      "position": {
+        "x": 80.01,
+        "y": 76.2
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0004:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0004",
+      "position": {
+        "x": 80.01,
+        "y": 85.09
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0005:reference",
+      "text": "#SUPPORT0005",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0005",
+      "position": {
+        "x": 80.01,
+        "y": 115.57
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0005:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0005",
+      "position": {
+        "x": 80.01,
+        "y": 124.46
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0006:reference",
+      "text": "#SUPPORT0006",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0006",
+      "position": {
+        "x": 80.01,
+        "y": 45.72
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0006:value",
+      "text": "VCC",
+      "role": "value",
+      "ownerRef": "#SUPPORT0006",
+      "position": {
+        "x": 80.01,
+        "y": 44.45
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0007:reference",
+      "text": "#SUPPORT0007",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0007",
+      "position": {
+        "x": 80.01,
+        "y": 86.36
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0007:value",
+      "text": "VEE",
+      "role": "value",
+      "ownerRef": "#SUPPORT0007",
+      "position": {
+        "x": 85.09,
+        "y": 88.9
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0008:reference",
+      "text": "#SUPPORT0008",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0008",
+      "position": {
+        "x": 167.64,
+        "y": 96.52
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:#SUPPORT0008:value",
+      "text": "VEE",
+      "role": "value",
+      "ownerRef": "#SUPPORT0008",
+      "position": {
+        "x": 172.72,
+        "y": 101.6
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "opamp_inverting:label:1:net_label:vplus_ref",
+      "text": "vplus_ref",
+      "role": "net_label",
+      "ownerRef": "label:1",
+      "position": {
+        "x": 156.89,
+        "y": 97.79
+      },
+      "fontSize": 1.5
+    },
+    {
+      "id": "opamp_inverting:label:2:net_label:vminus",
+      "text": "vminus",
+      "role": "net_label",
+      "ownerRef": "label:2",
+      "position": {
+        "x": 158.78,
+        "y": 82.55
+      },
+      "fontSize": 1.5
+    },
+    {
+      "id": "opamp_inverting:label:3:net_label:vin",
+      "text": "vin",
+      "role": "net_label",
+      "ownerRef": "label:3",
+      "position": {
+        "x": 123.19,
+        "y": 82.55
+      },
+      "fontSize": 1.5
+    },
+    {
+      "id": "opamp_inverting:label:4:net_label:vout",
+      "text": "vout",
+      "role": "net_label",
+      "ownerRef": "label:4",
+      "position": {
+        "x": 177.8,
+        "y": 69.85
+      },
+      "fontSize": 1.5
+    }
+  ],
+  "junctions": [
+    {
+      "id": "opamp_inverting:junction:1",
+      "point": {
+        "x": 162.56,
+        "y": 82.55
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "layout:1",
+      "point": {
+        "x": 80.01,
+        "y": 147.32
+      },
+      "attachments": [
+        {
+          "ownerRef": "VIN",
+          "terminalName": "neg"
+        },
+        {
+          "ownerRef": "#SUPPORT0002",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:2",
+      "point": {
+        "x": 162.56,
+        "y": 110.49
+      },
+      "attachments": [
+        {
+          "ownerRef": "R3",
+          "terminalName": "bottom"
+        },
+        {
+          "ownerRef": "#SUPPORT0003",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:3",
+      "point": {
+        "x": 80.01,
+        "y": 107.95
+      },
+      "attachments": [
+        {
+          "ownerRef": "VEE",
+          "terminalName": "neg"
+        },
+        {
+          "ownerRef": "#SUPPORT0005",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:4",
+      "point": {
+        "x": 80.01,
+        "y": 67.31
+      },
+      "attachments": [
+        {
+          "ownerRef": "VCC",
+          "terminalName": "neg"
+        },
+        {
+          "ownerRef": "#SUPPORT0004",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:5",
+      "point": {
+        "x": 80.01,
+        "y": 49.53
+      },
+      "attachments": [
+        {
+          "ownerRef": "#SUPPORT0006",
+          "terminalName": "bottom"
+        },
+        {
+          "ownerRef": "VCC",
+          "terminalName": "pos"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:6",
+      "point": {
+        "x": 167.64,
+        "y": 80.01
+      },
+      "attachments": [
+        {
+          "ownerRef": "#SUPPORT0001",
+          "terminalName": "bottom"
+        },
+        {
+          "ownerRef": "XU1",
+          "terminalName": "vplus"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:7",
+      "point": {
+        "x": 167.64,
+        "y": 97.79
+      },
+      "attachments": [
+        {
+          "ownerRef": "XU1",
+          "terminalName": "vminus"
+        },
+        {
+          "ownerRef": "#SUPPORT0008",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:8",
+      "point": {
+        "x": 80.01,
+        "y": 90.17
+      },
+      "attachments": [
+        {
+          "ownerRef": "#SUPPORT0007",
+          "terminalName": "bottom"
+        },
+        {
+          "ownerRef": "VEE",
+          "terminalName": "pos"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:9",
+      "point": {
+        "x": 80.01,
+        "y": 128.27
+      },
+      "attachments": [
+        {
+          "ownerRef": "VIN",
+          "terminalName": "pos"
+        },
+        {
+          "ownerRef": "RIN",
+          "terminalName": "left"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:10",
+      "point": {
+        "x": 162.56,
+        "y": 82.55
+      },
+      "attachments": [
+        {
+          "ownerRef": "RIN",
+          "terminalName": "right"
+        },
+        {
+          "ownerRef": "RF",
+          "terminalName": "bottom"
+        },
+        {
+          "ownerRef": "XU1",
+          "terminalName": "minus"
+        }
+      ],
+      "renderStyle": "junction",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:11",
+      "point": {
+        "x": 162.56,
+        "y": 69.85
+      },
+      "attachments": [
+        {
+          "ownerRef": "RF",
+          "terminalName": "top"
+        },
+        {
+          "ownerRef": "XU1",
+          "terminalName": "out"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:12",
+      "point": {
+        "x": 162.56,
+        "y": 92.71
+      },
+      "attachments": [
+        {
+          "ownerRef": "XU1",
+          "terminalName": "plus"
+        },
+        {
+          "ownerRef": "R3",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    }
+  ]
+}

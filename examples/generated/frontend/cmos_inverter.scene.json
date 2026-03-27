@@ -1,0 +1,842 @@
+{
+  "name": "cmos_inverter",
+  "bounds": {
+    "left": 57.15,
+    "top": 57.15,
+    "right": 168.91,
+    "bottom": 160.02,
+    "width": 111.75999999999999,
+    "height": 102.87
+  },
+  "components": [
+    {
+      "id": "VDD",
+      "ref": "VDD",
+      "value": "DC 3.3",
+      "shape": "voltage_source",
+      "orientation": "vertical_up",
+      "center": {
+        "x": 62.23,
+        "y": 68.58
+      },
+      "bodyBox": {
+        "left": 57.15,
+        "top": 62.23,
+        "right": 69.85,
+        "bottom": 74.93
+      },
+      "terminals": [
+        {
+          "name": "pos",
+          "point": {
+            "x": 62.23,
+            "y": 60.96
+          },
+          "side": "top"
+        },
+        {
+          "name": "neg",
+          "point": {
+            "x": 62.23,
+            "y": 76.2
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "VIN",
+      "ref": "VIN",
+      "value": "PULSE(0 3.3 0 1n 1n 10n 20n)",
+      "shape": "voltage_source",
+      "orientation": "vertical_up",
+      "center": {
+        "x": 83.82,
+        "y": 123.19
+      },
+      "bodyBox": {
+        "left": 78.74,
+        "top": 116.84,
+        "right": 91.44,
+        "bottom": 129.54
+      },
+      "terminals": [
+        {
+          "name": "pos",
+          "point": {
+            "x": 83.82,
+            "y": 115.57
+          },
+          "side": "top"
+        },
+        {
+          "name": "neg",
+          "point": {
+            "x": 83.82,
+            "y": 130.81
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "MN1",
+      "ref": "MN1",
+      "value": "NM1",
+      "shape": "nmos",
+      "orientation": "right",
+      "center": {
+        "x": 160.02,
+        "y": 137.16
+      },
+      "bodyBox": {
+        "left": 158.75,
+        "top": 134.62,
+        "right": 165.1,
+        "bottom": 139.7
+      },
+      "terminals": [
+        {
+          "name": "drain",
+          "point": {
+            "x": 162.56,
+            "y": 132.08
+          },
+          "side": "top"
+        },
+        {
+          "name": "gate",
+          "point": {
+            "x": 154.94,
+            "y": 137.16
+          },
+          "side": "left"
+        },
+        {
+          "name": "source",
+          "point": {
+            "x": 162.56,
+            "y": 142.24
+          },
+          "side": "bottom"
+        },
+        {
+          "name": "body",
+          "point": {
+            "x": 165.1,
+            "y": 142.24
+          },
+          "side": "right"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "MP1",
+      "ref": "MP1",
+      "value": "PM1",
+      "shape": "pmos",
+      "orientation": "right",
+      "center": {
+        "x": 160.02,
+        "y": 88.9
+      },
+      "bodyBox": {
+        "left": 158.75,
+        "top": 86.36,
+        "right": 165.1,
+        "bottom": 91.44
+      },
+      "terminals": [
+        {
+          "name": "drain",
+          "point": {
+            "x": 162.56,
+            "y": 93.98
+          },
+          "side": "bottom"
+        },
+        {
+          "name": "gate",
+          "point": {
+            "x": 154.94,
+            "y": 88.9
+          },
+          "side": "left"
+        },
+        {
+          "name": "source",
+          "point": {
+            "x": 162.56,
+            "y": 83.82
+          },
+          "side": "top"
+        },
+        {
+          "name": "body",
+          "point": {
+            "x": 165.1,
+            "y": 83.82
+          },
+          "side": "right"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "#SUPPORT0001",
+      "ref": "#SUPPORT0001",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 163.83,
+        "y": 154.94
+      },
+      "bodyBox": {
+        "left": 162.56,
+        "top": 154.94,
+        "right": 165.1,
+        "bottom": 157.48
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 163.83,
+            "y": 154.94
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0002",
+      "ref": "#SUPPORT0002",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 83.82,
+        "y": 142.24
+      },
+      "bodyBox": {
+        "left": 82.55,
+        "top": 142.24,
+        "right": 85.09,
+        "bottom": 144.78
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 83.82,
+            "y": 142.24
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0003",
+      "ref": "#SUPPORT0003",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 62.23,
+        "y": 87.63
+      },
+      "bodyBox": {
+        "left": 60.96,
+        "top": 87.63,
+        "right": 63.5,
+        "bottom": 90.17
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 62.23,
+            "y": 87.63
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    }
+  ],
+  "wires": [
+    {
+      "id": "cmos_inverter:0:1",
+      "points": [
+        {
+          "x": 162.56,
+          "y": 142.24
+        },
+        {
+          "x": 163.83,
+          "y": 142.24
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:0:2",
+      "points": [
+        {
+          "x": 165.1,
+          "y": 142.24
+        },
+        {
+          "x": 163.83,
+          "y": 142.24
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:0:3",
+      "points": [
+        {
+          "x": 163.83,
+          "y": 154.94
+        },
+        {
+          "x": 163.83,
+          "y": 142.24
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:0:4",
+      "points": [
+        {
+          "x": 62.23,
+          "y": 76.2
+        },
+        {
+          "x": 62.23,
+          "y": 87.63
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:0:5",
+      "points": [
+        {
+          "x": 83.82,
+          "y": 130.81
+        },
+        {
+          "x": 83.82,
+          "y": 142.24
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:vdd:1",
+      "points": [
+        {
+          "x": 163.83,
+          "y": 57.15
+        },
+        {
+          "x": 163.83,
+          "y": 83.82
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:vdd:2",
+      "points": [
+        {
+          "x": 62.23,
+          "y": 57.15
+        },
+        {
+          "x": 163.83,
+          "y": 57.15
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:vdd:3",
+      "points": [
+        {
+          "x": 62.23,
+          "y": 60.96
+        },
+        {
+          "x": 62.23,
+          "y": 57.15
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:vdd:4",
+      "points": [
+        {
+          "x": 162.56,
+          "y": 83.82
+        },
+        {
+          "x": 163.83,
+          "y": 83.82
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:vdd:5",
+      "points": [
+        {
+          "x": 165.1,
+          "y": 83.82
+        },
+        {
+          "x": 163.83,
+          "y": 83.82
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:vin:1",
+      "points": [
+        {
+          "x": 110.49,
+          "y": 88.9
+        },
+        {
+          "x": 110.49,
+          "y": 113.03
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:vin:2",
+      "points": [
+        {
+          "x": 154.94,
+          "y": 137.16
+        },
+        {
+          "x": 110.49,
+          "y": 137.16
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:vin:3",
+      "points": [
+        {
+          "x": 83.82,
+          "y": 115.57
+        },
+        {
+          "x": 83.82,
+          "y": 113.03
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:vin:4",
+      "points": [
+        {
+          "x": 154.94,
+          "y": 88.9
+        },
+        {
+          "x": 110.49,
+          "y": 88.9
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:vin:5",
+      "points": [
+        {
+          "x": 110.49,
+          "y": 137.16
+        },
+        {
+          "x": 110.49,
+          "y": 113.03
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:vin:6",
+      "points": [
+        {
+          "x": 83.82,
+          "y": 113.03
+        },
+        {
+          "x": 110.49,
+          "y": 113.03
+        }
+      ]
+    },
+    {
+      "id": "cmos_inverter:vout:1",
+      "points": [
+        {
+          "x": 162.56,
+          "y": 93.98
+        },
+        {
+          "x": 162.56,
+          "y": 132.08
+        }
+      ]
+    }
+  ],
+  "labels": [
+    {
+      "id": "cmos_inverter:VDD:reference",
+      "text": "VDD",
+      "role": "reference",
+      "ownerRef": "VDD",
+      "position": {
+        "x": 58.42,
+        "y": 59.69
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:VDD:value",
+      "text": "DC 3.3",
+      "role": "value",
+      "ownerRef": "VDD",
+      "position": {
+        "x": 66.04,
+        "y": 77.47
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:VIN:reference",
+      "text": "VIN",
+      "role": "reference",
+      "ownerRef": "VIN",
+      "position": {
+        "x": 80.01,
+        "y": 114.3
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:VIN:value",
+      "text": "PULSE(0 3.3 0 1n 1n 10n 20n)",
+      "role": "value",
+      "ownerRef": "VIN",
+      "position": {
+        "x": 60.96,
+        "y": 128.27
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:MN1:reference",
+      "text": "MN1",
+      "role": "reference",
+      "ownerRef": "MN1",
+      "position": {
+        "x": 168.91,
+        "y": 135.89
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:MN1:value",
+      "text": "NM1",
+      "role": "value",
+      "ownerRef": "MN1",
+      "position": {
+        "x": 168.91,
+        "y": 138.43
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:MP1:reference",
+      "text": "MP1",
+      "role": "reference",
+      "ownerRef": "MP1",
+      "position": {
+        "x": 168.91,
+        "y": 87.63
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:MP1:value",
+      "text": "PM1",
+      "role": "value",
+      "ownerRef": "MP1",
+      "position": {
+        "x": 168.91,
+        "y": 90.17
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:#SUPPORT0001:reference",
+      "text": "#SUPPORT0001",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0001",
+      "position": {
+        "x": 163.83,
+        "y": 151.13
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:#SUPPORT0001:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0001",
+      "position": {
+        "x": 163.83,
+        "y": 160.02
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:#SUPPORT0002:reference",
+      "text": "#SUPPORT0002",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0002",
+      "position": {
+        "x": 83.82,
+        "y": 138.43
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:#SUPPORT0002:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0002",
+      "position": {
+        "x": 83.82,
+        "y": 147.32
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:#SUPPORT0003:reference",
+      "text": "#SUPPORT0003",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0003",
+      "position": {
+        "x": 62.23,
+        "y": 83.82
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:#SUPPORT0003:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0003",
+      "position": {
+        "x": 62.23,
+        "y": 92.71
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:label:1:net_label:vin",
+      "text": "vin",
+      "role": "net_label",
+      "ownerRef": "label:1",
+      "position": {
+        "x": 110.49,
+        "y": 113.03
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:label:2:net_label:vdd",
+      "text": "vdd",
+      "role": "net_label",
+      "ownerRef": "label:2",
+      "position": {
+        "x": 163.83,
+        "y": 83.82
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "cmos_inverter:label:3:net_label:vout",
+      "text": "vout",
+      "role": "net_label",
+      "ownerRef": "label:3",
+      "position": {
+        "x": 164.69,
+        "y": 93.98
+      },
+      "fontSize": 1.27
+    }
+  ],
+  "junctions": [
+    {
+      "id": "cmos_inverter:junction:1",
+      "point": {
+        "x": 163.83,
+        "y": 142.24
+      }
+    },
+    {
+      "id": "cmos_inverter:junction:2",
+      "point": {
+        "x": 163.83,
+        "y": 83.82
+      }
+    },
+    {
+      "id": "cmos_inverter:junction:3",
+      "point": {
+        "x": 110.49,
+        "y": 113.03
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "layout:1",
+      "point": {
+        "x": 163.83,
+        "y": 142.24
+      },
+      "attachments": [
+        {
+          "ownerRef": "MN1",
+          "terminalName": "source"
+        },
+        {
+          "ownerRef": "#SUPPORT0001",
+          "terminalName": "top"
+        },
+        {
+          "ownerRef": "MN1",
+          "terminalName": "body"
+        }
+      ],
+      "renderStyle": "junction",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:2",
+      "point": {
+        "x": 62.23,
+        "y": 76.2
+      },
+      "attachments": [
+        {
+          "ownerRef": "VDD",
+          "terminalName": "neg"
+        },
+        {
+          "ownerRef": "#SUPPORT0003",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:3",
+      "point": {
+        "x": 83.82,
+        "y": 130.81
+      },
+      "attachments": [
+        {
+          "ownerRef": "VIN",
+          "terminalName": "neg"
+        },
+        {
+          "ownerRef": "#SUPPORT0002",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:4",
+      "point": {
+        "x": 163.83,
+        "y": 83.82
+      },
+      "attachments": [
+        {
+          "ownerRef": "VDD",
+          "terminalName": "pos"
+        },
+        {
+          "ownerRef": "MP1",
+          "terminalName": "source"
+        },
+        {
+          "ownerRef": "MP1",
+          "terminalName": "body"
+        }
+      ],
+      "renderStyle": "junction",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:5",
+      "point": {
+        "x": 110.49,
+        "y": 113.03
+      },
+      "attachments": [
+        {
+          "ownerRef": "VIN",
+          "terminalName": "pos"
+        },
+        {
+          "ownerRef": "MP1",
+          "terminalName": "gate"
+        },
+        {
+          "ownerRef": "MN1",
+          "terminalName": "gate"
+        }
+      ],
+      "renderStyle": "junction",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:6",
+      "point": {
+        "x": 162.56,
+        "y": 93.98
+      },
+      "attachments": [
+        {
+          "ownerRef": "MP1",
+          "terminalName": "drain"
+        },
+        {
+          "ownerRef": "MN1",
+          "terminalName": "drain"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    }
+  ]
+}

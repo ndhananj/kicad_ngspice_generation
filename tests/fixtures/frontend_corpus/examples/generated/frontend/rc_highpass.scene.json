@@ -1,0 +1,461 @@
+{
+  "name": "rc_highpass",
+  "bounds": {
+    "left": 50.8,
+    "top": 71.12,
+    "right": 101.6,
+    "bottom": 119.38,
+    "width": 50.8,
+    "height": 48.25999999999999
+  },
+  "components": [
+    {
+      "id": "V1",
+      "ref": "V1",
+      "value": "AC 1",
+      "shape": "voltage_source",
+      "orientation": "vertical_up",
+      "center": {
+        "x": 55.88,
+        "y": 86.36
+      },
+      "bodyBox": {
+        "left": 50.8,
+        "top": 80.01,
+        "right": 63.5,
+        "bottom": 92.71
+      },
+      "terminals": [
+        {
+          "name": "pos",
+          "point": {
+            "x": 55.88,
+            "y": 78.74
+          },
+          "side": "top"
+        },
+        {
+          "name": "neg",
+          "point": {
+            "x": 55.88,
+            "y": 93.98
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "C1",
+      "ref": "C1",
+      "value": "10n",
+      "shape": "capacitor",
+      "orientation": "horizontal",
+      "center": {
+        "x": 90.17,
+        "y": 77.47
+      },
+      "bodyBox": {
+        "left": 88.9,
+        "top": 73.66,
+        "right": 91.44,
+        "bottom": 81.28
+      },
+      "terminals": [
+        {
+          "name": "left",
+          "point": {
+            "x": 83.82,
+            "y": 77.47
+          },
+          "side": "left"
+        },
+        {
+          "name": "right",
+          "point": {
+            "x": 96.52,
+            "y": 77.47
+          },
+          "side": "right"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "R1",
+      "ref": "R1",
+      "value": "10k",
+      "shape": "resistor",
+      "orientation": "vertical",
+      "center": {
+        "x": 96.52,
+        "y": 96.52
+      },
+      "bodyBox": {
+        "left": 95.5,
+        "top": 92.71,
+        "right": 97.54,
+        "bottom": 100.33
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 96.52,
+            "y": 90.17
+          },
+          "side": "top"
+        },
+        {
+          "name": "bottom",
+          "point": {
+            "x": 96.52,
+            "y": 102.87
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "#SUPPORT0001",
+      "ref": "#SUPPORT0001",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 96.52,
+        "y": 114.3
+      },
+      "bodyBox": {
+        "left": 95.25,
+        "top": 114.3,
+        "right": 97.79,
+        "bottom": 116.84
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 96.52,
+            "y": 114.3
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    },
+    {
+      "id": "#SUPPORT0002",
+      "ref": "#SUPPORT0002",
+      "value": "GND",
+      "shape": "ground",
+      "orientation": "down",
+      "center": {
+        "x": 55.88,
+        "y": 105.41
+      },
+      "bodyBox": {
+        "left": 54.61,
+        "top": 105.41,
+        "right": 57.15,
+        "bottom": 107.95
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 55.88,
+            "y": 105.41
+          },
+          "side": "top"
+        }
+      ],
+      "hiddenReference": true
+    }
+  ],
+  "wires": [
+    {
+      "id": "rc_highpass:0:1",
+      "points": [
+        {
+          "x": 55.88,
+          "y": 93.98
+        },
+        {
+          "x": 55.88,
+          "y": 105.41
+        }
+      ]
+    },
+    {
+      "id": "rc_highpass:0:2",
+      "points": [
+        {
+          "x": 96.52,
+          "y": 102.87
+        },
+        {
+          "x": 96.52,
+          "y": 114.3
+        }
+      ]
+    },
+    {
+      "id": "rc_highpass:vin:1",
+      "points": [
+        {
+          "x": 55.88,
+          "y": 78.74
+        },
+        {
+          "x": 55.88,
+          "y": 77.47
+        }
+      ]
+    },
+    {
+      "id": "rc_highpass:vin:2",
+      "points": [
+        {
+          "x": 55.88,
+          "y": 77.47
+        },
+        {
+          "x": 83.82,
+          "y": 77.47
+        }
+      ]
+    },
+    {
+      "id": "rc_highpass:vmid:1",
+      "points": [
+        {
+          "x": 96.52,
+          "y": 90.17
+        },
+        {
+          "x": 96.52,
+          "y": 77.47
+        }
+      ]
+    }
+  ],
+  "labels": [
+    {
+      "id": "rc_highpass:V1:reference",
+      "text": "V1",
+      "role": "reference",
+      "ownerRef": "V1",
+      "position": {
+        "x": 52.07,
+        "y": 77.47
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rc_highpass:V1:value",
+      "text": "AC 1",
+      "role": "value",
+      "ownerRef": "V1",
+      "position": {
+        "x": 53.34,
+        "y": 95.25
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rc_highpass:C1:reference",
+      "text": "C1",
+      "role": "reference",
+      "ownerRef": "C1",
+      "position": {
+        "x": 90.17,
+        "y": 71.12
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rc_highpass:C1:value",
+      "text": "10n",
+      "role": "value",
+      "ownerRef": "C1",
+      "position": {
+        "x": 90.17,
+        "y": 83.82
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rc_highpass:R1:reference",
+      "text": "R1",
+      "role": "reference",
+      "ownerRef": "R1",
+      "position": {
+        "x": 101.6,
+        "y": 93.98
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rc_highpass:R1:value",
+      "text": "10k",
+      "role": "value",
+      "ownerRef": "R1",
+      "position": {
+        "x": 91.44,
+        "y": 99.06
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rc_highpass:#SUPPORT0001:reference",
+      "text": "#SUPPORT0001",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0001",
+      "position": {
+        "x": 96.52,
+        "y": 110.49
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rc_highpass:#SUPPORT0001:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0001",
+      "position": {
+        "x": 96.52,
+        "y": 119.38
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rc_highpass:#SUPPORT0002:reference",
+      "text": "#SUPPORT0002",
+      "role": "reference",
+      "ownerRef": "#SUPPORT0002",
+      "position": {
+        "x": 55.88,
+        "y": 101.6
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rc_highpass:#SUPPORT0002:value",
+      "text": "GND",
+      "role": "value",
+      "ownerRef": "#SUPPORT0002",
+      "position": {
+        "x": 55.88,
+        "y": 110.49
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rc_highpass:label:1:net_label:vin",
+      "text": "vin",
+      "role": "net_label",
+      "ownerRef": "label:1",
+      "position": {
+        "x": 69.85,
+        "y": 77.47
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "rc_highpass:label:2:net_label:vmid",
+      "text": "vmid",
+      "role": "net_label",
+      "ownerRef": "label:2",
+      "position": {
+        "x": 96.52,
+        "y": 77.47
+      },
+      "fontSize": 1.27
+    }
+  ],
+  "junctions": [],
+  "nodes": [
+    {
+      "id": "layout:1",
+      "point": {
+        "x": 55.88,
+        "y": 93.98
+      },
+      "attachments": [
+        {
+          "ownerRef": "V1",
+          "terminalName": "neg"
+        },
+        {
+          "ownerRef": "#SUPPORT0002",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:2",
+      "point": {
+        "x": 96.52,
+        "y": 102.87
+      },
+      "attachments": [
+        {
+          "ownerRef": "R1",
+          "terminalName": "bottom"
+        },
+        {
+          "ownerRef": "#SUPPORT0001",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:3",
+      "point": {
+        "x": 55.88,
+        "y": 77.47
+      },
+      "attachments": [
+        {
+          "ownerRef": "V1",
+          "terminalName": "pos"
+        },
+        {
+          "ownerRef": "C1",
+          "terminalName": "left"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:4",
+      "point": {
+        "x": 96.52,
+        "y": 77.47
+      },
+      "attachments": [
+        {
+          "ownerRef": "C1",
+          "terminalName": "right"
+        },
+        {
+          "ownerRef": "R1",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    }
+  ]
+}

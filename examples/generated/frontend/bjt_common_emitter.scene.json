@@ -1,0 +1,1113 @@
+{
+  "name": "bjt_common_emitter",
+  "bounds": {
+    "left": 54.61,
+    "top": 68.58,
+    "right": 227.33,
+    "bottom": 121.92,
+    "width": 172.72000000000003,
+    "height": 53.34
+  },
+  "components": [
+    {
+      "id": "RL",
+      "ref": "RL",
+      "value": "10k",
+      "shape": "resistor",
+      "orientation": "vertical",
+      "center": {
+        "x": 199.39,
+        "y": 115.57
+      },
+      "bodyBox": {
+        "left": 198.37,
+        "top": 111.76,
+        "right": 200.41,
+        "bottom": 119.38
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 199.39,
+            "y": 109.22
+          },
+          "side": "top"
+        },
+        {
+          "name": "bottom",
+          "point": {
+            "x": 199.39,
+            "y": 121.92
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "VS",
+      "ref": "VS",
+      "value": "SIN(0 0.02 1k)",
+      "shape": "voltage_source",
+      "orientation": "vertical_up",
+      "center": {
+        "x": 69.85,
+        "y": 107.95
+      },
+      "bodyBox": {
+        "left": 64.77,
+        "top": 101.6,
+        "right": 77.47,
+        "bottom": 114.3
+      },
+      "terminals": [
+        {
+          "name": "pos",
+          "point": {
+            "x": 69.85,
+            "y": 100.33
+          },
+          "side": "top"
+        },
+        {
+          "name": "neg",
+          "point": {
+            "x": 69.85,
+            "y": 115.57
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "RE",
+      "ref": "RE",
+      "value": "1k",
+      "shape": "resistor",
+      "orientation": "vertical",
+      "center": {
+        "x": 163.83,
+        "y": 115.57
+      },
+      "bodyBox": {
+        "left": 162.81,
+        "top": 111.76,
+        "right": 164.85,
+        "bottom": 119.38
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 163.83,
+            "y": 109.22
+          },
+          "side": "top"
+        },
+        {
+          "name": "bottom",
+          "point": {
+            "x": 163.83,
+            "y": 121.92
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "Q1",
+      "ref": "Q1",
+      "value": "2N3904",
+      "shape": "npn_bjt",
+      "orientation": "right",
+      "center": {
+        "x": 160.02,
+        "y": 100.33
+      },
+      "bodyBox": {
+        "left": 157.48,
+        "top": 96.52,
+        "right": 164.47,
+        "bottom": 104.78
+      },
+      "terminals": [
+        {
+          "name": "collector",
+          "point": {
+            "x": 163.83,
+            "y": 91.44
+          },
+          "side": "top"
+        },
+        {
+          "name": "base",
+          "point": {
+            "x": 152.4,
+            "y": 100.33
+          },
+          "side": "left"
+        },
+        {
+          "name": "emitter",
+          "point": {
+            "x": 163.83,
+            "y": 109.22
+          },
+          "side": "bottom"
+        },
+        {
+          "name": "substrate",
+          "point": {
+            "x": 157.48,
+            "y": 109.22
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "R1",
+      "ref": "R1",
+      "value": "100k",
+      "shape": "resistor",
+      "orientation": "vertical",
+      "center": {
+        "x": 125.73,
+        "y": 93.98
+      },
+      "bodyBox": {
+        "left": 124.71,
+        "top": 90.17,
+        "right": 126.75,
+        "bottom": 97.79
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 125.73,
+            "y": 87.63
+          },
+          "side": "top"
+        },
+        {
+          "name": "bottom",
+          "point": {
+            "x": 125.73,
+            "y": 100.33
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "CE",
+      "ref": "CE",
+      "value": "100u",
+      "shape": "capacitor",
+      "orientation": "vertical",
+      "center": {
+        "x": 177.8,
+        "y": 115.57
+      },
+      "bodyBox": {
+        "left": 173.99,
+        "top": 114.3,
+        "right": 181.61,
+        "bottom": 116.84
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 177.8,
+            "y": 109.22
+          },
+          "side": "top"
+        },
+        {
+          "name": "bottom",
+          "point": {
+            "x": 177.8,
+            "y": 121.92
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "VCC",
+      "ref": "VCC",
+      "value": "DC 12",
+      "shape": "voltage_source",
+      "orientation": "vertical_up",
+      "center": {
+        "x": 219.71,
+        "y": 76.2
+      },
+      "bodyBox": {
+        "left": 214.63,
+        "top": 69.85,
+        "right": 227.33,
+        "bottom": 82.55
+      },
+      "terminals": [
+        {
+          "name": "pos",
+          "point": {
+            "x": 219.71,
+            "y": 68.58
+          },
+          "side": "top"
+        },
+        {
+          "name": "neg",
+          "point": {
+            "x": 219.71,
+            "y": 83.82
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "R2",
+      "ref": "R2",
+      "value": "22k",
+      "shape": "resistor",
+      "orientation": "vertical",
+      "center": {
+        "x": 125.73,
+        "y": 115.57
+      },
+      "bodyBox": {
+        "left": 124.71,
+        "top": 111.76,
+        "right": 126.75,
+        "bottom": 119.38
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 125.73,
+            "y": 109.22
+          },
+          "side": "top"
+        },
+        {
+          "name": "bottom",
+          "point": {
+            "x": 125.73,
+            "y": 121.92
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "RC",
+      "ref": "RC",
+      "value": "2.2k",
+      "shape": "resistor",
+      "orientation": "vertical",
+      "center": {
+        "x": 163.83,
+        "y": 85.09
+      },
+      "bodyBox": {
+        "left": 162.81,
+        "top": 81.28,
+        "right": 164.85,
+        "bottom": 88.9
+      },
+      "terminals": [
+        {
+          "name": "top",
+          "point": {
+            "x": 163.83,
+            "y": 78.74
+          },
+          "side": "top"
+        },
+        {
+          "name": "bottom",
+          "point": {
+            "x": 163.83,
+            "y": 91.44
+          },
+          "side": "bottom"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "CB",
+      "ref": "CB",
+      "value": "10u",
+      "shape": "capacitor",
+      "orientation": "horizontal",
+      "center": {
+        "x": 100.33,
+        "y": 100.33
+      },
+      "bodyBox": {
+        "left": 99.06,
+        "top": 96.52,
+        "right": 101.6,
+        "bottom": 104.14
+      },
+      "terminals": [
+        {
+          "name": "left",
+          "point": {
+            "x": 93.98,
+            "y": 100.33
+          },
+          "side": "left"
+        },
+        {
+          "name": "right",
+          "point": {
+            "x": 106.68,
+            "y": 100.33
+          },
+          "side": "right"
+        }
+      ],
+      "hiddenReference": false
+    },
+    {
+      "id": "CC",
+      "ref": "CC",
+      "value": "10u",
+      "shape": "capacitor",
+      "orientation": "horizontal",
+      "center": {
+        "x": 193.04,
+        "y": 91.44
+      },
+      "bodyBox": {
+        "left": 191.77,
+        "top": 87.63,
+        "right": 194.31,
+        "bottom": 95.25
+      },
+      "terminals": [
+        {
+          "name": "left",
+          "point": {
+            "x": 186.69,
+            "y": 91.44
+          },
+          "side": "left"
+        },
+        {
+          "name": "right",
+          "point": {
+            "x": 199.39,
+            "y": 91.44
+          },
+          "side": "right"
+        }
+      ],
+      "hiddenReference": false
+    }
+  ],
+  "wires": [
+    {
+      "id": "bjt_common_emitter:0:1",
+      "points": [
+        {
+          "x": 157.48,
+          "y": 109.22
+        },
+        {
+          "x": 157.48,
+          "y": 121.92
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:0:2",
+      "points": [
+        {
+          "x": 69.85,
+          "y": 115.57
+        },
+        {
+          "x": 69.85,
+          "y": 121.92
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:0:3",
+      "points": [
+        {
+          "x": 69.85,
+          "y": 121.92
+        },
+        {
+          "x": 157.48,
+          "y": 121.92
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:0:4",
+      "points": [
+        {
+          "x": 157.48,
+          "y": 121.92
+        },
+        {
+          "x": 219.71,
+          "y": 121.92
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:0:5",
+      "points": [
+        {
+          "x": 219.71,
+          "y": 83.82
+        },
+        {
+          "x": 219.71,
+          "y": 121.92
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:base:1",
+      "points": [
+        {
+          "x": 106.68,
+          "y": 100.33
+        },
+        {
+          "x": 125.73,
+          "y": 100.33
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:base:2",
+      "points": [
+        {
+          "x": 125.73,
+          "y": 109.22
+        },
+        {
+          "x": 125.73,
+          "y": 100.33
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:base:3",
+      "points": [
+        {
+          "x": 152.4,
+          "y": 100.33
+        },
+        {
+          "x": 125.73,
+          "y": 100.33
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:bjt_common_emitter:imported:wire:9:1",
+      "points": [
+        {
+          "x": 163.83,
+          "y": 78.74
+        },
+        {
+          "x": 163.83,
+          "y": 68.58
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:collector:1",
+      "points": [
+        {
+          "x": 186.69,
+          "y": 91.44
+        },
+        {
+          "x": 163.83,
+          "y": 91.44
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:emitter:1",
+      "points": [
+        {
+          "x": 177.8,
+          "y": 109.22
+        },
+        {
+          "x": 163.83,
+          "y": 109.22
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:vcc:1",
+      "points": [
+        {
+          "x": 125.73,
+          "y": 87.63
+        },
+        {
+          "x": 125.73,
+          "y": 68.58
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:vcc:2",
+      "points": [
+        {
+          "x": 125.73,
+          "y": 68.58
+        },
+        {
+          "x": 219.71,
+          "y": 68.58
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:vin_src:1",
+      "points": [
+        {
+          "x": 69.85,
+          "y": 100.33
+        },
+        {
+          "x": 93.98,
+          "y": 100.33
+        }
+      ]
+    },
+    {
+      "id": "bjt_common_emitter:vout:1",
+      "points": [
+        {
+          "x": 199.39,
+          "y": 91.44
+        },
+        {
+          "x": 199.39,
+          "y": 109.22
+        }
+      ]
+    }
+  ],
+  "labels": [
+    {
+      "id": "bjt_common_emitter:RL:reference",
+      "text": "RL",
+      "role": "reference",
+      "ownerRef": "RL",
+      "position": {
+        "x": 194.31,
+        "y": 113.03
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:RL:value",
+      "text": "10k",
+      "role": "value",
+      "ownerRef": "RL",
+      "position": {
+        "x": 194.31,
+        "y": 118.11
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:VS:reference",
+      "text": "VS",
+      "role": "reference",
+      "ownerRef": "VS",
+      "position": {
+        "x": 66.04,
+        "y": 99.06
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:VS:value",
+      "text": "SIN(0 0.02 1k)",
+      "role": "value",
+      "ownerRef": "VS",
+      "position": {
+        "x": 54.61,
+        "y": 113.03
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:RE:reference",
+      "text": "RE",
+      "role": "reference",
+      "ownerRef": "RE",
+      "position": {
+        "x": 168.91,
+        "y": 113.03
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:RE:value",
+      "text": "1k",
+      "role": "value",
+      "ownerRef": "RE",
+      "position": {
+        "x": 168.91,
+        "y": 118.11
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:Q1:reference",
+      "text": "Q1",
+      "role": "reference",
+      "ownerRef": "Q1",
+      "position": {
+        "x": 161.29,
+        "y": 93.98
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:Q1:value",
+      "text": "2N3904",
+      "role": "value",
+      "ownerRef": "Q1",
+      "position": {
+        "x": 151.13,
+        "y": 104.14
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:R1:reference",
+      "text": "R1",
+      "role": "reference",
+      "ownerRef": "R1",
+      "position": {
+        "x": 130.81,
+        "y": 91.44
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:R1:value",
+      "text": "100k",
+      "role": "value",
+      "ownerRef": "R1",
+      "position": {
+        "x": 130.81,
+        "y": 96.52
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:CE:reference",
+      "text": "CE",
+      "role": "reference",
+      "ownerRef": "CE",
+      "position": {
+        "x": 177.8,
+        "y": 111.76
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:CE:value",
+      "text": "100u",
+      "role": "value",
+      "ownerRef": "CE",
+      "position": {
+        "x": 177.8,
+        "y": 119.38
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:VCC:reference",
+      "text": "VCC",
+      "role": "reference",
+      "ownerRef": "VCC",
+      "position": {
+        "x": 215.9,
+        "y": 85.09
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:VCC:value",
+      "text": "DC 12",
+      "role": "value",
+      "ownerRef": "VCC",
+      "position": {
+        "x": 209.55,
+        "y": 81.28
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:R2:reference",
+      "text": "R2",
+      "role": "reference",
+      "ownerRef": "R2",
+      "position": {
+        "x": 130.81,
+        "y": 113.03
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:R2:value",
+      "text": "22k",
+      "role": "value",
+      "ownerRef": "R2",
+      "position": {
+        "x": 120.65,
+        "y": 113.03
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:RC:reference",
+      "text": "RC",
+      "role": "reference",
+      "ownerRef": "RC",
+      "position": {
+        "x": 168.91,
+        "y": 82.55
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:RC:value",
+      "text": "2.2k",
+      "role": "value",
+      "ownerRef": "RC",
+      "position": {
+        "x": 168.91,
+        "y": 87.63
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:CB:reference",
+      "text": "CB",
+      "role": "reference",
+      "ownerRef": "CB",
+      "position": {
+        "x": 100.33,
+        "y": 93.98
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:CB:value",
+      "text": "10u",
+      "role": "value",
+      "ownerRef": "CB",
+      "position": {
+        "x": 100.33,
+        "y": 106.68
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:CC:reference",
+      "text": "CC",
+      "role": "reference",
+      "ownerRef": "CC",
+      "position": {
+        "x": 193.04,
+        "y": 85.09
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:CC:value",
+      "text": "10u",
+      "role": "value",
+      "ownerRef": "CC",
+      "position": {
+        "x": 193.04,
+        "y": 97.79
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:label:1:net_label:base",
+      "text": "base",
+      "role": "net_label",
+      "ownerRef": "label:1",
+      "position": {
+        "x": 125.73,
+        "y": 100.33
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:label:2:net_label:collector",
+      "text": "collector",
+      "role": "net_label",
+      "ownerRef": "label:2",
+      "position": {
+        "x": 163.83,
+        "y": 91.44
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:label:3:net_label:vout",
+      "text": "vout",
+      "role": "net_label",
+      "ownerRef": "label:3",
+      "position": {
+        "x": 199.39,
+        "y": 91.44
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:label:4:net_label:vin_src",
+      "text": "vin_src",
+      "role": "net_label",
+      "ownerRef": "label:4",
+      "position": {
+        "x": 81.28,
+        "y": 100.33
+      },
+      "fontSize": 1.27
+    },
+    {
+      "id": "bjt_common_emitter:label:5:net_label:emitter",
+      "text": "emitter",
+      "role": "net_label",
+      "ownerRef": "label:5",
+      "position": {
+        "x": 163.83,
+        "y": 109.22
+      },
+      "fontSize": 1.27
+    }
+  ],
+  "junctions": [
+    {
+      "id": "bjt_common_emitter:junction:1",
+      "point": {
+        "x": 157.48,
+        "y": 121.92
+      }
+    },
+    {
+      "id": "bjt_common_emitter:junction:2",
+      "point": {
+        "x": 125.73,
+        "y": 100.33
+      }
+    },
+    {
+      "id": "bjt_common_emitter:junction:3",
+      "point": {
+        "x": 163.83,
+        "y": 91.44
+      }
+    },
+    {
+      "id": "bjt_common_emitter:junction:4",
+      "point": {
+        "x": 163.83,
+        "y": 109.22
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "layout:1",
+      "point": {
+        "x": 157.48,
+        "y": 121.92
+      },
+      "attachments": [
+        {
+          "ownerRef": "VS",
+          "terminalName": "neg"
+        },
+        {
+          "ownerRef": "Q1",
+          "terminalName": "substrate"
+        },
+        {
+          "ownerRef": "VCC",
+          "terminalName": "neg"
+        }
+      ],
+      "renderStyle": "junction",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:2",
+      "point": {
+        "x": 125.73,
+        "y": 100.33
+      },
+      "attachments": [
+        {
+          "ownerRef": "CB",
+          "terminalName": "right"
+        },
+        {
+          "ownerRef": "R1",
+          "terminalName": "bottom"
+        },
+        {
+          "ownerRef": "R2",
+          "terminalName": "top"
+        },
+        {
+          "ownerRef": "Q1",
+          "terminalName": "base"
+        }
+      ],
+      "renderStyle": "junction",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:3",
+      "point": {
+        "x": 163.83,
+        "y": 91.44
+      },
+      "attachments": [
+        {
+          "ownerRef": "Q1",
+          "terminalName": "collector"
+        },
+        {
+          "ownerRef": "RC",
+          "terminalName": "bottom"
+        },
+        {
+          "ownerRef": "CC",
+          "terminalName": "left"
+        }
+      ],
+      "renderStyle": "junction",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:4",
+      "point": {
+        "x": 163.83,
+        "y": 109.22
+      },
+      "attachments": [
+        {
+          "ownerRef": "RE",
+          "terminalName": "top"
+        },
+        {
+          "ownerRef": "Q1",
+          "terminalName": "emitter"
+        },
+        {
+          "ownerRef": "CE",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "junction",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:5",
+      "point": {
+        "x": 125.73,
+        "y": 68.58
+      },
+      "attachments": [
+        {
+          "ownerRef": "R1",
+          "terminalName": "top"
+        },
+        {
+          "ownerRef": "VCC",
+          "terminalName": "pos"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:6",
+      "point": {
+        "x": 69.85,
+        "y": 100.33
+      },
+      "attachments": [
+        {
+          "ownerRef": "VS",
+          "terminalName": "pos"
+        },
+        {
+          "ownerRef": "CB",
+          "terminalName": "left"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    },
+    {
+      "id": "layout:7",
+      "point": {
+        "x": 199.39,
+        "y": 91.44
+      },
+      "attachments": [
+        {
+          "ownerRef": "CC",
+          "terminalName": "right"
+        },
+        {
+          "ownerRef": "RL",
+          "terminalName": "top"
+        }
+      ],
+      "renderStyle": "inline",
+      "label": null,
+      "role": null
+    }
+  ]
+}
