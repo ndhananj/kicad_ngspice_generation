@@ -67,6 +67,7 @@ a {
   gap: 1.5rem;
   padding: 1.5rem;
   min-height: 100vh;
+  align-items: start;
 }
 
 .panel,
@@ -110,6 +111,13 @@ a {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 1.25rem;
+  min-height: 0;
+  align-self: start;
+}
+
+.editor {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
   min-height: 0;
 }
 
@@ -328,6 +336,7 @@ h2 {
 
 .editor-pane {
   position: relative;
+  height: clamp(30rem, 68vh, 44rem);
   min-height: 0;
   overflow: hidden;
   border-radius: 1.2rem;
@@ -616,6 +625,10 @@ h2 {
 
   .output-grid {
     grid-template-columns: 1fr;
+  }
+
+  .editor-pane {
+    height: clamp(24rem, 60vh, 34rem);
   }
 
   .source-viewer,

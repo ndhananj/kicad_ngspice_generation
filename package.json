@@ -2,7 +2,8 @@
   "private": true,
   "scripts": {
     "test:frontend": "playwright test",
-    "test:frontend:update": "playwright test --update-snapshots"
+    "test:frontend:update": "playwright test --update-snapshots",
+    "test:frontend:live": "python3 scripts/validate_frontend_editor_visibility.py"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2"

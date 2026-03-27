@@ -4,28 +4,20 @@ const chromeExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || "/us
 
 module.exports = defineConfig({
   testDir: "./tests/frontend",
-  testIgnore: /live-corpus\.spec\.js$/,
+  testMatch: /live-corpus\.spec\.js$/,
   timeout: 30000,
-  expect: {
-    timeout: 5000,
-    toHaveScreenshot: {
-      animations: "disabled",
-      maxDiffPixelRatio: 0.02,
-    },
-  },
   use: {
-    baseURL: "http://127.0.0.1:4173/frontend/",
     browserName: "chromium",
     headless: true,
-    viewport: { width: 1440, height: 1024 },
+    viewport: { width: 1365, height: 768 },
     launchOptions: {
       executablePath: chromeExecutable,
       args: ["--no-sandbox", "--disable-dev-shm-usage"],
     },
   },
   webServer: {
-    command: "python3 scripts/serve_frontend_fixture_corpus.py --port 4173",
-    url: "http://127.0.0.1:4173/frontend/",
+    command: "python3 scripts/serve_frontend.py --port 4174",
+    url: "http://127.0.0.1:4174/frontend/",
     reuseExistingServer: true,
     timeout: 30000,
   },

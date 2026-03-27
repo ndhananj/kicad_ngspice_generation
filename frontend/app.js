@@ -796,6 +796,7 @@ function renderEditorScene() {
   const viewWidth = rendered.bounds.width + margin * 2;
   const viewHeight = rendered.bounds.height + margin * 2;
   editorCanvas.setAttribute("viewBox", `${viewLeft} ${viewTop} ${viewWidth} ${viewHeight}`);
+  editorCanvas.setAttribute("preserveAspectRatio", "xMidYMin meet");
 
   const wireLayer = createSvgElement("g", { class: "editor-wire-layer" });
   for (const wire of rendered.wires) {
