@@ -495,26 +495,76 @@ function roundToGrid(value) {
   return Math.round(value / GRID_STEP) * GRID_STEP;
 }
 
+function clonePoint(point, fallback = { x: 0, y: 0 }) {
+  return {
+    x: Number.isFinite(point?.x) ? point.x : fallback.x,
+    y: Number.isFinite(point?.y) ? point.y : fallback.y,
+  };
+}
+
+function normalizeBodyBox(component, center) {
+  if (component.bodyBoxOffset) {
+    return {
+      left: component.bodyBoxOffset.left,
+      top: component.bodyBoxOffset.top,
+      right: component.bodyBoxOffset.right,
+      bottom: component.bodyBoxOffset.bottom,
+    };
+  }
+
+  if (component.bodyBox) {
+    return {
+      left: component.bodyBox.left - center.x,
+      top: component.bodyBox.top - center.y,
+      right: component.bodyBox.right - center.x,
+      bottom: component.bodyBox.bottom - center.y,
+    };
+  }
+
+  return { left: -3.81, top: -1.27, right: 3.81, bottom: 1.27 };
+}
+
+function normalizeTerminalOffsets(component, center) {
+  if (Array.isArray(component.terminalOffsets)) {
+    return component.terminalOffsets.map((terminal) => ({
+      name: terminal.name,
+      side: terminal.side ?? "unknown",
+      offset: clonePoint(terminal.offset),
+    }));
+  }
+
+  return (component.terminals ?? []).map((terminal) => ({
+    name: terminal.name,
+    side: terminal.side ?? "unknown",
+    offset: {
+      x: terminal.point.x - center.x,
+      y: terminal.point.y - center.y,
+    },
+  }));
+}
+
+function hasRenderableEditorContent(scene) {
+  return Boolean(
+    scene
+    && (
+      (scene.components?.length ?? 0) > 0
+      || (scene.wires?.length ?? 0) > 0
+      || (scene.labels?.length ?? 0) > 0
+      || (scene.nodes?.length ?? 0) > 0
+      || (scene.junctions?.length ?? 0) > 0
+    )
+  );
+}
+
 function normalizeEditorScene(scene) {
   const componentByRef = new Map();
   const components = (scene.components ?? []).map((component) => {
+    const center = clonePoint(component.center);
     const normalized = {
       ...component,
-      center: { ...component.center },
-      bodyBoxOffset: {
-        left: component.bodyBox.left - component.center.x,
-        top: component.bodyBox.top - component.center.y,
-        right: component.bodyBox.right - component.center.x,
-        bottom: component.bodyBox.bottom - component.center.y,
-      },
-      terminalOffsets: (component.terminals ?? []).map((terminal) => ({
-        name: terminal.name,
-        side: terminal.side,
-        offset: {
-          x: terminal.point.x - component.center.x,
-          y: terminal.point.y - component.center.y,
-        },
-      })),
+      center,
+      bodyBoxOffset: normalizeBodyBox(component, center),
+      terminalOffsets: normalizeTerminalOffsets(component, center),
     };
     componentByRef.set(normalized.ref, normalized);
     return normalized;
@@ -541,16 +591,16 @@ function normalizeEditorScene(scene) {
     labels,
     wires: (scene.wires ?? []).map((wire) => ({
       ...wire,
-      points: wire.points.map((point) => ({ ...point })),
+      points: (wire.points ?? []).map((point) => clonePoint(point)),
     })),
     nodes: (scene.nodes ?? []).map((node) => ({
       ...node,
-      point: { ...node.point },
+      point: clonePoint(node.point),
       attachments: (node.attachments ?? []).map((attachment) => ({ ...attachment })),
     })),
     junctions: (scene.junctions ?? []).map((junction) => ({
       ...junction,
-      point: { ...junction.point },
+      point: clonePoint(junction.point),
     })),
   };
 }
@@ -973,11 +1023,10 @@ async function loadSourceText() {
 
 async function loadEditorScene() {
   const example = getActiveExample();
-  const activeTab = getActiveTab();
-  const artifact = getArtifact(example, activeTab.artifactKey);
+  const artifact = getArtifact(example, "editorScene");
   const requestToken = ++state.sceneRequestToken;
 
-  activeFileLabel.textContent = activeTab.filename;
+  activeFileLabel.textContent = "editor.scene.json";
   setLinkState(openRawLink, artifact);
   setStatus("");
 
@@ -997,7 +1046,16 @@ async function loadEditorScene() {
     if (requestToken !== state.sceneRequestToken) {
       return;
     }
-    state.editorScenes[example.id] = normalizeEditorScene(scene);
+    const normalizedScene = normalizeEditorScene(scene);
+    if (!hasRenderableEditorContent(normalizedScene)) {
+      delete state.editorScenes[example.id];
+      state.selectedComponentId = null;
+      showEditorEmptyState("Editor unavailable", "This example does not include any renderable editor geometry in the current corpus.");
+      setStatus("Unable to load editor.scene.json. The scene payload did not contain renderable editor geometry.", true);
+      renderEditorScene();
+      return;
+    }
+    state.editorScenes[example.id] = normalizedScene;
     state.selectedComponentId = null;
     renderEditorScene();
   } catch (error) {
@@ -1006,8 +1064,8 @@ async function loadEditorScene() {
     }
     delete state.editorScenes[example.id];
     state.selectedComponentId = null;
-    showEditorEmptyState("Editor unavailable", `Unable to load ${activeTab.filename}. ${error.message}.`);
-    setStatus(`Unable to load ${activeTab.filename}. ${error.message}.`, true);
+    showEditorEmptyState("Editor unavailable", `Unable to load editor.scene.json. ${error.message}.`);
+    setStatus(`Unable to load editor.scene.json. ${error.message}.`, true);
     renderEditorScene();
   }
 }

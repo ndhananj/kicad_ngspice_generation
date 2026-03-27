@@ -5,12 +5,20 @@ async function stabilizeFonts(page) {
   await page.route("https://fonts.gstatic.com/**", (route) => route.abort());
 }
 
+async function expectEditorScene(page, componentIds) {
+  for (const componentId of componentIds) {
+    await expect(page.locator(`[data-component-id="${componentId}"]`)).toBeVisible();
+  }
+  await expect.poll(async () => page.locator(".editor-wire").count()).toBeGreaterThan(0);
+  await expect(page.locator("#editor-empty-state")).toBeHidden();
+}
+
 async function openWorkbench(page) {
   await stabilizeFonts(page);
   await page.goto("./?test=1");
   await expect(page.locator("#hero-title")).toHaveText("RC Low-pass");
   await expect(page.getByRole("tab", { name: "Editor" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator('[data-component-id="R1"]')).toBeVisible();
+  await expectEditorScene(page, ["V1", "R1", "C1"]);
 }
 
 const smokeExamples = [
@@ -76,6 +84,16 @@ test("supports selecting, dragging, and nudging components in the editor", async
 
   await page.keyboard.press("Delete");
   await expect(resistor).not.toHaveClass(/active/);
+});
+
+test("loads populated editor scenes when examples switch", async ({ page }) => {
+  await openWorkbench(page);
+
+  await expectEditorScene(page, ["V1", "R1", "C1"]);
+  await page.locator('[data-example-id="rc_highpass"]').click();
+  await expect(page.locator("#hero-title")).toHaveText("RC High-pass");
+  await expectEditorScene(page, ["V1", "R1", "C1"]);
+  await expect(page.locator("#editor-selection")).toHaveText("No component selected");
 });
 
 test("preserves the active tab and updates the preview when switching examples", async ({ page }) => {
