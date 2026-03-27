@@ -17,4 +17,7 @@ test("keeps the initial editor content inside the visible pane on the real corpu
   const componentBox = await page.locator('[data-component-id="R1"]').boundingBox();
   expect(paneBox.height).toBeLessThan(viewport.height * 0.82);
   expect(componentBox.y).toBeLessThan(paneBox.y + paneBox.height * 0.6);
+  await expect(page.locator(".editor-component-ref")).toHaveCount(0);
+  await expect(page.locator(".editor-component-shape")).toHaveCount(0);
+  await expect(page.locator('.editor-label[data-label-text^="#SUPPORT"]')).toHaveCount(0);
 });

@@ -60,16 +60,50 @@ async function main() {
     await page.screenshot({ path: args.screenshot, fullPage: false });
 
     const metrics = await page.evaluate(() => {
+      const toRectPayload = (rect) => ({
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        left: rect.left,
+      });
       const pane = document.querySelector(".editor-pane");
       const surface = document.querySelector("#editor-surface");
       const canvas = document.querySelector("#editor-canvas");
       const components = Array.from(document.querySelectorAll("[data-component-id]"));
+      const labelElements = Array.from(document.querySelectorAll(".editor-label"));
       const visibleComponent = components
         .map((element) => ({
           id: element.getAttribute("data-component-id"),
-          rect: element.getBoundingClientRect(),
+          rect: toRectPayload(element.getBoundingClientRect()),
         }))
         .find((entry) => entry.rect.width > 0 && entry.rect.height > 0) ?? null;
+      const labelMetrics = labelElements
+        .map((element) => ({
+          text: (element.textContent || "").trim(),
+          ownerRef: element.getAttribute("data-owner-ref") || null,
+          role: Array.from(element.classList)
+            .find((name) => name.startsWith("editor-label-"))
+            ?.replace("editor-label-", "") ?? "unknown",
+          rect: toRectPayload(element.getBoundingClientRect()),
+        }))
+        .filter((entry) => entry.text && entry.rect.width > 0 && entry.rect.height > 0);
+      const bodyMetrics = components
+        .map((component) => {
+          const id = component.getAttribute("data-component-id");
+          const body = component.querySelector(".editor-component-body");
+          if (!id || !body) {
+            return null;
+          }
+          return {
+            id,
+            rect: toRectPayload(body.getBoundingClientRect()),
+          };
+        })
+        .filter(Boolean);
       const viewBox = canvas.viewBox.baseVal;
       return {
         viewport: {
@@ -78,10 +112,12 @@ async function main() {
         },
         exampleCount: document.querySelectorAll("#example-list .example-card").length,
         wireCount: document.querySelectorAll(".editor-wire").length,
-        paneRect: pane.getBoundingClientRect(),
-        surfaceRect: surface.getBoundingClientRect(),
-        canvasRect: canvas.getBoundingClientRect(),
+        paneRect: toRectPayload(pane.getBoundingClientRect()),
+        surfaceRect: toRectPayload(surface.getBoundingClientRect()),
+        canvasRect: toRectPayload(canvas.getBoundingClientRect()),
         visibleComponent,
+        labelMetrics,
+        bodyMetrics,
         editorEmptyStateHidden: document.querySelector("#editor-empty-state").hidden,
         viewBox: {
           x: viewBox.x,

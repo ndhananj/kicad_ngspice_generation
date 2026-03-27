@@ -518,17 +518,6 @@
       "fontSize": 1.27
     },
     {
-      "id": "rlc_bandpass:#SUPPORT0001:reference",
-      "text": "#SUPPORT0001",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0001",
-      "position": {
-        "x": 135.89,
-        "y": 110.49
-      },
-      "fontSize": 1.27
-    },
-    {
       "id": "rlc_bandpass:#SUPPORT0001:value",
       "text": "GND",
       "role": "value",
@@ -540,34 +529,12 @@
       "fontSize": 1.27
     },
     {
-      "id": "rlc_bandpass:#SUPPORT0002:reference",
-      "text": "#SUPPORT0002",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0002",
-      "position": {
-        "x": 55.88,
-        "y": 101.6
-      },
-      "fontSize": 1.27
-    },
-    {
       "id": "rlc_bandpass:#SUPPORT0002:value",
       "text": "GND",
       "role": "value",
       "ownerRef": "#SUPPORT0002",
       "position": {
         "x": 55.88,
-        "y": 110.49
-      },
-      "fontSize": 1.27
-    },
-    {
-      "id": "rlc_bandpass:#SUPPORT0003:reference",
-      "text": "#SUPPORT0003",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0003",
-      "position": {
-        "x": 116.84,
         "y": 110.49
       },
       "fontSize": 1.27

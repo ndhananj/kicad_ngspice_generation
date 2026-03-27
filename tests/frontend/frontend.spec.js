@@ -96,6 +96,16 @@ test("loads populated editor scenes when examples switch", async ({ page }) => {
   await expect(page.locator("#editor-selection")).toHaveText("No component selected");
 });
 
+test("renders only exported visible labels in the editor canvas", async ({ page }) => {
+  await openWorkbench(page);
+
+  await expect(page.locator(".editor-component-ref")).toHaveCount(0);
+  await expect(page.locator(".editor-component-shape")).toHaveCount(0);
+  await expect(page.locator('.editor-label[data-label-text^="#SUPPORT"]')).toHaveCount(0);
+  await expect(page.locator('.editor-label[data-label-text="R1"]')).toHaveCount(1);
+  await expect(page.locator('.editor-label[data-label-text="C1"]')).toHaveCount(1);
+});
+
 test("preserves the active tab and updates the preview when switching examples", async ({ page }) => {
   await openWorkbench(page);
 

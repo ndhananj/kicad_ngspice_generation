@@ -861,17 +861,6 @@
       "fontSize": 1.27
     },
     {
-      "id": "schmitt_trigger:#SUPPORT0001:reference",
-      "text": "#SUPPORT0001",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0001",
-      "position": {
-        "x": 80.01,
-        "y": 45.72
-      },
-      "fontSize": 1.27
-    },
-    {
       "id": "schmitt_trigger:#SUPPORT0001:value",
       "text": "VCC",
       "role": "value",
@@ -879,17 +868,6 @@
       "position": {
         "x": 80.01,
         "y": 44.45
-      },
-      "fontSize": 1.27
-    },
-    {
-      "id": "schmitt_trigger:#SUPPORT0002:reference",
-      "text": "#SUPPORT0002",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0002",
-      "position": {
-        "x": 80.01,
-        "y": 76.2
       },
       "fontSize": 1.27
     },
@@ -916,17 +894,6 @@
       "fontSize": 1.27
     },
     {
-      "id": "schmitt_trigger:#SUPPORT0004:reference",
-      "text": "#SUPPORT0004",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0004",
-      "position": {
-        "x": 167.64,
-        "y": 86.36
-      },
-      "fontSize": 1.27
-    },
-    {
       "id": "schmitt_trigger:#SUPPORT0004:value",
       "text": "VCC",
       "role": "value",
@@ -934,17 +901,6 @@
       "position": {
         "x": 167.64,
         "y": 85.09
-      },
-      "fontSize": 1.27
-    },
-    {
-      "id": "schmitt_trigger:#SUPPORT0005:reference",
-      "text": "#SUPPORT0005",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0005",
-      "position": {
-        "x": 140.97,
-        "y": 115.57
       },
       "fontSize": 1.27
     },
@@ -971,34 +927,12 @@
       "fontSize": 1.27
     },
     {
-      "id": "schmitt_trigger:#SUPPORT0007:reference",
-      "text": "#SUPPORT0007",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0007",
-      "position": {
-        "x": 167.64,
-        "y": 106.67999999999999
-      },
-      "fontSize": 1.27
-    },
-    {
       "id": "schmitt_trigger:#SUPPORT0007:value",
       "text": "GND",
       "role": "value",
       "ownerRef": "#SUPPORT0007",
       "position": {
         "x": 167.64,
-        "y": 115.57
-      },
-      "fontSize": 1.27
-    },
-    {
-      "id": "schmitt_trigger:#SUPPORT0008:reference",
-      "text": "#SUPPORT0008",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0008",
-      "position": {
-        "x": 80.01,
         "y": 115.57
       },
       "fontSize": 1.27
@@ -1033,17 +967,6 @@
       "position": {
         "x": 80.01,
         "y": 128.27
-      },
-      "fontSize": 1.27
-    },
-    {
-      "id": "schmitt_trigger:#SUPPORT0011:reference",
-      "text": "#SUPPORT0011",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0011",
-      "position": {
-        "x": 80.01,
-        "y": 156.21
       },
       "fontSize": 1.27
     },

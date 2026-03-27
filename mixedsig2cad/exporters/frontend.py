@@ -13,6 +13,7 @@ from mixedsig2cad.spec import CircuitSpec
 
 def build_frontend_scene(source: ExampleDesign | CircuitSpec | CompiledSchematic) -> dict[str, Any]:
     geometry = _compiled_geometry(source)
+    shape_by_ref = {shape.ref: shape for shape in geometry.shapes}
     return {
         "name": geometry.name,
         "bounds": _bounds_payload(geometry),
@@ -59,6 +60,11 @@ def build_frontend_scene(source: ExampleDesign | CircuitSpec | CompiledSchematic
                 "fontSize": label.font_size,
             }
             for label in geometry.labels
+            if not (
+                label.role == "reference"
+                and shape_by_ref.get(label.owner_ref) is not None
+                and shape_by_ref[label.owner_ref].hidden_reference
+            )
         ],
         "junctions": [
             {

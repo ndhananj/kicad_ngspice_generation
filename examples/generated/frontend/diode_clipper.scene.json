@@ -309,17 +309,6 @@
       "fontSize": 1.27
     },
     {
-      "id": "diode_clipper:#SUPPORT0001:reference",
-      "text": "#SUPPORT0001",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0001",
-      "position": {
-        "x": 55.88,
-        "y": 101.6
-      },
-      "fontSize": 1.27
-    },
-    {
       "id": "diode_clipper:#SUPPORT0001:value",
       "text": "GND",
       "role": "value",
@@ -327,17 +316,6 @@
       "position": {
         "x": 55.88,
         "y": 110.49
-      },
-      "fontSize": 1.27
-    },
-    {
-      "id": "diode_clipper:#SUPPORT0002:reference",
-      "text": "#SUPPORT0002",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0002",
-      "position": {
-        "x": 96.52,
-        "y": 107.95
       },
       "fontSize": 1.27
     },

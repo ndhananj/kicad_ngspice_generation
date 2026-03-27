@@ -829,6 +829,10 @@ function renderEditorScene() {
       class: `editor-label editor-label-${label.role}`,
       x: label.position.x,
       y: label.position.y,
+      "data-label-id": label.id,
+      "data-label-role": label.role,
+      "data-label-text": label.text,
+      "data-owner-ref": label.ownerRef ?? "",
     });
     text.textContent = label.text;
     labelLayer.append(text);
@@ -864,13 +868,6 @@ function renderEditorScene() {
       );
     }
 
-    const refText = createSvgElement("text", { class: "editor-component-ref", x: 0, y: -1.5 });
-    refText.textContent = component.ref;
-    group.append(refText);
-
-    const shapeText = createSvgElement("text", { class: "editor-component-shape", x: 0, y: 2.8 });
-    shapeText.textContent = component.shape;
-    group.append(shapeText);
     componentLayer.append(group);
   }
 

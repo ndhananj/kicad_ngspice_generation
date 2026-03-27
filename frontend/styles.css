@@ -570,23 +570,6 @@ h2 {
   stroke-width: 0.35;
 }
 
-.editor-component-ref,
-.editor-component-shape {
-  fill: var(--on-surface);
-  font-family: "IBM Plex Mono", monospace;
-  text-anchor: middle;
-  pointer-events: none;
-}
-
-.editor-component-ref {
-  font-size: 2.8px;
-}
-
-.editor-component-shape {
-  font-size: 2.1px;
-  fill: rgba(245, 244, 242, 0.72);
-}
-
 .tag {
   background: rgba(32, 32, 31, 0.9);
   border-radius: 999px;

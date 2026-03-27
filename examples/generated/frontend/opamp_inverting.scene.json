@@ -876,17 +876,6 @@
       "fontSize": 1.27
     },
     {
-      "id": "opamp_inverting:#SUPPORT0001:reference",
-      "text": "#SUPPORT0001",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0001",
-      "position": {
-        "x": 167.64,
-        "y": 76.2
-      },
-      "fontSize": 1.27
-    },
-    {
       "id": "opamp_inverting:#SUPPORT0001:value",
       "text": "VCC",
       "role": "value",
@@ -894,17 +883,6 @@
       "position": {
         "x": 172.72,
         "y": 78.74
-      },
-      "fontSize": 1.27
-    },
-    {
-      "id": "opamp_inverting:#SUPPORT0002:reference",
-      "text": "#SUPPORT0002",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0002",
-      "position": {
-        "x": 80.01,
-        "y": 156.21
       },
       "fontSize": 1.27
     },
@@ -920,17 +898,6 @@
       "fontSize": 1.27
     },
     {
-      "id": "opamp_inverting:#SUPPORT0003:reference",
-      "text": "#SUPPORT0003",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0003",
-      "position": {
-        "x": 162.56,
-        "y": 114.3
-      },
-      "fontSize": 1.27
-    },
-    {
       "id": "opamp_inverting:#SUPPORT0003:value",
       "text": "GND",
       "role": "value",
@@ -938,17 +905,6 @@
       "position": {
         "x": 162.56,
         "y": 123.19
-      },
-      "fontSize": 1.27
-    },
-    {
-      "id": "opamp_inverting:#SUPPORT0004:reference",
-      "text": "#SUPPORT0004",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0004",
-      "position": {
-        "x": 80.01,
-        "y": 76.2
       },
       "fontSize": 1.27
     },
@@ -964,17 +920,6 @@
       "fontSize": 1.27
     },
     {
-      "id": "opamp_inverting:#SUPPORT0005:reference",
-      "text": "#SUPPORT0005",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0005",
-      "position": {
-        "x": 80.01,
-        "y": 115.57
-      },
-      "fontSize": 1.27
-    },
-    {
       "id": "opamp_inverting:#SUPPORT0005:value",
       "text": "GND",
       "role": "value",
@@ -982,17 +927,6 @@
       "position": {
         "x": 80.01,
         "y": 124.46
-      },
-      "fontSize": 1.27
-    },
-    {
-      "id": "opamp_inverting:#SUPPORT0006:reference",
-      "text": "#SUPPORT0006",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0006",
-      "position": {
-        "x": 80.01,
-        "y": 45.72
       },
       "fontSize": 1.27
     },
@@ -1008,17 +942,6 @@
       "fontSize": 1.27
     },
     {
-      "id": "opamp_inverting:#SUPPORT0007:reference",
-      "text": "#SUPPORT0007",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0007",
-      "position": {
-        "x": 80.01,
-        "y": 86.36
-      },
-      "fontSize": 1.27
-    },
-    {
       "id": "opamp_inverting:#SUPPORT0007:value",
       "text": "VEE",
       "role": "value",
@@ -1026,17 +949,6 @@
       "position": {
         "x": 85.09,
         "y": 88.9
-      },
-      "fontSize": 1.27
-    },
-    {
-      "id": "opamp_inverting:#SUPPORT0008:reference",
-      "text": "#SUPPORT0008",
-      "role": "reference",
-      "ownerRef": "#SUPPORT0008",
-      "position": {
-        "x": 167.64,
-        "y": 96.52
       },
       "fontSize": 1.27
     },
