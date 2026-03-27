@@ -5,11 +5,13 @@ A Python-first toolkit and example corpus for generating **KiCad schematic files
 ## Install
 
 ```bash
-pip install -r requirements.txt
+bash scripts/install_dev_env.sh
 python3 scripts/setup_parser_env.py
 ```
 
-The setup script verifies the parser stack is present. For OCR-backed parsing with `pytesseract`, you also need the external `tesseract` binary installed on the system.
+`scripts/install_dev_env.sh` is the supported bootstrap path for Debian/Ubuntu-style Linux hosts. It installs the local system packages and repo dependencies needed for the full validator stack, including OCR, TeX, KiCad CLI, Node, npm packages, and Playwright's Chromium runtime.
+
+`python3 scripts/setup_parser_env.py` is the verification pass. It checks the Python modules, OCR binary, TeX tooling, KiCad CLI, and frontend runtime, then points back to the bootstrap command if anything is still missing.
 
 ## What is included
 
@@ -229,7 +231,7 @@ Running `python3 scripts/generate_examples.py` also writes:
 - `../svg/<name>.pdf`: TeX-friendly companion for the same KiCad-rendered reference view.
 - `examples.tex`: a master document covering the whole example corpus.
 
-`python3 scripts/validate_examples.py` compiles the generated report files with `pdflatex -shell-escape`, so a local TeX install with `circuitikz` and `svg` support is expected when running the full validator.
+`python3 scripts/validate_examples.py` compiles the generated report files with `pdflatex -shell-escape`. The Linux bootstrap script installs the TeX tooling expected by the full validator.
 
 ## Notes on compatibility
 
@@ -246,6 +248,8 @@ Run the browser suite:
 ```bash
 npm run test:frontend
 ```
+
+If you have not bootstrapped the repo yet, run `bash scripts/install_dev_env.sh` first so Node, npm packages, and a Chromium runtime are available locally.
 
 Refresh the visual baselines after intentional UI changes:
 

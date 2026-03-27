@@ -7,6 +7,7 @@ import pytest
 
 from examples.specs.catalog import rc_lowpass
 from mixedsig2cad import check_parser_runtime_dependencies, parse_circuit_source
+from mixedsig2cad.importers import hybrid_parser
 from scripts import setup_parser_env
 
 
@@ -51,7 +52,19 @@ def test_dependency_status_reports_missing_runtime_tools() -> None:
 
 
 def test_setup_parser_env_returns_failure_when_modules_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(setup_parser_env.importlib.util, "find_spec", lambda name: None)
+    monkeypatch.setattr(setup_parser_env, "missing_python_modules", lambda: ["numpy"])
     monkeypatch.setattr(setup_parser_env.shutil, "which", lambda name: None)
+    monkeypatch.setattr(setup_parser_env, "frontend_runtime_issues", lambda: ["frontend npm packages"])
 
     assert setup_parser_env.main() == 1
+
+
+def test_parse_raster_dependency_error_points_to_bootstrap(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        hybrid_parser,
+        "_runtime_dependency_status",
+        lambda: hybrid_parser.DependencyStatus(sam_available=False, ocr_available=False),
+    )
+
+    with pytest.raises(RuntimeError, match=r"bash scripts/install_dev_env\.sh"):
+        parse_circuit_source("dummy.png", source_type="raster")

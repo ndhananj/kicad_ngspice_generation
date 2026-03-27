@@ -1,6 +1,24 @@
 const { defineConfig } = require("@playwright/test");
 
-const chromeExecutable = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || "/usr/bin/google-chrome";
+function findBrowserExecutable() {
+  if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+    return process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+  }
+  for (const candidate of [
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
+    "/usr/bin/brave-browser",
+  ]) {
+    if (require("fs").existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
+const chromeExecutable = findBrowserExecutable();
 
 module.exports = defineConfig({
   testDir: "./tests/frontend",

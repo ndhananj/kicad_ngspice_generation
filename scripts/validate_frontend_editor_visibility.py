@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from mixedsig2cad.dev_env import find_browser_executable
 from mixedsig2cad.importers.hybrid_parser import check_validation_runtime_dependencies
 
 DEFAULT_PORT = 4174
@@ -307,7 +308,9 @@ def main() -> int:
     metrics_path = output_dir / "frontend-editor-metrics.json"
 
     env = os.environ.copy()
-    env.setdefault("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH", "/usr/bin/google-chrome")
+    browser_executable = find_browser_executable()
+    if browser_executable is not None:
+        env.setdefault("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH", browser_executable)
 
     server = subprocess.Popen(
         [sys.executable, str(ROOT / "scripts" / "serve_frontend.py"), "--port", str(port)],

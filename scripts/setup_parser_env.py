@@ -1,38 +1,34 @@
 from __future__ import annotations
 
-import importlib.util
 import shutil
 import sys
+from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-PYTHON_MODULES = (
-    "numpy",
-    "PIL",
-    "cv2",
-    "fitz",
-    "svgpathtools",
-    "segment_anything",
-    "pytesseract",
-)
+from mixedsig2cad.dev_env import BOOTSTRAP_COMMAND, frontend_runtime_issues, missing_python_modules
 
 
 def main() -> int:
-    missing_modules = [name for name in PYTHON_MODULES if importlib.util.find_spec(name) is None]
+    missing_modules = missing_python_modules()
     missing_tools: list[str] = []
-    if importlib.util.find_spec("pytesseract") is not None and shutil.which("tesseract") is None:
+    if "pytesseract" not in missing_modules and shutil.which("tesseract") is None:
         missing_tools.append("tesseract")
     if shutil.which("pdflatex") is None:
         missing_tools.append("pdflatex")
     if shutil.which("kicad-cli") is None:
         missing_tools.append("kicad-cli")
+    missing_tools.extend(frontend_runtime_issues())
     if missing_modules or missing_tools:
         for name in missing_modules:
             print(f"missing python module: {name}")
         for name in missing_tools:
             print(f"missing external tool: {name}")
         print(
-            "Install Python dependencies with `pip install -r requirements.txt`, "
-            "then install the external tools `pdflatex`, `kicad-cli`, and `tesseract`."
+            "Bootstrap the local toolchain with "
+            f"`{BOOTSTRAP_COMMAND}` and rerun `python3 scripts/setup_parser_env.py`."
         )
         return 1
     print("Parser and validation environment looks ready.")
