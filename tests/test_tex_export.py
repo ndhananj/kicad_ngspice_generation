@@ -99,6 +99,15 @@ def test_general_circuitikz_export_uses_refs_for_active_device_labels() -> None:
     assert "OPAMP" not in opamp_text
 
 
+def test_cmos_circuitikz_export_connects_supply_and_ground_directly_to_sources() -> None:
+    text = export_circuitikz(cmos_inverter())
+
+    assert r"\draw (16.26,-5.71) -- (16.26,-8.38);" in text
+    assert r"\draw (16.26,-15.49) -- (16.26,-14.22);" in text
+    assert r"\draw (16.26,-8.38) -- (16.38,-8.38);" not in text
+    assert r"\draw (16.26,-14.22) -- (16.38,-14.22);" not in text
+
+
 def test_bjt_circuitikz_export_uses_native_npn_node() -> None:
     text = render_circuitikz_ir(build_circuitikz_ir(bjt_common_emitter(), label_mode="general"))
 

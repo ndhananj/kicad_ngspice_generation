@@ -61,6 +61,8 @@ def test_cmos_inverter_uses_static_cmos_topology() -> None:
     assert (gate_node.point.x, gate_node.point.y) == (110.49, 113.03)
     output_node = next(node for node in compiled.nodes if node.id == "net:vout")
     assert (output_node.point.x, output_node.point.y) == (162.56, 113.03)
+    supply_node = next(node for node in compiled.nodes if node.id == "net:vdd")
+    assert (supply_node.point.x, supply_node.point.y) == (162.56, 83.82)
     output_wires = [wire for wire in compiled.wires if wire.uuid_seed.startswith("cmos_inverter:net:vout")]
     assert len(output_wires) == 1
     assert [(point.x, point.y) for point in output_wires[0].points] == [(162.56, 93.98), (162.56, 132.08)]
@@ -80,7 +82,7 @@ def test_cmos_inverter_uses_static_cmos_topology() -> None:
     assert gate_wires["cmos_inverter:gate:vin:MN1:3"] == [(154.94, 137.16), (110.49, 137.16), (110.49, 113.03)]
 
     ground_wires = _wire_points(compiled, "cmos_inverter:#PWR0003:ground")
-    assert ground_wires["cmos_inverter:#PWR0003:ground:#PWR0003:3"] == [(163.83, 154.94), (163.83, 142.24)]
+    assert ground_wires["cmos_inverter:#PWR0003:ground:#PWR0003:3"] == [(162.56, 154.94), (162.56, 142.24)]
 
     schematic = export_kicad_schematic(cmos_inverter())
     assert '(junction (at 110.49 113.03)' in schematic
@@ -88,7 +90,8 @@ def test_cmos_inverter_uses_static_cmos_topology() -> None:
     assert "(wire (pts (xy 110.49 88.90) (xy 110.49 113.03))" in schematic
     assert "(wire (pts (xy 110.49 137.16) (xy 110.49 113.03))" in schematic
     assert "(wire (pts (xy 144.78 88.90) (xy 144.78 137.16))" not in schematic
-    assert "(wire (pts (xy 163.83 154.94) (xy 163.83 142.24))" in schematic
+    assert "(wire (pts (xy 162.56 154.94) (xy 162.56 142.24))" in schematic
+    assert "(wire (pts (xy 163.83 154.94) (xy 163.83 142.24))" not in schematic
     assert "(wire (pts (xy 171.45 147.32) (xy 171.45 142.24))" not in schematic
 
 

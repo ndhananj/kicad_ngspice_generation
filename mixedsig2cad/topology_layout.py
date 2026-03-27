@@ -505,7 +505,12 @@ def _build_static_cmos_layout(intent: SchematicIntent) -> TopologyLayout | None:
         supply_points = [_attachment_point(components_by_ref, placement_by_ref, item) for item in supply_attachments]
         transistor_supply_points = [point for attachment, point in zip(supply_attachments, supply_points) if attachment.owner_ref in {comp.ref for comp in mosfets}]
         primary_supply_points = transistor_supply_points or supply_points
-        supply_point = _point(_average_x(point.x for point in primary_supply_points), _average_y(point.y for point in primary_supply_points))
+        supply_point = _preferred_cmos_connection_point(
+            components_by_ref,
+            placement_by_ref,
+            supply_attachments,
+            fallback=_point(_average_x(point.x for point in primary_supply_points), _average_y(point.y for point in primary_supply_points)),
+        )
         layout.connections.append(
             TopologyConnection(
                 id=f"net:{supply_net}",
@@ -567,7 +572,12 @@ def _build_static_cmos_layout(intent: SchematicIntent) -> TopologyLayout | None:
     ]
     if ground_attachments:
         ground_points = [_attachment_point(components_by_ref, placement_by_ref, item) for item in ground_attachments]
-        ground_node_point = _point(_average_x(point.x for point in ground_points), max(point.y for point in ground_points))
+        ground_node_point = _preferred_cmos_connection_point(
+            components_by_ref,
+            placement_by_ref,
+            tuple(ground_attachments),
+            fallback=_point(_average_x(point.x for point in ground_points), max(point.y for point in ground_points)),
+        )
         gnd_ref = f"#PWR{next_power_idx:04d}"
         ground_center = _point(ground_node_point.x, max(point.y for point in ground_points) + 12.70)
         layout.placements.append(TopologyPlacement(ref=gnd_ref, center=ground_center, shape="ground", value="GND", orientation="down"))
@@ -956,6 +966,15 @@ def _preferred_cmos_connection_point(
     *,
     fallback: TopologyPoint,
 ) -> TopologyPoint:
+    mos_source_points = [
+        _attachment_point(components_by_ref, placements_by_ref, attachment)
+        for attachment in attachments
+        if components_by_ref[attachment.owner_ref].kind == "M" and attachment.terminal_name == "source"
+    ]
+    # For a single-device rail such as the CMOS inverter, anchor the rail directly
+    # on the MOS source terminal so readable TeX does not emit a short stub segment.
+    if len(mos_source_points) == 1:
+        return mos_source_points[0]
     attachment_points = [_attachment_point(components_by_ref, placements_by_ref, attachment) for attachment in attachments]
     if len(attachment_points) < 2:
         return fallback
