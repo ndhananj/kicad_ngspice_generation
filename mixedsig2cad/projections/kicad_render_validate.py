@@ -21,6 +21,10 @@ from mixedsig2cad.models import (
 )
 from mixedsig2cad.projections.kicad_cli import export_schematic_svg
 from mixedsig2cad.projections.kicad import _embedded_kicad_symbols, project_geometry_to_kicad
+from mixedsig2cad.projections.symbol_render_validate import (
+    SymbolRenderObservation,
+    compare_symbol_render_observation,
+)
 from mixedsig2cad.symbols import KICAD_SYMBOLS, _rotate_offset, kicad_pin_map, kicad_symbol, terminal_defs
 
 PROBE_CENTER = Point(100.0, 100.0)
@@ -204,43 +208,28 @@ def _compare_rendered_symbol(
     strict_pin_labels: bool,
 ) -> RenderedSymbolComparison:
     lib_id, angle = kicad_symbol(shape, orientation)
-    expected_terminal_sides = {template.name: template.exit_direction for template in terminal_defs(shape, orientation)}
-    expected_pin_name_terminals: dict[str, str] = {}
-    pin_map = kicad_pin_map(shape, orientation)
-    lib_pins = _embedded_kicad_symbols()[lib_id]
-    for terminal_name, pin_number in pin_map.items():
-        pin = lib_pins.get(pin_number)
-        if pin is None or pin.name in {"", "~"}:
-            continue
-        expected_pin_name_terminals[pin.name] = terminal_name
-    hard_failures: list[str] = []
-    for terminal_name, expected_side in expected_terminal_sides.items():
-        observed_side = observation.terminal_sides.get(terminal_name)
-        if observed_side is None:
-            hard_failures.append(f"missing rendered terminal observation for {terminal_name}")
-        elif observed_side != expected_side:
-            hard_failures.append(
-                f"terminal {terminal_name} rendered on {observed_side}, expected {expected_side}"
-            )
-    for pin_name, expected_terminal in expected_pin_name_terminals.items():
-        observed_terminal = observation.pin_name_terminals.get(pin_name)
-        if observed_terminal is None:
-            continue
-        if observed_terminal != expected_terminal:
-            note = f"pin name {pin_name} rendered nearest terminal {observed_terminal}, expected {expected_terminal}"
-            if strict_pin_labels:
-                hard_failures.append(note)
+    comparison = compare_symbol_render_observation(
+        shape,
+        orientation,
+        SymbolRenderObservation(
+            shape=shape,
+            orientation=orientation,
+            terminal_sides=observation.terminal_sides,
+            pin_name_terminals=observation.pin_name_terminals,
+        ),
+        strict_pin_labels=strict_pin_labels,
+    )
     return RenderedSymbolComparison(
         shape=shape,
         orientation=orientation,
         lib_id=lib_id,
         angle=angle,
-        expected_terminal_sides=expected_terminal_sides,
+        expected_terminal_sides=comparison.expected_terminal_sides,
         rendered_terminal_sides=observation.terminal_sides,
-        expected_pin_name_terminals=expected_pin_name_terminals,
+        expected_pin_name_terminals=comparison.expected_pin_name_terminals,
         rendered_pin_name_terminals=observation.pin_name_terminals,
-        passed=not hard_failures,
-        notes=tuple(hard_failures),
+        passed=comparison.passed,
+        notes=comparison.notes,
     )
 
 

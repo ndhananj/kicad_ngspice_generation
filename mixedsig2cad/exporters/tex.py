@@ -617,39 +617,14 @@ def _build_transistor_symbol_definition(shape_name: str, *, dialect: str) -> Tex
         body_lines = (
             r"  \pgfmathsetmacro{\msx}{#1}",
             r"  \pgfmathsetmacro{\msy}{#2}",
-            *_transistor_line_commands(
-                (
-                    ((-5.08, 0.0), (-1.60, 0.0)),
-                    ((-1.60, -4.00), (-1.60, 4.00)),
-                    ((-1.60, -1.20), (3.00, -5.00)),
-                    ((-1.60, 1.20), (2.00, 4.80)),
-                    ((0.80, 3.60), (2.00, 4.80)),
-                    ((1.40, 2.10), (2.00, 4.80)),
-                    ((0.80, -8.20), (3.00, -5.00)),
-                    ((4.80, 0.0), (2.00, 4.80)),
-                ),
-                dialect=dialect,
-            ),
+            *_transistor_line_commands(_transistor_segments(shape_name), dialect=dialect),
             rf"  \node[font=\scriptsize,align=center] at ({{\msx + 0.00}},{{\msy + {_tex_dimension(-10.50, dialect=dialect):.2f}}}) {label};",
         )
     elif shape_name == "nmos":
         body_lines = (
             r"  \pgfmathsetmacro{\msx}{#1}",
             r"  \pgfmathsetmacro{\msy}{#2}",
-            *_transistor_line_commands(
-                (
-                    ((-5.08, 0.0), (-3.05, 0.0)),
-                    ((-2.54, -3.30), (-2.54, 3.30)),
-                    ((-1.02, -3.30), (-1.02, 3.30)),
-                    ((2.54, -8.80), (2.54, 8.80)),
-                    ((-1.02, -2.20), (2.54, -2.20)),
-                    ((-1.02, 2.20), (2.54, 2.20)),
-                    ((0.25, 0.00), (1.52, 0.00)),
-                    ((0.25, 0.00), (1.52, -1.27)),
-                    ((0.25, 0.00), (1.52, 1.27)),
-                ),
-                dialect=dialect,
-            ),
+            *_transistor_line_commands(_transistor_segments(shape_name), dialect=dialect),
             rf"  \node[font=\scriptsize,align=center] at ({{\msx + 0.00}},{{\msy + {_tex_dimension(-10.80, dialect=dialect):.2f}}}) {label};",
         )
     elif shape_name == "pmos":
@@ -657,19 +632,7 @@ def _build_transistor_symbol_definition(shape_name: str, *, dialect: str) -> Tex
         body_lines = (
             r"  \pgfmathsetmacro{\msx}{#1}",
             r"  \pgfmathsetmacro{\msy}{#2}",
-            *_transistor_line_commands(
-                (
-                    ((-5.08, 0.0), (-3.70, 0.0)),
-                    ((-1.02, -3.30), (-1.02, 3.30)),
-                    ((2.54, -8.80), (2.54, 8.80)),
-                    ((-1.02, -2.20), (2.54, -2.20)),
-                    ((-1.02, 2.20), (2.54, 2.20)),
-                    ((0.25, 0.00), (1.52, 0.00)),
-                    ((0.25, 0.00), (1.52, -1.27)),
-                    ((0.25, 0.00), (1.52, 1.27)),
-                ),
-                dialect=dialect,
-            ),
+            *_transistor_line_commands(_transistor_segments(shape_name), dialect=dialect),
             rf"  \draw ({{\msx + {_tex_dimension(-2.90, dialect=dialect):.2f}}},{{\msy + 0.00}}) circle ({bubble_radius:.2f});",
             rf"  \node[font=\scriptsize,align=center] at ({{\msx + 0.00}},{{\msy + {_tex_dimension(-10.80, dialect=dialect):.2f}}}) {label};",
         )
@@ -703,6 +666,46 @@ def _transistor_symbol_call(
         rf"  \{_transistor_macro_name(spec, dialect=dialect)}"
         rf"{{{x:.2f}}}{{{y:.2f}}}{{{rendered_primary}}}{{{rendered_secondary}}}"
     )
+
+
+def _transistor_segments(shape_name: str) -> tuple[tuple[tuple[float, float], tuple[float, float]], ...]:
+    if shape_name == "npn_bjt":
+        return (
+            ((-5.08, 0.0), (-1.60, 0.0)),
+            ((-1.60, -4.00), (-1.60, 4.00)),
+            ((-1.60, -1.20), (3.00, -5.00)),
+            ((-1.60, 1.20), (2.00, 4.80)),
+            ((0.80, 3.60), (2.00, 4.80)),
+            ((1.40, 2.10), (2.00, 4.80)),
+            ((0.80, -8.20), (3.00, -5.00)),
+            ((4.80, 0.0), (2.00, 4.80)),
+        )
+    if shape_name == "nmos":
+        return (
+            ((-5.08, 0.0), (-3.05, 0.0)),
+            ((-2.54, -3.30), (-2.54, 3.30)),
+            ((-1.02, -3.30), (-1.02, 3.30)),
+            ((2.54, -8.80), (2.54, -2.20)),
+            ((2.54, 2.20), (2.54, 8.80)),
+            ((-1.02, -2.20), (2.54, -2.20)),
+            ((-1.02, 2.20), (2.54, 2.20)),
+            ((0.25, 0.00), (1.52, 0.00)),
+            ((0.25, 0.00), (1.52, -1.27)),
+            ((0.25, 0.00), (1.52, 1.27)),
+        )
+    if shape_name == "pmos":
+        return (
+            ((-5.08, 0.0), (-3.70, 0.0)),
+            ((-1.02, -3.30), (-1.02, 3.30)),
+            ((2.54, -8.80), (2.54, -2.20)),
+            ((2.54, 2.20), (2.54, 8.80)),
+            ((-1.02, -2.20), (2.54, -2.20)),
+            ((-1.02, 2.20), (2.54, 2.20)),
+            ((0.25, 0.00), (1.52, 0.00)),
+            ((0.25, 0.00), (1.52, -1.27)),
+            ((0.25, 0.00), (1.52, 1.27)),
+        )
+    raise AssertionError(f"unsupported transistor segment shape {shape_name}")
 
 
 def _transistor_macro_name(spec: TransistorSymbolSpec, *, dialect: str) -> str:

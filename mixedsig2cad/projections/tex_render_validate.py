@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 
@@ -15,6 +16,10 @@ from mixedsig2cad.exporters.tex import DOCUMENT_PACKAGES, _pt, _tex_point_values
 from mixedsig2cad.intent import build_schematic_intent
 from mixedsig2cad.models import BoundingBox, CompiledSchematic, TextPlacement
 from mixedsig2cad.projections.kicad_render_validate import build_symbol_probe_geometry
+from mixedsig2cad.projections.symbol_render_validate import (
+    SymbolRenderObservation,
+    compare_symbol_render_observation,
+)
 from mixedsig2cad.spec import CircuitSpec
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -421,6 +426,14 @@ def _compare_tex_transistors(
             body_wire = next((terminal for terminal in shape.terminals if terminal.name == "body"), None)
             if body_wire is not None and _pt(body_wire.point) in text:
                 notes.append("body terminal should be suppressed in TeX output")
+            observation = _observe_tex_mos_macro(shape.shape, text)
+            comparison = compare_symbol_render_observation(
+                shape.shape,
+                shape.orientation,
+                observation,
+                strict_pin_labels=False,
+            )
+            notes.extend(comparison.notes)
         results.append(
             RenderedTexTransistorComparison(
                 schematic_name=geometry.name,
@@ -566,8 +579,14 @@ def _compare_tex_mos_geometry(
         for length, angle, (x1, _y1, x2, _y2) in segments
         if _line_is_vertical(angle) and max(x1, x2) >= 180
     ]
-    if not right_vertical or max(right_vertical) < min_right_vertical:
+    dominant_right_vertical = max(right_vertical) if right_vertical else 0.0
+    combined_right_vertical = sum(sorted(right_vertical, reverse=True)[:2])
+    if not right_vertical or (
+        dominant_right_vertical < min_right_vertical and combined_right_vertical < min_right_vertical
+    ):
         notes.append("missing a long straight vertical drain/source spine")
+    if _has_continuous_right_vertical_spine(mask):
+        notes.append("drain and source remain shorted by a continuous right-side vertical spine")
     left_horizontal = [
         length
         for length, angle, (x1, _y1, x2, _y2) in segments
@@ -611,6 +630,112 @@ def _line_is_horizontal(angle: float, *, tolerance_degrees: float = 8.0) -> bool
 
 def _line_is_vertical(angle: float, *, tolerance_degrees: float = 8.0) -> bool:
     return abs(abs(angle) - 90.0) <= tolerance_degrees
+
+
+def _observe_tex_mos_macro(shape: str, text: str) -> SymbolRenderObservation:
+    segments = _extract_tex_macro_segments(text, f"msCircuitMixedSig{shape.capitalize()}Symbol")
+    notes: list[str] = []
+    if not segments:
+        notes.append("missing TeX MOS macro line segments")
+        return SymbolRenderObservation(
+            shape=shape,
+            orientation="right",
+            terminal_sides={},
+            ignored_terminals=frozenset({"body"}),
+            notes=tuple(notes),
+        )
+    leftmost_x = min(min(x1, x2) for (x1, _y1), (x2, _y2) in segments)
+    rightmost_x = max(max(x1, x2) for (x1, _y1), (x2, _y2) in segments)
+    left_segments = [
+        segment for segment in segments if min(segment[0][0], segment[1][0]) <= leftmost_x + 0.25
+    ]
+    right_vertical_segments = [
+        segment
+        for segment in segments
+        if abs(segment[0][0] - segment[1][0]) <= 0.05 and max(segment[0][0], segment[1][0]) >= rightmost_x - 0.25
+    ]
+    terminal_sides: dict[str, str] = {}
+    if left_segments:
+        terminal_sides["gate"] = "left"
+    if right_vertical_segments:
+        top_segment = max(right_vertical_segments, key=lambda item: max(item[0][1], item[1][1]))
+        bottom_segment = min(right_vertical_segments, key=lambda item: min(item[0][1], item[1][1]))
+        if shape == "nmos":
+            terminal_sides["drain"] = "top"
+            terminal_sides["source"] = "bottom"
+        else:
+            terminal_sides["source"] = "top"
+            terminal_sides["drain"] = "bottom"
+        if _segment_span(top_segment) <= 0.0 or _segment_span(bottom_segment) <= 0.0:
+            notes.append("failed to observe distinct MOS lead segments")
+        if _has_continuous_right_vertical_macro_spine(right_vertical_segments):
+            notes.append("drain and source are merged by a continuous right-side macro spine")
+    else:
+        notes.append("missing right-side MOS lead segments")
+    return SymbolRenderObservation(
+        shape=shape,
+        orientation="right",
+        terminal_sides=terminal_sides,
+        ignored_terminals=frozenset({"body"}),
+        notes=tuple(notes),
+    )
+
+
+def _extract_tex_macro_segments(
+    text: str,
+    macro_name: str,
+) -> list[tuple[tuple[float, float], tuple[float, float]]]:
+    lines = text.splitlines()
+    try:
+        start = lines.index(rf"\providecommand{{\{macro_name}}}[4]{{%")
+    except ValueError:
+        return []
+    segments: list[tuple[tuple[float, float], tuple[float, float]]] = []
+    for line in lines[start + 1 :]:
+        stripped = line.strip()
+        if stripped == "}":
+            break
+        match = re.match(
+            r"\\draw \(\{\\msx \+ (?P<x1>-?\d+\.\d+)\},\{\\msy \+ (?P<y1>-?\d+\.\d+)\}\) -- "
+            r"\(\{\\msx \+ (?P<x2>-?\d+\.\d+)\},\{\\msy \+ (?P<y2>-?\d+\.\d+)\}\);",
+            stripped,
+        )
+        if match is None:
+            continue
+        segments.append(
+            (
+                (float(match.group("x1")), float(match.group("y1"))),
+                (float(match.group("x2")), float(match.group("y2"))),
+            )
+        )
+    return segments
+
+
+def _has_continuous_right_vertical_macro_spine(
+    segments: list[tuple[tuple[float, float], tuple[float, float]]],
+) -> bool:
+    if not segments:
+        return False
+    return any(_segment_span(segment) >= 1.5 for segment in segments)
+
+
+def _segment_span(segment: tuple[tuple[float, float], tuple[float, float]]) -> float:
+    (_x1, y1), (_x2, y2) = segment
+    return abs(y2 - y1)
+
+
+def _has_continuous_right_vertical_spine(mask: np.ndarray) -> bool:
+    column_scores = mask.sum(axis=0)
+    right_start = int(mask.shape[1] * 0.6)
+    if right_start >= mask.shape[1]:
+        return False
+    target_x = int(np.argmax(column_scores[right_start:]) + right_start)
+    ys = np.where(mask[:, target_x] > 0)[0]
+    if len(ys) < 2:
+        return False
+    gaps = np.diff(ys)
+    max_gap = int(gaps.max()) if len(gaps) else 0
+    return max_gap <= 8
 
 
 def render_tex_symbol_probe_image(shape: str, orientation: str, *, dpi: int = 300) -> np.ndarray:

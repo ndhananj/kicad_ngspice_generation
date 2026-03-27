@@ -17,6 +17,9 @@ from mixedsig2cad.projections.tex_render_validate import (
     _compiled_geometry,
     _crop_rendered_mos_region,
     _estimate_tex_raster_transform,
+    _extract_tex_macro_segments,
+    _has_continuous_right_vertical_macro_spine,
+    _observe_tex_mos_macro,
     _extract_pdf_texts,
     _pdf_page_to_image,
     render_tex_symbol_probe_image,
@@ -79,6 +82,33 @@ def test_tex_transistor_validation_accepts_canonical_macros() -> None:
     assert all(result.passed for result in results)
 
 
+def test_tex_mos_macro_observation_requires_split_right_spine() -> None:
+    text = export_circuitikz(cmos_inverter())
+
+    observation = _observe_tex_mos_macro("nmos", text)
+
+    assert observation.terminal_sides["gate"] == "left"
+    assert observation.terminal_sides["drain"] == "top"
+    assert observation.terminal_sides["source"] == "bottom"
+    assert not observation.notes
+
+
+def test_tex_mos_macro_observation_rejects_continuous_right_spine() -> None:
+    text = export_circuitikz(cmos_inverter()).replace(
+        r"\draw ({\msx + 0.25},{\msy + 0.88}) -- ({\msx + 0.25},{\msy + 0.22});",
+        r"\draw ({\msx + 0.25},{\msy + 0.88}) -- ({\msx + 0.25},{\msy + -0.88});",
+        1,
+    ).replace(
+        r"\draw ({\msx + 0.25},{\msy + -0.22}) -- ({\msx + 0.25},{\msy + -0.88});",
+        "",
+        1,
+    )
+
+    observation = _observe_tex_mos_macro("nmos", text)
+
+    assert any("continuous right-side macro spine" in note for note in observation.notes)
+
+
 def test_tex_transistor_validation_rejects_rectangular_fallback() -> None:
     geometry = _compiled_geometry(cmos_inverter())
     text = export_circuitikz(cmos_inverter()).replace(
@@ -90,6 +120,16 @@ def test_tex_transistor_validation_rejects_rectangular_fallback() -> None:
     results = _compare_tex_transistors(geometry, text)
 
     assert any(not result.passed for result in results)
+
+
+def test_extract_tex_macro_segments_finds_split_mos_leads() -> None:
+    segments = _extract_tex_macro_segments(export_circuitikz(cmos_inverter()), "msCircuitMixedSigNmosSymbol")
+    right_vertical = [
+        segment for segment in segments if abs(segment[0][0] - segment[1][0]) <= 0.05 and max(segment[0][0], segment[1][0]) >= 0.20
+    ]
+
+    assert len(right_vertical) >= 2
+    assert not _has_continuous_right_vertical_macro_spine(right_vertical)
 
 
 def test_tex_label_validation_uses_pruned_readable_label_policy() -> None:
