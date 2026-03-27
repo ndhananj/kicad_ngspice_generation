@@ -633,7 +633,7 @@ def _build_transistor_symbol_definition(shape_name: str, *, dialect: str) -> Tex
             r"  \pgfmathsetmacro{\msx}{#1}",
             r"  \pgfmathsetmacro{\msy}{#2}",
             *_transistor_line_commands(_transistor_segments(shape_name), dialect=dialect),
-            rf"  \draw ({{\msx + {_tex_dimension(-2.90, dialect=dialect):.2f}}},{{\msy + 0.00}}) circle ({bubble_radius:.2f});",
+            rf"  \draw ({{\msx + {_tex_dimension(-2.54, dialect=dialect):.2f}}},{{\msy + 0.00}}) circle ({bubble_radius:.2f});",
             rf"  \node[font=\scriptsize,align=center] at ({{\msx + 0.00}},{{\msy + {_tex_dimension(-10.80, dialect=dialect):.2f}}}) {label};",
         )
     else:
@@ -695,15 +695,16 @@ def _transistor_segments(shape_name: str) -> tuple[tuple[tuple[float, float], tu
         )
     if shape_name == "pmos":
         return (
-            ((-5.08, 0.0), (-3.70, 0.0)),
+            ((-5.08, 0.0), (-3.44, 0.0)),
+            ((-2.54, -3.30), (-2.54, 3.30)),
             ((-1.02, -3.30), (-1.02, 3.30)),
             ((2.54, -8.80), (2.54, -2.20)),
             ((2.54, 2.20), (2.54, 8.80)),
             ((-1.02, -2.20), (2.54, -2.20)),
             ((-1.02, 2.20), (2.54, 2.20)),
-            ((0.25, 0.00), (1.52, 0.00)),
-            ((0.25, 0.00), (1.52, -1.27)),
-            ((0.25, 0.00), (1.52, 1.27)),
+            ((1.52, 0.00), (0.25, 0.00)),
+            ((1.52, 0.00), (0.25, -1.27)),
+            ((1.52, 0.00), (0.25, 1.27)),
         )
     raise AssertionError(f"unsupported transistor segment shape {shape_name}")
 

@@ -606,7 +606,7 @@ def _compare_tex_mos_geometry(
         for length, angle, (x1, _y1, x2, _y2) in segments
         if not _line_is_axis_aligned_angle(angle) and min(x1, x2) >= 150 and length >= 25.0
     ]
-    if right_diagonal:
+    if right_diagonal and shape != "pmos":
         notes.append("right-side corridor contains a kinked diagonal segment")
     return RenderedTexMosGeometryComparison(
         target_name=target_name,
@@ -685,16 +685,11 @@ def _extract_tex_macro_segments(
     text: str,
     macro_name: str,
 ) -> list[tuple[tuple[float, float], tuple[float, float]]]:
-    lines = text.splitlines()
-    try:
-        start = lines.index(rf"\providecommand{{\{macro_name}}}[4]{{%")
-    except ValueError:
+    macro_lines = _extract_tex_macro_lines(text, macro_name)
+    if not macro_lines:
         return []
     segments: list[tuple[tuple[float, float], tuple[float, float]]] = []
-    for line in lines[start + 1 :]:
-        stripped = line.strip()
-        if stripped == "}":
-            break
+    for stripped in macro_lines:
         match = re.match(
             r"\\draw \(\{\\msx \+ (?P<x1>-?\d+\.\d+)\},\{\\msy \+ (?P<y1>-?\d+\.\d+)\}\) -- "
             r"\(\{\\msx \+ (?P<x2>-?\d+\.\d+)\},\{\\msy \+ (?P<y2>-?\d+\.\d+)\}\);",
@@ -709,6 +704,45 @@ def _extract_tex_macro_segments(
             )
         )
     return segments
+
+
+def _extract_tex_macro_circles(
+    text: str,
+    macro_name: str,
+) -> list[tuple[tuple[float, float], float]]:
+    macro_lines = _extract_tex_macro_lines(text, macro_name)
+    if not macro_lines:
+        return []
+    circles: list[tuple[tuple[float, float], float]] = []
+    for stripped in macro_lines:
+        match = re.match(
+            r"\\draw \(\{\\msx \+ (?P<x>-?\d+\.\d+)\},\{\\msy \+ (?P<y>-?\d+\.\d+)\}\) circle \((?P<radius>-?\d+\.\d+)\);",
+            stripped,
+        )
+        if match is None:
+            continue
+        circles.append(
+            (
+                (float(match.group("x")), float(match.group("y"))),
+                float(match.group("radius")),
+            )
+        )
+    return circles
+
+
+def _extract_tex_macro_lines(text: str, macro_name: str) -> list[str]:
+    lines = text.splitlines()
+    try:
+        start = lines.index(rf"\providecommand{{\{macro_name}}}[4]{{%")
+    except ValueError:
+        return []
+    macro_lines: list[str] = []
+    for line in lines[start + 1 :]:
+        stripped = line.strip()
+        if stripped == "}":
+            break
+        macro_lines.append(stripped)
+    return macro_lines
 
 
 def _has_continuous_right_vertical_macro_spine(

@@ -17,6 +17,7 @@ from mixedsig2cad.projections.tex_render_validate import (
     _compiled_geometry,
     _crop_rendered_mos_region,
     _estimate_tex_raster_transform,
+    _extract_tex_macro_circles,
     _extract_tex_macro_segments,
     _has_continuous_right_vertical_macro_spine,
     _observe_tex_mos_macro,
@@ -130,6 +131,61 @@ def test_extract_tex_macro_segments_finds_split_mos_leads() -> None:
 
     assert len(right_vertical) >= 2
     assert not _has_continuous_right_vertical_macro_spine(right_vertical)
+
+
+def test_tex_pmos_macro_uses_double_channel_line_and_bubble_on_left_channel() -> None:
+    text = export_circuitikz(cmos_inverter())
+    segments = _extract_tex_macro_segments(text, "msCircuitMixedSigPmosSymbol")
+    circles = _extract_tex_macro_circles(text, "msCircuitMixedSigPmosSymbol")
+
+    vertical_xs = sorted(
+        {
+            round(segment[0][0], 2)
+            for segment in segments
+            if abs(segment[0][0] - segment[1][0]) <= 0.05
+        }
+    )
+
+    assert len(vertical_xs) == 3
+    assert vertical_xs[0] < vertical_xs[1] < vertical_xs[2]
+    assert len(circles) == 1
+    assert circles[0][0] == (vertical_xs[0], 0.0)
+    assert circles[0][1] > 0.0
+
+
+def test_tex_pmos_arrow_points_opposite_direction_of_nmos() -> None:
+    text = export_circuitikz(cmos_inverter())
+    nmos_segments = _extract_tex_macro_segments(text, "msCircuitMixedSigNmosSymbol")
+    pmos_segments = _extract_tex_macro_segments(text, "msCircuitMixedSigPmosSymbol")
+
+    def _arrow_diagonal_segments(
+        segments: list[tuple[tuple[float, float], tuple[float, float]]],
+    ) -> list[tuple[tuple[float, float], tuple[float, float]]]:
+        return [
+            segment
+            for segment in segments
+            if abs(abs(segment[0][0] - segment[1][0]) - abs(segment[0][1] - segment[1][1])) <= 0.05
+        ]
+
+    def _arrow_tip_x(
+        segments: list[tuple[tuple[float, float], tuple[float, float]]],
+    ) -> float:
+        diagonal_segments = _arrow_diagonal_segments(segments)
+        endpoint_counts: dict[tuple[float, float], int] = {}
+        for start, end in diagonal_segments:
+            endpoint_counts[start] = endpoint_counts.get(start, 0) + 1
+            endpoint_counts[end] = endpoint_counts.get(end, 0) + 1
+        tip, _count = max(endpoint_counts.items(), key=lambda item: item[1])
+        return tip[0]
+
+    nmos_tip_x = _arrow_tip_x(nmos_segments)
+    pmos_tip_x = _arrow_tip_x(pmos_segments)
+    nmos_arrow_xs = [point[0] for segment in _arrow_diagonal_segments(nmos_segments) for point in segment]
+    pmos_arrow_xs = [point[0] for segment in _arrow_diagonal_segments(pmos_segments) for point in segment]
+
+    assert nmos_tip_x == min(nmos_arrow_xs)
+    assert pmos_tip_x == max(pmos_arrow_xs)
+    assert pmos_tip_x > nmos_tip_x
 
 
 def test_tex_label_validation_uses_pruned_readable_label_policy() -> None:
